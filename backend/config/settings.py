@@ -3,6 +3,10 @@ import os
 
 from dotenv import load_dotenv
 
+from .compat import patch_django_context_copy_for_python_314
+
+patch_django_context_copy_for_python_314()
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
