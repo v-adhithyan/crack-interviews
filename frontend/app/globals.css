@@ -46,17 +46,16 @@ a {
   padding: 0.1rem 0.25rem;
 }
 
-.progress-track {
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  height: 3px;
+.progress-bar {
+  position: relative;
+  height: 8px;
   width: 100%;
   overflow: hidden;
-  background: rgba(24, 33, 47, 0.08);
+  border-radius: 999px;
+  background: rgba(24, 33, 47, 0.1);
 }
 
-.progress-track::before {
+.progress-bar::before {
   content: "";
   position: absolute;
   inset: 0;

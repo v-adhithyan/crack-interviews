@@ -40,7 +40,7 @@ export function CodeWorkspace({ question }: Props) {
 
   return (
     <main className="min-h-screen bg-paper">
-      <header className="relative grid min-h-16 grid-cols-[1fr_auto_1fr] items-center border-b border-line bg-white px-4">
+      <header className="grid min-h-16 grid-cols-[1fr_auto_1fr] items-center border-b border-line bg-white px-4">
         <Link href="/" className="font-semibold text-ink">Crack Interviews</Link>
         <div className="flex items-center gap-2">
           <button
@@ -71,8 +71,26 @@ export function CodeWorkspace({ question }: Props) {
             Submissions
           </Link>
         </div>
-        {isRunning ? <div className="progress-track" aria-label={busyMessage} /> : null}
       </header>
+
+      {isRunning ? (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-ink/35 px-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="submission-progress-title"
+        >
+          <div className="w-full max-w-sm rounded border border-line bg-white p-5 shadow-2xl">
+            <div className="mb-4">
+              <h2 id="submission-progress-title" className="text-base font-bold text-ink">
+                {activeMode === "submit" ? "Submitting solution" : "Running code"}
+              </h2>
+              <p className="mt-1 text-sm text-zinc-600">{busyMessage}</p>
+            </div>
+            <div className="progress-bar" aria-label={busyMessage} />
+          </div>
+        </div>
+      ) : null}
 
       <section className="grid min-h-[calc(100vh-4rem)] grid-cols-1 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
         <article className="overflow-y-auto border-r border-line bg-paper p-6">
