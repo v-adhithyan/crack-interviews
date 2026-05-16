@@ -1,0 +1,14 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  <h1>Import test cases for {{ question.title }}</h1>
+  <p>CSV headers: name, stdin, expected_output, is_sample, is_hidden, order</p>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <div class="submit-row">
+      <input type="submit" value="Import" class="default">
+      <a href="../../{{ question.pk }}/change/">Cancel</a>
+    </div>
+  </form>
+{% endblock %}
