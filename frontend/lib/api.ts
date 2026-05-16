@@ -31,6 +31,8 @@ export type SubmissionStatus = "pending" | "accepted" | "wrong_answer" | "runtim
 export type Submission = {
   id: number;
   question: number;
+  question_slug: string;
+  question_title: string;
   kind: "run" | "submit";
   code: string;
   status: SubmissionStatus;

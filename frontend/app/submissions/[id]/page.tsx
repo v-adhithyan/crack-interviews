@@ -10,12 +10,15 @@ export default async function SubmissionDetailPage({ params }: { params: { id: s
     <main className="min-h-screen bg-paper">
       <header className="border-b border-line bg-white px-6 py-5">
         <div className="mx-auto max-w-6xl">
-          <Link href="/" className="mb-2 inline-flex items-center gap-2 text-sm font-semibold text-zinc-600">
+          <Link href={`/questions/${submission.question_slug}`} className="mb-2 inline-flex items-center gap-2 text-sm font-semibold text-zinc-600">
             <ArrowLeft size={16} />
-            Back to questions
+            Back to question
           </Link>
           <div className="flex items-center justify-between gap-4">
-            <h1 className="text-2xl font-bold">Submission #{submission.id}</h1>
+            <div>
+              <p className="text-sm font-semibold text-zinc-600">{submission.question_title}</p>
+              <h1 className="text-2xl font-bold">Submission #{submission.id}</h1>
+            </div>
             <StatusBadge status={submission.status} />
           </div>
         </div>

@@ -3,6 +3,7 @@
 import Editor from "@monaco-editor/react";
 import { CheckCircle2, History, Pause, Play, RotateCcw, Send, Timer } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { runCode, submitCode, type QuestionDetail, type Submission } from "@/lib/api";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -12,6 +13,7 @@ type Props = {
 };
 
 export function CodeWorkspace({ question }: Props) {
+  const router = useRouter();
   const [code, setCode] = useState(question.starter_code);
   const [isRunning, setIsRunning] = useState(false);
   const [activeMode, setActiveMode] = useState<"run" | "submit" | null>(null);
@@ -69,6 +71,9 @@ export function CodeWorkspace({ question }: Props) {
       if (mode === "submit" && timerStarted) {
         resetTimer();
         setToastMessage("Submission saved. Timer reset.");
+      }
+      if (mode === "submit") {
+        router.push(`/submissions/${response.id}`);
       }
     } catch (err) {
       await minimumFeedback;

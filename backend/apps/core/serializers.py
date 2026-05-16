@@ -32,12 +32,16 @@ class TestCaseResultSerializer(serializers.ModelSerializer):
 
 class SubmissionSerializer(serializers.ModelSerializer):
     results = TestCaseResultSerializer(many=True, read_only=True)
+    question_slug = serializers.CharField(source="question.slug", read_only=True)
+    question_title = serializers.CharField(source="question.title", read_only=True)
 
     class Meta:
         model = Submission
         fields = [
             "id",
             "question",
+            "question_slug",
+            "question_title",
             "kind",
             "code",
             "status",
