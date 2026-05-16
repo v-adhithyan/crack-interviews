@@ -3,14 +3,44 @@ import io
 
 from django import forms
 from django.contrib import admin, messages
+from django.core.exceptions import ValidationError
+from django.db import transaction
+from django.urls import reverse
 from django.shortcuts import redirect, render
 from django.urls import path
+from django.utils.html import format_html
 
 from .models import Question, Submission, TestCase, TestCaseResult
 
 
 class CsvImportForm(forms.Form):
-    csv_file = forms.FileField()
+    csv_file = forms.FileField(required=False, help_text="Upload a CSV file.")
+    csv_text = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 14, "class": "vLargeTextField"}),
+        help_text="Or paste CSV content here.",
+    )
+    replace_existing = forms.BooleanField(
+        required=False,
+        initial=False,
+        help_text="Delete existing test cases for this question before importing.",
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        csv_file = cleaned_data.get("csv_file")
+        csv_text = cleaned_data.get("csv_text", "").strip()
+        if not csv_file and not csv_text:
+            raise ValidationError("Upload a CSV file or paste CSV content.")
+        if csv_file and csv_text:
+            raise ValidationError("Use either a CSV file or pasted CSV content, not both.")
+        return cleaned_data
+
+    def csv_content(self):
+        csv_file = self.cleaned_data.get("csv_file")
+        if csv_file:
+            return csv_file.read().decode("utf-8-sig")
+        return self.cleaned_data.get("csv_text", "")
 
 
 class TestCaseInline(admin.TabularInline):
@@ -21,7 +51,7 @@ class TestCaseInline(admin.TabularInline):
 
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):
-    list_display = ["title", "difficulty", "is_active", "test_case_count", "created_at"]
+    list_display = ["title", "difficulty", "is_active", "test_case_count", "test_case_csv", "created_at"]
     list_filter = ["difficulty", "is_active"]
     search_fields = ["title", "description"]
     prepopulated_fields = {"slug": ("title",)}
@@ -30,6 +60,12 @@ class QuestionAdmin(admin.ModelAdmin):
 
     def test_case_count(self, obj):
         return obj.test_cases.count()
+
+    def test_case_csv(self, obj):
+        url = reverse("admin:core_question_import_test_cases", args=[obj.pk])
+        return format_html('<a class="button" href="{}">Import CSV</a>', url)
+
+    test_case_csv.short_description = "Test cases"
 
     def get_urls(self):
         return [
@@ -46,21 +82,35 @@ class QuestionAdmin(admin.ModelAdmin):
         if request.method == "POST":
             form = CsvImportForm(request.POST, request.FILES)
             if form.is_valid():
-                content = form.cleaned_data["csv_file"].read().decode("utf-8-sig")
+                content = form.csv_content()
                 reader = csv.DictReader(io.StringIO(content))
-                created = 0
-                for row in reader:
-                    TestCase.objects.create(
-                        question=question,
-                        name=row.get("name", ""),
-                        stdin=row.get("stdin", ""),
-                        expected_output=row.get("expected_output", ""),
-                        is_sample=row.get("is_sample", "").lower() in {"1", "true", "yes", "y"},
-                        is_hidden=row.get("is_hidden", "true").lower() in {"1", "true", "yes", "y"},
-                        order=int(row.get("order") or 0),
+                required_fields = {"name", "stdin", "expected_output", "is_sample", "is_hidden", "order"}
+                missing_fields = required_fields - set(reader.fieldnames or [])
+                if missing_fields:
+                    self.message_user(
+                        request,
+                        f"Missing CSV columns: {', '.join(sorted(missing_fields))}.",
+                        level=messages.ERROR,
                     )
-                    created += 1
-                self.message_user(request, f"Imported {created} test cases.", level=messages.SUCCESS)
+                    return render(request, "admin/core/question/import_test_cases.html", {"form": form, "question": question})
+
+                created = 0
+                with transaction.atomic():
+                    if form.cleaned_data["replace_existing"]:
+                        question.test_cases.all().delete()
+                    for row in reader:
+                        TestCase.objects.create(
+                            question=question,
+                            name=row.get("name", ""),
+                            stdin=row.get("stdin", ""),
+                            expected_output=row.get("expected_output", ""),
+                            is_sample=row.get("is_sample", "").lower() in {"1", "true", "yes", "y"},
+                            is_hidden=row.get("is_hidden", "true").lower() in {"1", "true", "yes", "y"},
+                            order=int(row.get("order") or 0),
+                        )
+                        created += 1
+                action = "Replaced and imported" if form.cleaned_data["replace_existing"] else "Imported"
+                self.message_user(request, f"{action} {created} test cases.", level=messages.SUCCESS)
                 return redirect(f"../../{question_id}/change/")
         else:
             form = CsvImportForm()

@@ -2,10 +2,35 @@
 
 {% block content %}
   <h1>Import test cases for {{ question.title }}</h1>
-  <p>CSV headers: name, stdin, expected_output, is_sample, is_hidden, order</p>
+  <p>Upload a CSV file or paste CSV values directly. Use the replace option when you want this import to become the question's full test suite.</p>
+  <p><strong>CSV headers:</strong> name, stdin, expected_output, is_sample, is_hidden, order</p>
   <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
-    {{ form.as_p }}
+    {{ form.non_field_errors }}
+
+    <fieldset class="module aligned">
+      <div class="form-row">
+        {{ form.csv_file.errors }}
+        {{ form.csv_file.label_tag }}
+        {{ form.csv_file }}
+        {% if form.csv_file.help_text %}<div class="help">{{ form.csv_file.help_text }}</div>{% endif %}
+      </div>
+
+      <div class="form-row">
+        {{ form.csv_text.errors }}
+        {{ form.csv_text.label_tag }}
+        {{ form.csv_text }}
+        {% if form.csv_text.help_text %}<div class="help">{{ form.csv_text.help_text }}</div>{% endif %}
+      </div>
+
+      <div class="form-row">
+        {{ form.replace_existing.errors }}
+        {{ form.replace_existing }}
+        {{ form.replace_existing.label_tag }}
+        {% if form.replace_existing.help_text %}<div class="help">{{ form.replace_existing.help_text }}</div>{% endif %}
+      </div>
+    </fieldset>
+
     <div class="submit-row">
       <input type="submit" value="Import" class="default">
       <a href="../../{{ question.pk }}/change/">Cancel</a>
