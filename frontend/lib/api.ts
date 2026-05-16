@@ -37,6 +37,7 @@ export type Submission = {
   stdout: string;
   stderr: string;
   execution_time_ms: number;
+  solve_time_seconds: number | null;
   passed_count: number;
   total_count: number;
   created_at: string;
@@ -78,10 +79,10 @@ export function runCode(slug: string, code: string) {
   });
 }
 
-export function submitCode(slug: string, code: string) {
+export function submitCode(slug: string, code: string, solveTimeSeconds?: number | null) {
   return request<Submission>(`/questions/${slug}/submit/`, {
     method: "POST",
-    body: JSON.stringify({ code }),
+    body: JSON.stringify({ code, solve_time_seconds: solveTimeSeconds ?? null }),
   });
 }
 

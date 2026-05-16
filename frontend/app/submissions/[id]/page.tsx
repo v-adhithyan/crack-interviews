@@ -26,6 +26,9 @@ export default async function SubmissionDetailPage({ params }: { params: { id: s
           <p className="mb-4 text-sm font-semibold">
             Passed {submission.passed_count} of {submission.total_count} tests in {submission.execution_time_ms}ms
           </p>
+          {submission.solve_time_seconds !== null ? (
+            <p className="mb-4 text-sm font-semibold text-zinc-600">Solve time: {formatDuration(submission.solve_time_seconds)}</p>
+          ) : null}
           <div className="space-y-3">
             {submission.results.map((result) => (
               <div key={result.id} className="rounded border border-line p-3">
@@ -53,4 +56,16 @@ export default async function SubmissionDetailPage({ params }: { params: { id: s
       </section>
     </main>
   );
+}
+
+function formatDuration(totalSeconds: number) {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }

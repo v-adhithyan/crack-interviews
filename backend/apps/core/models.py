@@ -65,6 +65,7 @@ class Submission(models.Model):
     stdout = models.TextField(blank=True)
     stderr = models.TextField(blank=True)
     execution_time_ms = models.PositiveIntegerField(default=0)
+    solve_time_seconds = models.PositiveIntegerField(null=True, blank=True)
     passed_count = models.PositiveIntegerField(default=0)
     total_count = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)

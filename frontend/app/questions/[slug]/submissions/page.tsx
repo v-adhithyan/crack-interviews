@@ -28,13 +28,16 @@ export default async function ProblemSubmissionsPage({ params }: { params: { slu
               <Link
                 href={`/submissions/${submission.id}`}
                 key={submission.id}
-                className="grid grid-cols-[1fr_150px_140px_180px] items-center border-b border-line px-4 py-4 last:border-0 hover:bg-zinc-50"
+                className="grid grid-cols-[1fr_150px_140px_130px_180px] items-center border-b border-line px-4 py-4 last:border-0 hover:bg-zinc-50"
               >
                 <StatusBadge status={submission.status} />
                 <span className="text-sm font-semibold">
                   {submission.passed_count}/{submission.total_count} passed
                 </span>
                 <span className="text-sm text-zinc-600">{submission.execution_time_ms}ms</span>
+                <span className="text-sm text-zinc-600">
+                  {submission.solve_time_seconds !== null ? formatDuration(submission.solve_time_seconds) : "-"}
+                </span>
                 <span className="text-sm text-zinc-600">{new Date(submission.created_at).toLocaleString()}</span>
               </Link>
             ))
@@ -43,4 +46,16 @@ export default async function ProblemSubmissionsPage({ params }: { params: { slu
       </section>
     </main>
   );
+}
+
+function formatDuration(totalSeconds: number) {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }

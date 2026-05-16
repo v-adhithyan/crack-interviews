@@ -45,14 +45,19 @@ def question_detail(request, slug):
     return Response(serializer.data)
 
 
-def create_and_run_submission(question, code, sample_only, kind):
+def create_and_run_submission(question, code, sample_only, kind, solve_time_seconds=None):
     test_cases = question.test_cases.all()
     if sample_only:
         test_cases = test_cases.filter(is_sample=True)
     if not test_cases.exists():
         return None
 
-    submission = Submission.objects.create(question=question, code=code, kind=kind)
+    submission = Submission.objects.create(
+        question=question,
+        code=code,
+        kind=kind,
+        solve_time_seconds=solve_time_seconds,
+    )
     return run_submission(submission, test_cases)
 
 
@@ -76,7 +81,22 @@ def submit_code(request, slug):
     if not code.strip():
         return Response({"detail": "Code is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-    submission = create_and_run_submission(question, code, sample_only=False, kind=Submission.Kind.SUBMIT)
+    solve_time_seconds = request.data.get("solve_time_seconds")
+    if solve_time_seconds in ("", None):
+        solve_time_seconds = None
+    else:
+        try:
+            solve_time_seconds = max(0, int(solve_time_seconds))
+        except (TypeError, ValueError):
+            return Response({"detail": "solve_time_seconds must be an integer."}, status=status.HTTP_400_BAD_REQUEST)
+
+    submission = create_and_run_submission(
+        question,
+        code,
+        sample_only=False,
+        kind=Submission.Kind.SUBMIT,
+        solve_time_seconds=solve_time_seconds,
+    )
     if submission is None:
         return Response({"detail": "This question has no test cases."}, status=status.HTTP_400_BAD_REQUEST)
     return Response(SubmissionSerializer(submission).data, status=status.HTTP_201_CREATED)

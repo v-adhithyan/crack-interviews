@@ -44,6 +44,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
             "stdout",
             "stderr",
             "execution_time_ms",
+            "solve_time_seconds",
             "passed_count",
             "total_count",
             "created_at",
@@ -54,4 +55,4 @@ class SubmissionSerializer(serializers.ModelSerializer):
 class SubmissionListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Submission
-        fields = ["id", "kind", "status", "execution_time_ms", "passed_count", "total_count", "created_at"]
+        fields = ["id", "kind", "status", "execution_time_ms", "solve_time_seconds", "passed_count", "total_count", "created_at"]

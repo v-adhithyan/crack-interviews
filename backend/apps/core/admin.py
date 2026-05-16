@@ -134,8 +134,8 @@ class TestCaseResultInline(admin.TabularInline):
 
 @admin.register(Submission)
 class SubmissionAdmin(admin.ModelAdmin):
-    list_display = ["question", "kind", "status", "passed_count", "total_count", "execution_time_ms", "created_at"]
+    list_display = ["question", "kind", "status", "passed_count", "total_count", "execution_time_ms", "solve_time_seconds", "created_at"]
     list_filter = ["kind", "status", "question"]
     search_fields = ["question__title", "code"]
-    readonly_fields = ["question", "kind", "code", "status", "stdout", "stderr", "execution_time_ms", "passed_count", "total_count", "created_at"]
+    readonly_fields = ["question", "kind", "code", "status", "stdout", "stderr", "execution_time_ms", "solve_time_seconds", "passed_count", "total_count", "created_at"]
     inlines = [TestCaseResultInline]

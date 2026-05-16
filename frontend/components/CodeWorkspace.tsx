@@ -1,9 +1,9 @@
 "use client";
 
 import Editor from "@monaco-editor/react";
-import { CheckCircle2, History, Play, Send } from "lucide-react";
+import { CheckCircle2, History, Pause, Play, RotateCcw, Send, Timer } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { runCode, submitCode, type QuestionDetail, type Submission } from "@/lib/api";
 import { StatusBadge } from "@/components/StatusBadge";
 
@@ -17,16 +17,59 @@ export function CodeWorkspace({ question }: Props) {
   const [activeMode, setActiveMode] = useState<"run" | "submit" | null>(null);
   const [result, setResult] = useState<Submission | null>(null);
   const [error, setError] = useState("");
+  const [timerStarted, setTimerStarted] = useState(false);
+  const [timerRunning, setTimerRunning] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [toastMessage, setToastMessage] = useState("");
+
+  useEffect(() => {
+    if (!timerRunning) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      setElapsedSeconds((current) => current + 1);
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [timerRunning]);
+
+  const formattedElapsed = useMemo(() => formatDuration(elapsedSeconds), [elapsedSeconds]);
+
+  useEffect(() => {
+    if (!toastMessage) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => setToastMessage(""), 2800);
+    return () => window.clearTimeout(timeout);
+  }, [toastMessage]);
+
+  function toggleTimer() {
+    setTimerStarted(true);
+    setTimerRunning((current) => !current);
+  }
+
+  function resetTimer() {
+    setTimerStarted(false);
+    setTimerRunning(false);
+    setElapsedSeconds(0);
+  }
 
   async function execute(mode: "run" | "submit") {
     setIsRunning(true);
     setActiveMode(mode);
     setError("");
     const minimumFeedback = new Promise((resolve) => setTimeout(resolve, 450));
+    const solveTimeSeconds = mode === "submit" && timerStarted ? elapsedSeconds : null;
     try {
-      const response = await (mode === "run" ? runCode(question.slug, code) : submitCode(question.slug, code));
+      const response = await (mode === "run" ? runCode(question.slug, code) : submitCode(question.slug, code, solveTimeSeconds));
       await minimumFeedback;
       setResult(response);
+      if (mode === "submit" && timerStarted) {
+        resetTimer();
+        setToastMessage("Submission saved. Timer reset.");
+      }
     } catch (err) {
       await minimumFeedback;
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -62,7 +105,33 @@ export function CodeWorkspace({ question }: Props) {
             {activeMode === "submit" ? "Submitting" : "Submit"}
           </button>
         </div>
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          <div className="inline-flex h-10 items-center rounded border border-line bg-white text-sm font-semibold">
+            <span className="inline-flex h-full items-center gap-2 border-r border-line px-3 tabular-nums">
+              <Timer size={16} />
+              {formattedElapsed}
+            </span>
+            <button
+              type="button"
+              onClick={toggleTimer}
+              disabled={isRunning}
+              className="grid h-10 w-10 place-items-center disabled:opacity-50"
+              aria-label={timerRunning ? "Pause timer" : "Start timer"}
+              title={timerRunning ? "Pause timer" : "Start timer"}
+            >
+              {timerRunning ? <Pause size={16} /> : <Play size={16} />}
+            </button>
+            <button
+              type="button"
+              onClick={resetTimer}
+              disabled={isRunning || elapsedSeconds === 0}
+              className="grid h-10 w-10 place-items-center border-l border-line disabled:opacity-50"
+              aria-label="Reset timer"
+              title="Reset timer"
+            >
+              <RotateCcw size={16} />
+            </button>
+          </div>
           <Link
             href={`/questions/${question.slug}/submissions`}
             className="inline-flex h-10 items-center gap-2 rounded border border-line bg-white px-3 text-sm font-semibold"
@@ -89,6 +158,15 @@ export function CodeWorkspace({ question }: Props) {
             </div>
             <div className="progress-bar" aria-label={busyMessage} />
           </div>
+        </div>
+      ) : null}
+
+      {toastMessage ? (
+        <div
+          role="status"
+          className="fixed right-4 top-20 z-50 rounded border border-emerald-200 bg-white px-4 py-3 text-sm font-semibold text-emerald-900 shadow-lg"
+        >
+          {toastMessage}
         </div>
       ) : null}
 
@@ -144,6 +222,9 @@ export function CodeWorkspace({ question }: Props) {
                 <p className="font-semibold">
                   Passed {result.passed_count} of {result.total_count} tests in {result.execution_time_ms}ms
                 </p>
+                {result.solve_time_seconds !== null ? (
+                  <p className="text-zinc-600">Solve time: {formatDuration(result.solve_time_seconds)}</p>
+                ) : null}
                 {result.results.map((item) => (
                   <div key={item.id} className="rounded border border-line p-3">
                     <div className="mb-2 flex items-center justify-between gap-3">
@@ -170,4 +251,16 @@ export function CodeWorkspace({ question }: Props) {
       </section>
     </main>
   );
+}
+
+function formatDuration(totalSeconds: number) {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
