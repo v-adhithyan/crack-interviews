@@ -1,0 +1,47 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}HackerLeap | Resume Match, ATS Optimization, and Interview Prep{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}HackerLeap helps software engineers optimize resumes, match jobs smarter, and prepare for interviews with confidence.{% endblock %}">
+    <meta name="keywords" content="HackerLeap, resume match, ATS optimization, AI resume rewrite, interview prep, software engineer jobs">
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="HackerLeap">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="HackerLeap">
+    <meta property="og:title" content="{% block og_title %}HackerLeap | Land your next job{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}From application to interview, HackerLeap helps software engineers optimize resumes, match jobs smarter, and prepare with confidence.{% endblock %}">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="HackerLeap | Land your next job">
+    <meta name="twitter:description" content="Resume matching, ATS optimization, AI resume rewriting, and interview prep for software engineers.">
+    <link rel="canonical" href="{{ request.build_absolute_uri }}">
+    <link rel="stylesheet" href="{% static 'website/css/site.css' %}">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "HackerLeap",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web",
+      "description": "HackerLeap helps software engineers optimize resumes, match jobs smarter, and prepare for interviews with confidence.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+        "availability": "https://schema.org/PreOrder"
+      }
+    }
+    </script>
+</head>
+<body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    {% include "website/includes/header.html" %}
+    <main id="main-content">
+        {% block content %}{% endblock %}
+    </main>
+    {% include "website/includes/footer.html" %}
+</body>
+</html>

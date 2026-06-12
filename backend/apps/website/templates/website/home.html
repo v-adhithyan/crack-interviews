@@ -1,0 +1,198 @@
+{% extends "website/base.html" %}
+
+{% block content %}
+<section class="hero-section">
+    <div class="page-shell hero-grid">
+        <div class="hero-copy">
+            <p class="beta-pill">
+                <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M13 2 4 14h7l-1 8 10-13h-7l1-7Z"/>
+                </svg>
+                CLOSED BETA - FREE FOR EARLY USERS
+            </p>
+            <h1>Land your next job,<br>take the <span>big leap</span>.</h1>
+            <p class="hero-subtitle">From application to interview, HackerLeap helps software engineers optimize resumes, match jobs smarter, and prepare with confidence.</p>
+            <form class="signup-form" aria-label="Request Early Access">
+                <label class="sr-only" for="hero-email">Enter your email</label>
+                <input id="hero-email" name="email" type="email" placeholder="Enter your email" autocomplete="email">
+                <button type="submit">Request Early Access <span aria-hidden="true">-&gt;</span></button>
+            </form>
+            <p class="payment-note">
+                <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <path d="M7 11V8a5 5 0 0 1 10 0v3" stroke="currentColor" stroke-width="2"/>
+                    <rect x="6" y="11" width="12" height="10" rx="2" stroke="currentColor" stroke-width="2"/>
+                    <path d="M12 15v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                No payment details required. Just your email.
+            </p>
+        </div>
+        <aside class="report-card" aria-label="Resume match report preview">
+            <div class="report-top">
+                <div class="match-panel">
+                    <h2>Match Score</h2>
+                    <div class="score-ring" aria-label="82 percent match score">
+                        <span>82%</span>
+                    </div>
+                    <strong>Great Match</strong>
+                    <p>You're a strong match for<br>this role!</p>
+                </div>
+                <div class="keyword-panel">
+                    <h2>Top Missing Keywords</h2>
+                    <div class="keyword-list">
+                        <span>System Design</span>
+                        <span>Kubernetes</span>
+                        <span>AWS</span>
+                        <span>Microservices</span>
+                        <span>CI/CD</span>
+                    </div>
+                    <h3>Strengths</h3>
+                    <ul class="check-list">
+                        <li>Python</li>
+                        <li>Backend Development</li>
+                        <li>REST APIs</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="report-bottom">
+                <h2>Suggested Improvements</h2>
+                <ul class="check-list">
+                    <li>Add more quantified impact in your experience</li>
+                    <li>Highlight your experience with distributed systems</li>
+                    <li>Include keywords related to cloud infrastructure</li>
+                </ul>
+                <a href="#">View Full Report</a>
+            </div>
+        </aside>
+    </div>
+</section>
+
+<section class="page-shell founder-band" aria-label="Built with heart">
+    <div class="heart-tile" aria-hidden="true">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+            <path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10Z" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>
+        </svg>
+    </div>
+    <div>
+        <h2>Built with <span class="heart-copy">&#10084;</span> by a software engineer, for all software engineers</h2>
+        <p>HackerLeap is created by someone who's been through the hiring grind and understands what really matters.</p>
+    </div>
+</section>
+
+<section class="page-shell feature-section" id="features" aria-label="Features">
+    <article class="feature-item">
+        <div class="feature-icon" aria-hidden="true">
+            <svg width="31" height="31" viewBox="0 0 24 24" fill="none">
+                <path d="M6 3h8l4 4v14H6V3Z" stroke="currentColor" stroke-width="1.8"/>
+                <path d="M14 3v5h4M8.5 15.5l2-2 2 2 3-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <h2>Resume Match</h2>
+        <p>See how well your resume matches the job description.</p>
+    </article>
+    <article class="feature-item">
+        <div class="feature-icon" aria-hidden="true">
+            <svg width="31" height="31" viewBox="0 0 24 24" fill="none">
+                <path d="M8 4a4 4 0 0 0-4 4M16 4a4 4 0 0 1 4 4M8 20a4 4 0 0 1-4-4M16 20a4 4 0 0 0 4-4M9 12h6M12 9v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+        </div>
+        <h2>ATS Optimization</h2>
+        <p>Find missing keywords and improve your ATS score.</p>
+    </article>
+    <article class="feature-item">
+        <div class="feature-icon" aria-hidden="true">
+            <svg width="31" height="31" viewBox="0 0 24 24" fill="none">
+                <path d="M5 19h4l10-10a2.8 2.8 0 0 0-4-4L5 15v4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                <path d="M13.5 6.5 17.5 10.5M12 19h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+        </div>
+        <h2>AI Resume Rewrite</h2>
+        <p>Get smart suggestions to rewrite and improve your resume.</p>
+    </article>
+    <article class="feature-item" id="roadmap">
+        <div class="feature-icon" aria-hidden="true">
+            <svg width="31" height="31" viewBox="0 0 24 24" fill="none">
+                <path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/>
+            </svg>
+        </div>
+        <span class="coming-badge">Coming Soon</span>
+        <h2>Interview Prep</h2>
+        <p>Practice questions tailored to the role.</p>
+    </article>
+    <article class="feature-item">
+        <div class="feature-icon" aria-hidden="true">
+            <svg width="31" height="31" viewBox="0 0 24 24" fill="none">
+                <path d="M12 3 9.8 8.7 4 6.8 7 12l-3 5.2 5.8-1.9L12 21l2.2-5.7 5.8 1.9-3-5.2 3-5.2-5.8 1.9L12 3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <span class="coming-badge">Coming Soon</span>
+        <h2>Chrome Extension</h2>
+        <p>Analyze jobs on LinkedIn and other platforms instantly.</p>
+    </article>
+</section>
+
+<section class="page-shell steps-section" id="how-it-works" aria-label="How it works">
+    <h2>How it works</h2>
+    <div class="steps-grid">
+        <article class="step-item">
+            <div class="step-icon" aria-hidden="true">
+                <svg width="31" height="31" viewBox="0 0 24 24" fill="none">
+                    <path d="M6 3h8l4 4v14H6V3Z" stroke="currentColor" stroke-width="1.8"/>
+                    <path d="M14 3v5h4M10 16v-5M8 13l2-2 2 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <h3>1. Upload Resume</h3>
+            <p>Upload your current resume (PDF/DOCX).</p>
+        </article>
+        <article class="step-item">
+            <div class="step-icon" aria-hidden="true">
+                <svg width="31" height="31" viewBox="0 0 24 24" fill="none">
+                    <path d="M6 3h8l4 4v14H6V3Z" stroke="currentColor" stroke-width="1.8"/>
+                    <path d="M14 3v5h4M9 12h6M9 16h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <h3>2. Paste Job Description</h3>
+            <p>Add the job description you're targeting.</p>
+        </article>
+        <article class="step-item">
+            <div class="step-icon" aria-hidden="true">
+                <svg width="31" height="31" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 20s-6-3.8-6-8.5A3.5 3.5 0 0 1 12 9a3.5 3.5 0 0 1 6 2.5C18 16.2 12 20 12 20Z" stroke="currentColor" stroke-width="1.8"/>
+                    <path d="M12 6V3M7 8 5 6M17 8l2-2M8 20l-2 2M16 20l2 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <h3>3. Get AI Insights</h3>
+            <p>Receive match score, keywords, and suggestions.</p>
+        </article>
+        <article class="step-item">
+            <div class="step-icon" aria-hidden="true">
+                <svg width="31" height="31" viewBox="0 0 24 24" fill="none">
+                    <path d="M5 4h14v17l-7-4-7 4V4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                    <path d="m10 11 1.4 1.4L15 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <h3>4. Apply with Confidence</h3>
+            <p>Optimize and apply knowing you're a strong fit.</p>
+        </article>
+    </div>
+</section>
+
+<section class="page-shell beta-section" id="pricing" aria-label="Join the Closed Beta">
+    <h2>Join the Closed Beta</h2>
+    <p>Be among the first to access powerful tools that help you land more interviews.</p>
+    <form class="signup-form beta-form" aria-label="Request Early Access">
+        <label class="sr-only" for="beta-email">Enter your email</label>
+        <input id="beta-email" name="email" type="email" placeholder="Enter your email" autocomplete="email">
+        <button type="submit">Request Early Access <span aria-hidden="true">-&gt;</span></button>
+    </form>
+    <p class="payment-note">
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path d="M7 11V8a5 5 0 0 1 10 0v3" stroke="currentColor" stroke-width="2"/>
+            <rect x="6" y="11" width="12" height="10" rx="2" stroke="currentColor" stroke-width="2"/>
+            <path d="M12 15v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        No payment details required. Just your email.
+    </p>
+</section>
+<span id="faq" class="anchor-target" aria-hidden="true"></span>
+{% endblock %}
