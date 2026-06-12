@@ -12,9 +12,10 @@
             </p>
             <h1>Land your next job,<br>take the <span>big leap</span>.</h1>
             <p class="hero-subtitle">From application to interview, HackerLeap helps software engineers optimize resumes, match jobs smarter, and prepare with confidence.</p>
-            <form class="signup-form" aria-label="Request Early Access">
+            <form class="signup-form" method="post" action="{% url 'home_page' %}" aria-label="Request Early Access">
+                {% csrf_token %}
                 <label class="sr-only" for="hero-email">Enter your email</label>
-                <input id="hero-email" name="email" type="email" placeholder="Enter your email" autocomplete="email">
+                <input id="hero-email" name="email" type="email" placeholder="Enter your email" autocomplete="email" value="{{ early_access_form.email.value|default:'' }}" required>
                 <button type="submit">Request Early Access <span aria-hidden="true">-&gt;</span></button>
             </form>
             <p class="payment-note">
@@ -180,9 +181,10 @@
 <section class="page-shell beta-section" id="pricing" aria-label="Join the Closed Beta">
     <h2>Join the Closed Beta</h2>
     <p>Be among the first to access powerful tools that help you land more interviews.</p>
-    <form class="signup-form beta-form" aria-label="Request Early Access">
+    <form class="signup-form beta-form" method="post" action="{% url 'home_page' %}" aria-label="Request Early Access">
+        {% csrf_token %}
         <label class="sr-only" for="beta-email">Enter your email</label>
-        <input id="beta-email" name="email" type="email" placeholder="Enter your email" autocomplete="email">
+        <input id="beta-email" name="email" type="email" placeholder="Enter your email" autocomplete="email" value="{{ early_access_form.email.value|default:'' }}" required>
         <button type="submit">Request Early Access <span aria-hidden="true">-&gt;</span></button>
     </form>
     <p class="payment-note">

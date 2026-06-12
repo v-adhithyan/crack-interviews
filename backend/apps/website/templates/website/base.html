@@ -39,6 +39,13 @@
 <body>
     <a class="skip-link" href="#main-content">Skip to content</a>
     {% include "website/includes/header.html" %}
+    {% if messages %}
+        <div class="toast-stack" role="status" aria-live="polite" aria-atomic="true">
+            {% for message in messages %}
+                <div class="toast-message toast-{{ message.tags|default:'info' }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
     <main id="main-content">
         {% block content %}{% endblock %}
     </main>
