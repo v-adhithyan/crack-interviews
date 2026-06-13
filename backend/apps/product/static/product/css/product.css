@@ -531,6 +531,14 @@ th {
     margin-top: 10px;
 }
 
+.auth-hint {
+    margin: 4px 0 0;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.5;
+    text-align: center;
+}
+
 .field-error,
 .form-error {
     color: #b42318;

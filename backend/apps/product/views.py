@@ -29,7 +29,7 @@ def dashboard(request):
 
 
 def early_access_signup(request, token):
-    early_access_user = get_object_or_404(EarlyAccessUser, signup_token=token, is_beta_active=True)
+    early_access_user = get_object_or_404(EarlyAccessUser, signup_token=token, is_beta_active=False)
 
     if early_access_user.has_completed_signup:
         messages.info(request, "Your HackerLeap account is already active. Please log in.")
@@ -43,7 +43,8 @@ def early_access_signup(request, token):
             early_access_user.user = user
             early_access_user.date_of_birth = form.cleaned_data["date_of_birth"]
             early_access_user.signup_completed_at = timezone.now()
-            early_access_user.save(update_fields=("user", "date_of_birth", "signup_completed_at", "updated_at"))
+            early_access_user.is_beta_active = True
+            early_access_user.save(update_fields=("user", "date_of_birth", "signup_completed_at", "updated_at", "is_beta_active"))
             login(request, user)
             messages.success(request, "Welcome to HackerLeap. Your beta access is active.")
             return redirect("product_dashboard")
