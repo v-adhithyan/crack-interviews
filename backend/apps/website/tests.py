@@ -14,7 +14,7 @@ class EarlyAccessSignupTests(TestCase):
         self.assertRedirects(response, reverse("home_page"))
         self.assertTrue(EarlyAccessUser.objects.filter(email="user@example.com").exists())
         self.assertIn(
-            "Thanks! Adi will personally verify your request and email you instructions to access your account.",
+            "Thanks! Adhi will personally verify your request and email you instructions to access your account.",
             [str(message) for message in get_messages(response.wsgi_request)],
         )
 

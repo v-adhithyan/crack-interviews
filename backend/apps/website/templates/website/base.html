@@ -1,4 +1,5 @@
 {% load static %}
+{% static 'website/images/hackerleap-og.png' as og_image_path %}
 <!doctype html>
 <html lang="en">
 <head>
@@ -9,14 +10,24 @@
     <meta name="keywords" content="HackerLeap, resume match, ATS optimization, AI resume rewrite, interview prep, software engineer jobs">
     <meta name="robots" content="index, follow">
     <meta name="author" content="HackerLeap">
+    <meta name="theme-color" content="#ffc400">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="HackerLeap">
+    <meta property="og:locale" content="en_US">
     <meta property="og:title" content="{% block og_title %}HackerLeap | Land your next job{% endblock %}">
     <meta property="og:description" content="{% block og_description %}From application to interview, HackerLeap helps software engineers optimize resumes, match jobs smarter, and prepare with confidence.{% endblock %}">
     <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ og_image_path }}">
+    <meta property="og:image:secure_url" content="{{ request.scheme }}://{{ request.get_host }}{{ og_image_path }}">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="HackerLeap closed beta for software engineers">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="HackerLeap | Land your next job">
     <meta name="twitter:description" content="Resume matching, ATS optimization, AI resume rewriting, and interview prep for software engineers.">
+    <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ og_image_path }}">
+    <meta name="twitter:image:alt" content="HackerLeap closed beta for software engineers">
     <link rel="canonical" href="{{ request.build_absolute_uri }}">
     <link rel="stylesheet" href="{% static 'website/css/site.css' %}">
     <script type="application/ld+json">
@@ -42,7 +53,10 @@
     {% if messages %}
         <div class="toast-stack" role="status" aria-live="polite" aria-atomic="true">
             {% for message in messages %}
-                <div class="toast-message toast-{{ message.tags|default:'info' }}">{{ message }}</div>
+                <div class="toast-message toast-{{ message.tags|default:'info' }}">
+                    <span>{{ message }}</span>
+                    <button class="toast-close" type="button" aria-label="Dismiss notification">&times;</button>
+                </div>
             {% endfor %}
         </div>
     {% endif %}
@@ -50,5 +64,15 @@
         {% block content %}{% endblock %}
     </main>
     {% include "website/includes/footer.html" %}
+    <script>
+        document.querySelectorAll(".toast-close").forEach(function (button) {
+            button.addEventListener("click", function () {
+                var toast = button.closest(".toast-message");
+                if (toast) {
+                    toast.remove();
+                }
+            });
+        });
+    </script>
 </body>
 </html>
