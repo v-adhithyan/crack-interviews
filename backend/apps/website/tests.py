@@ -1,7 +1,10 @@
 from django.contrib import admin
+from django.contrib.auth.models import AnonymousUser
 from django.contrib.messages import get_messages
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
+from django.test import override_settings
+from django.test import RequestFactory
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -12,6 +15,7 @@ from .models import BlogPost
 from .models import EarlyAccessUser
 from .models import PricingSuggestion
 from .models import WebsitePage
+from .views import server_error
 
 
 class EarlyAccessSignupTests(TestCase):
@@ -354,3 +358,32 @@ class SeoRobotsTests(TestCase):
         self.assertIn("User-agent: *", body)
         self.assertIn("Allow: /", body)
         self.assertIn("Sitemap: http://testserver/sitemap.xml", body)
+
+
+class ErrorPageTests(TestCase):
+    @override_settings(DEBUG=False)
+    def test_website_404_uses_shared_error_page(self):
+        response = self.client.get("/missing-website-page/")
+
+        self.assertEqual(response.status_code, 404)
+        self.assertContains(response, "Page not found", status_code=404)
+        self.assertContains(response, "HackerLeap", status_code=404)
+        self.assertContains(response, "Go home", status_code=404)
+
+    @override_settings(DEBUG=False)
+    def test_product_404_uses_shared_error_page(self):
+        response = self.client.get("/app/missing-product-page/")
+
+        self.assertEqual(response.status_code, 404)
+        self.assertContains(response, "Page not found", status_code=404)
+        self.assertContains(response, "HackerLeap", status_code=404)
+
+    def test_500_uses_shared_error_page(self):
+        request = RequestFactory().get("/app/")
+        request.user = AnonymousUser()
+
+        response = server_error(request)
+
+        self.assertEqual(response.status_code, 500)
+        self.assertIn("Something went wrong", response.content.decode())
+        self.assertIn("HackerLeap", response.content.decode())

@@ -198,3 +198,36 @@ def robots_txt(request):
         ]
     )
     return HttpResponse(content, content_type="text/plain")
+
+
+def render_error_page(request, status_code, title, message):
+    return render(
+        request,
+        "errors/error.html",
+        {
+            "status_code": status_code,
+            "error_title": title,
+            "error_message": message,
+            "primary_url": reverse("product_dashboard") if request.user.is_authenticated else reverse("home_page"),
+            "primary_label": "Go to dashboard" if request.user.is_authenticated else "Go home",
+        },
+        status=status_code,
+    )
+
+
+def page_not_found(request, exception):
+    return render_error_page(
+        request,
+        404,
+        "Page not found",
+        "The page you are looking for does not exist or may have moved.",
+    )
+
+
+def server_error(request):
+    return render_error_page(
+        request,
+        500,
+        "Something went wrong",
+        "We could not load this page right now. Please try again in a little while.",
+    )

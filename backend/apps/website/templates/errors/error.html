@@ -1,0 +1,29 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#ffc400">
+    <title>{{ status_code }} | HackerLeap</title>
+    <link rel="stylesheet" href="{% static 'website/css/site.css' %}">
+</head>
+<body class="error-body">
+    <main class="error-shell" aria-labelledby="error-title">
+        <a class="brand error-brand" href="{% url 'home_page' %}" aria-label="HackerLeap home">
+            <span class="brand-mark" aria-hidden="true">HL</span>
+            <span>HackerLeap</span>
+        </a>
+        <section class="error-panel">
+            <p class="error-code">{{ status_code }}</p>
+            <h1 id="error-title">{{ error_title }}</h1>
+            <p>{{ error_message }}</p>
+            <div class="error-actions">
+                <a class="error-primary" href="{{ primary_url }}">{{ primary_label }}</a>
+                <a class="error-secondary" href="{% url 'home_page' %}">HackerLeap home</a>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

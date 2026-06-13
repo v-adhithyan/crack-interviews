@@ -4,7 +4,6 @@ from django import forms
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import AuthenticationForm
-from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import ValidationError
 
 
@@ -39,23 +38,27 @@ class ProductLoginForm(AuthenticationForm):
         return self.cleaned_data
 
 
-class EarlyAccessSignupForm(UserCreationForm):
+class EarlyAccessSignupForm(forms.Form):
     email = forms.EmailField(disabled=True)
     date_of_birth = forms.DateField(
         label="Date of birth",
         widget=forms.DateInput(attrs={"type": "date", "autocomplete": "bday"}),
     )
-
-    class Meta:
-        model = get_user_model()
-        fields = ("email", "password1", "password2")
+    password1 = forms.CharField(
+        label="Password",
+        strip=False,
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password", "data-password-input": "true"}),
+    )
+    password2 = forms.CharField(
+        label="Confirm password",
+        strip=False,
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+    )
 
     def __init__(self, *args, early_access_user=None, **kwargs):
         self.early_access_user = early_access_user
         super().__init__(*args, **kwargs)
         self.fields["email"].initial = early_access_user.email if early_access_user else ""
-        self.fields["password1"].widget.attrs.update({"autocomplete": "new-password", "data-password-input": "true"})
-        self.fields["password2"].widget.attrs.update({"autocomplete": "new-password"})
 
     def clean_email(self):
         if not self.early_access_user:
@@ -76,10 +79,24 @@ class EarlyAccessSignupForm(UserCreationForm):
             raise ValidationError(errors)
         return password
 
+    def clean(self):
+        cleaned_data = super().clean()
+        password1 = cleaned_data.get("password1")
+        password2 = cleaned_data.get("password2")
+        email = cleaned_data.get("email")
+
+        if password1 and password2 and password1 != password2:
+            self.add_error("password2", "The two password fields did not match.")
+
+        if email and get_user_model().objects.filter(email__iexact=email).exists():
+            self.add_error("email", "An account already exists for this email address.")
+
+        return cleaned_data
+
     def save(self, commit=True):
-        user = super().save(commit=False)
-        user.email = self.cleaned_data["email"]
-        user.username = user.email
-        if commit:
-            user.save()
-        return user
+        email = self.cleaned_data["email"]
+        return get_user_model().objects.create_user(
+            username=email,
+            email=email,
+            password=self.cleaned_data["password1"],
+        )
