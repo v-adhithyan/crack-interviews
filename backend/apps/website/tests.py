@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.contrib.messages import get_messages
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -113,3 +114,65 @@ class BlogPostTests(TestCase):
 class BlogPostAdminTests(TestCase):
     def test_blog_post_is_registered_in_admin(self):
         self.assertIsInstance(admin.site._registry[BlogPost], BlogPostAdmin)
+
+    def test_superuser_can_preview_draft_post(self):
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        post = BlogPost.objects.create(
+            title="Draft preview",
+            slug="draft-preview",
+            excerpt="A private draft excerpt.",
+            content="Private draft content.",
+            status=BlogPost.Status.DRAFT,
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("admin:website_blogpost_preview", args=[post.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Draft preview")
+        self.assertContains(response, "Private draft content.")
+
+    def test_staff_user_cannot_preview_draft_post(self):
+        user = get_user_model().objects.create_user(
+            username="staff",
+            email="staff@example.com",
+            password="password",
+            is_staff=True,
+        )
+        post = BlogPost.objects.create(
+            title="Draft preview",
+            slug="draft-preview",
+            excerpt="A private draft excerpt.",
+            content="Private draft content.",
+            status=BlogPost.Status.DRAFT,
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("admin:website_blogpost_preview", args=[post.pk]))
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_admin_change_page_includes_preview_link(self):
+        user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+        post = BlogPost.objects.create(
+            title="Draft preview",
+            slug="draft-preview",
+            excerpt="A private draft excerpt.",
+            content="Private draft content.",
+            status=BlogPost.Status.DRAFT,
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("admin:website_blogpost_change", args=[post.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse("admin:website_blogpost_preview", args=[post.pk]))
+        self.assertContains(response, "Preview blog post")
