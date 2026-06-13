@@ -9,6 +9,7 @@ from .forms import PricingSuggestionForm
 from .models import BlogPost
 from .models import EarlyAccessUser
 from .models import PricingSuggestion
+from .models import WebsitePage
 
 
 def get_client_ip(request):
@@ -126,3 +127,8 @@ def pricing_page(request):
             "existing_suggestion": existing_suggestion,
         },
     )
+
+
+def website_page(request, slug):
+    page = get_object_or_404(WebsitePage, slug=slug, is_published=True)
+    return render(request, "website/page/detail.html", {"page": page})

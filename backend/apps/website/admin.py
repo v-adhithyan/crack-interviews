@@ -9,6 +9,7 @@ from django.utils.html import format_html
 from .models import BlogPost
 from .models import EarlyAccessUser
 from .models import PricingSuggestion
+from .models import WebsitePage
 
 
 @admin.register(EarlyAccessUser)
@@ -70,3 +71,18 @@ class PricingSuggestionAdmin(admin.ModelAdmin):
     search_fields = ("session_key", "ip_address")
     readonly_fields = ("created_at", "updated_at", "metadata")
     ordering = ("-created_at",)
+
+
+@admin.register(WebsitePage)
+class WebsitePageAdmin(admin.ModelAdmin):
+    list_display = ("title", "page_type", "slug", "is_published", "updated_at")
+    list_filter = ("page_type", "is_published", "created_at")
+    search_fields = ("title", "excerpt", "content")
+    prepopulated_fields = {"slug": ("title",)}
+    readonly_fields = ("created_at", "updated_at")
+    ordering = ("page_type", "title")
+    fieldsets = (
+        (None, {"fields": ("title", "slug", "page_type", "excerpt", "content", "is_published")}),
+        ("SEO", {"fields": ("seo_title", "seo_description")}),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )

@@ -1,0 +1,20 @@
+{% extends "website/base.html" %}
+
+{% block title %}{{ page.meta_title }} | HackerLeap{% endblock %}
+{% block meta_description %}{{ page.meta_description }}{% endblock %}
+{% block og_title %}{{ page.meta_title }}{% endblock %}
+{% block og_description %}{{ page.meta_description }}{% endblock %}
+{% block twitter_title %}{{ page.meta_title }}{% endblock %}
+{% block twitter_description %}{{ page.meta_description }}{% endblock %}
+
+{% block content %}
+<article class="blog-article website-page-article">
+    <header class="blog-article-header">
+        <h1>{{ page.title }}</h1>
+        <p>{{ page.excerpt }}</p>
+    </header>
+    <div class="blog-article-body website-page-body">
+        {{ page.content|safe }}
+    </div>
+</article>
+{% endblock %}

@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.messages import get_messages
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -10,6 +11,7 @@ from .admin import EarlyAccessUserAdmin
 from .models import BlogPost
 from .models import EarlyAccessUser
 from .models import PricingSuggestion
+from .models import WebsitePage
 
 
 class EarlyAccessSignupTests(TestCase):
@@ -264,3 +266,32 @@ class PricingSuggestionTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "You suggested ₹199 for 1 month.")
         self.assertNotContains(response, 'name="price"')
+
+
+class WebsiteContentSeedTests(TestCase):
+    def test_seed_website_content_creates_pages_and_blog_posts(self):
+        call_command("seed_website_content")
+
+        self.assertTrue(WebsitePage.objects.filter(slug="about", is_published=True).exists())
+        self.assertTrue(WebsitePage.objects.filter(slug="faq", is_published=True).exists())
+        self.assertTrue(BlogPost.objects.filter(slug="resume-tips-for-software-engineers", status=BlogPost.Status.PUBLISHED).exists())
+        self.assertTrue(BlogPost.objects.filter(slug="interview-tips-for-software-engineers", status=BlogPost.Status.PUBLISHED).exists())
+
+        about_response = self.client.get(reverse("about_page"))
+        faq_response = self.client.get(reverse("faq_page"))
+        resume_response = self.client.get(reverse("blog_detail", kwargs={"slug": "resume-tips-for-software-engineers"}))
+        interview_response = self.client.get(reverse("blog_detail", kwargs={"slug": "interview-tips-for-software-engineers"}))
+
+        self.assertContains(about_response, "Adhithyan Vijayakumar")
+        self.assertContains(about_response, "linkedin.com/in/adhithyan-vijayakumar")
+        self.assertContains(faq_response, "What is HackerLeap?")
+        self.assertContains(resume_response, "Keep your resume tight.")
+        self.assertContains(interview_response, "LinkedIn Easy Apply")
+
+    def test_footer_links_to_seeded_content_routes(self):
+        response = self.client.get(reverse("home_page"))
+
+        self.assertContains(response, reverse("about_page"))
+        self.assertContains(response, reverse("faq_page"))
+        self.assertContains(response, reverse("blog_detail", kwargs={"slug": "resume-tips-for-software-engineers"}))
+        self.assertContains(response, reverse("blog_detail", kwargs={"slug": "interview-tips-for-software-engineers"}))

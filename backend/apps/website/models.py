@@ -67,3 +67,34 @@ class PricingSuggestion(models.Model):
 
     def __str__(self):
         return f'{self.price} - {self.no_of_months}'
+
+
+class WebsitePage(models.Model):
+    class PageType(models.TextChoices):
+        ABOUT = "about", "About"
+        FAQ = "faq", "FAQ"
+
+    title = models.CharField(max_length=220)
+    slug = models.SlugField(max_length=240, unique=True)
+    page_type = models.CharField(max_length=20, choices=PageType.choices)
+    excerpt = models.TextField(max_length=420)
+    content = models.TextField(help_text="HTML is supported for trusted CMS content.")
+    is_published = models.BooleanField(default=True)
+    seo_title = models.CharField(max_length=220, blank=True)
+    seo_description = models.CharField(max_length=320, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("page_type", "title")
+
+    def __str__(self):
+        return self.title
+
+    @property
+    def meta_title(self):
+        return self.seo_title or self.title
+
+    @property
+    def meta_description(self):
+        return self.seo_description or self.excerpt
