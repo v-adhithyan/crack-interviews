@@ -46,3 +46,15 @@ def blog_detail(request, slug):
         published_at__lte=timezone.now(),
     )
     return render(request, "website/blog/detail.html", {"post": post})
+
+
+def privacy_policy(request):
+    return render(request, "website/legal/privacy.html")
+
+
+def terms_of_service(request):
+    return render(request, "website/legal/terms.html")
+
+
+def refund_policy(request):
+    return render(request, "website/legal/refund.html")

@@ -176,3 +176,25 @@ class BlogPostAdminTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, reverse("admin:website_blogpost_preview", args=[post.pk]))
         self.assertContains(response, "Preview blog post")
+
+
+class LegalPageTests(TestCase):
+    def test_legal_pages_render(self):
+        pages = (
+            ("privacy_policy", "Privacy Policy"),
+            ("terms_of_service", "Terms of Service"),
+            ("refund_policy", "Refund Policy"),
+        )
+
+        for route_name, heading in pages:
+            with self.subTest(route_name=route_name):
+                response = self.client.get(reverse(route_name))
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, heading)
+
+    def test_footer_links_to_legal_pages(self):
+        response = self.client.get(reverse("home_page"))
+
+        self.assertContains(response, reverse("privacy_policy"))
+        self.assertContains(response, reverse("terms_of_service"))
+        self.assertContains(response, reverse("refund_policy"))
