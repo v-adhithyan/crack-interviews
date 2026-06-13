@@ -3,6 +3,8 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    path('sitemap.xml', views.sitemap_xml, name='sitemap_xml'),
+    path('robots.txt', views.robots_txt, name='robots_txt'),
     path('blog/', views.blog_index, name='blog_index'),
     path('blog/<slug:slug>/', views.blog_detail, name='blog_detail'),
     path('privacy/', views.privacy_policy, name='privacy_policy'),

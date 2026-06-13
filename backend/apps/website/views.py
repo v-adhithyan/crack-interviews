@@ -1,7 +1,11 @@
+from xml.sax.saxutils import escape
+
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.contrib import messages
 from django.shortcuts import redirect
 from django.shortcuts import render
+from django.urls import reverse
 from django.utils import timezone
 
 from .forms import EarlyAccessForm
@@ -132,3 +136,65 @@ def pricing_page(request):
 def website_page(request, slug):
     page = get_object_or_404(WebsitePage, slug=slug, is_published=True)
     return render(request, "website/page/detail.html", {"page": page})
+
+
+def sitemap_xml(request):
+    now = timezone.now()
+    urls = [
+        {"loc": request.build_absolute_uri(reverse("home_page")), "changefreq": "weekly", "priority": "1.0"},
+        {"loc": request.build_absolute_uri(reverse("blog_index")), "changefreq": "weekly", "priority": "0.8"},
+        {"loc": request.build_absolute_uri(reverse("pricing_page")), "changefreq": "monthly", "priority": "0.8"},
+        {"loc": request.build_absolute_uri(reverse("privacy_policy")), "changefreq": "yearly", "priority": "0.3"},
+        {"loc": request.build_absolute_uri(reverse("terms_of_service")), "changefreq": "yearly", "priority": "0.3"},
+        {"loc": request.build_absolute_uri(reverse("refund_policy")), "changefreq": "yearly", "priority": "0.3"},
+    ]
+
+    pages = WebsitePage.objects.filter(is_published=True)
+    for page in pages:
+        route_name = "about_page" if page.slug == "about" else "faq_page" if page.slug == "faq" else None
+        if route_name is None:
+            continue
+        urls.append(
+            {
+                "loc": request.build_absolute_uri(reverse(route_name)),
+                "lastmod": page.updated_at.date().isoformat(),
+                "changefreq": "monthly",
+                "priority": "0.7",
+            }
+        )
+
+    posts = BlogPost.objects.filter(status=BlogPost.Status.PUBLISHED, published_at__lte=now)
+    for post in posts:
+        urls.append(
+            {
+                "loc": request.build_absolute_uri(reverse("blog_detail", kwargs={"slug": post.slug})),
+                "lastmod": post.updated_at.date().isoformat(),
+                "changefreq": "monthly",
+                "priority": "0.7",
+            }
+        )
+
+    lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    for url in urls:
+        lines.append("  <url>")
+        lines.append(f"    <loc>{escape(url['loc'])}</loc>")
+        if url.get("lastmod"):
+            lines.append(f"    <lastmod>{url['lastmod']}</lastmod>")
+        lines.append(f"    <changefreq>{url['changefreq']}</changefreq>")
+        lines.append(f"    <priority>{url['priority']}</priority>")
+        lines.append("  </url>")
+    lines.append("</urlset>")
+    return HttpResponse("\n".join(lines), content_type="application/xml")
+
+
+def robots_txt(request):
+    sitemap_url = request.build_absolute_uri(reverse("sitemap_xml"))
+    content = "\n".join(
+        [
+            "User-agent: *",
+            "Allow: /",
+            f"Sitemap: {sitemap_url}",
+            "",
+        ]
+    )
+    return HttpResponse(content, content_type="text/plain")

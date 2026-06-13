@@ -295,3 +295,62 @@ class WebsiteContentSeedTests(TestCase):
         self.assertContains(response, reverse("faq_page"))
         self.assertContains(response, reverse("blog_detail", kwargs={"slug": "resume-tips-for-software-engineers"}))
         self.assertContains(response, reverse("blog_detail", kwargs={"slug": "interview-tips-for-software-engineers"}))
+
+
+class SeoRobotsTests(TestCase):
+    def test_sitemap_lists_public_website_urls(self):
+        WebsitePage.objects.create(
+            title="About HackerLeap",
+            slug="about",
+            page_type=WebsitePage.PageType.ABOUT,
+            excerpt="About excerpt.",
+            content="About content.",
+            is_published=True,
+        )
+        WebsitePage.objects.create(
+            title="FAQ",
+            slug="faq",
+            page_type=WebsitePage.PageType.FAQ,
+            excerpt="FAQ excerpt.",
+            content="FAQ content.",
+            is_published=False,
+        )
+        BlogPost.objects.create(
+            title="Published post",
+            slug="published-post",
+            excerpt="Published excerpt.",
+            content="Published content.",
+            status=BlogPost.Status.PUBLISHED,
+            published_at=timezone.now(),
+        )
+        BlogPost.objects.create(
+            title="Draft post",
+            slug="draft-post",
+            excerpt="Draft excerpt.",
+            content="Draft content.",
+            status=BlogPost.Status.DRAFT,
+        )
+
+        response = self.client.get(reverse("sitemap_xml"))
+        body = response.content.decode()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/xml")
+        self.assertIn("http://testserver/", body)
+        self.assertIn("http://testserver/blog/", body)
+        self.assertIn("http://testserver/pricing/", body)
+        self.assertIn("http://testserver/privacy/", body)
+        self.assertIn("http://testserver/about/", body)
+        self.assertIn("http://testserver/blog/published-post/", body)
+        self.assertNotIn("http://testserver/faq/", body)
+        self.assertNotIn("http://testserver/blog/draft-post/", body)
+
+    def test_robots_txt_allows_crawlers_and_links_sitemap(self):
+        response = self.client.get(reverse("robots_txt"))
+        body = response.content.decode()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "text/plain")
+        self.assertIn("User-agent: *", body)
+        self.assertIn("Allow: /", body)
+        self.assertIn("Sitemap: http://testserver/sitemap.xml", body)
