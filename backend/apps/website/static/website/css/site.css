@@ -544,11 +544,21 @@ input {
 }
 
 .feature-section {
+    padding: 54px 0 48px;
+    border-bottom: 1px solid var(--line);
+}
+
+.feature-section > h2 {
+    margin: 0 0 42px;
+    text-align: center;
+    font-size: 29px;
+    line-height: 1.2;
+}
+
+.feature-grid {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 54px;
-    padding: 54px 0 48px;
-    border-bottom: 1px solid var(--line);
 }
 
 .feature-item {
@@ -975,7 +985,7 @@ input {
         gap: 15px;
     }
 
-    .feature-section {
+    .feature-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 42px 28px;
     }
@@ -1029,9 +1039,13 @@ input {
         width: 100%;
     }
 
-    .feature-section,
     .steps-grid {
         grid-template-columns: 1fr;
+    }
+
+    .feature-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 42px 24px;
     }
 
     .report-top {
@@ -1084,5 +1098,11 @@ input {
 
     .beta-section h2 {
         font-size: 26px;
+    }
+}
+
+@media (max-width: 420px) {
+    .feature-grid {
+        grid-template-columns: 1fr;
     }
 }
