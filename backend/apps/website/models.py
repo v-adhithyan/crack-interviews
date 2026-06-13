@@ -51,3 +51,19 @@ class BlogPost(models.Model):
     @property
     def meta_description(self):
         return self.seo_description or self.excerpt
+
+
+class PricingSuggestion(models.Model):
+    price = models.PositiveIntegerField(blank=False, null=False, default=100)
+    no_of_months = models.PositiveIntegerField(blank=False, null=False, default=1)
+    session_key = models.CharField(max_length=40, blank=True, db_index=True)
+    ip_address = models.GenericIPAddressField(blank=True, null=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    metadata = models.JSONField(default=dict)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f'{self.price} - {self.no_of_months}'

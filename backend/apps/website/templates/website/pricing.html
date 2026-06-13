@@ -1,0 +1,73 @@
+{% extends "website/base.html" %}
+
+{% block title %}Pricing | HackerLeap{% endblock %}
+{% block meta_description %}Suggest fair pricing for HackerLeap beta access in INR and help shape pricing for software engineers.{% endblock %}
+{% block og_title %}Pricing | HackerLeap{% endblock %}
+{% block og_description %}HackerLeap is free for the first 50 beta users. Suggest a small fair price for future access.{% endblock %}
+{% block twitter_title %}Pricing | HackerLeap{% endblock %}
+{% block twitter_description %}HackerLeap is free for the first 50 beta users. Suggest a small fair price for future access.{% endblock %}
+
+{% block content %}
+<section class="pricing-page">
+    <div class="page-shell pricing-layout">
+        <div class="pricing-copy">
+            <p class="pricing-kicker">Closed Beta Pricing</p>
+            <h1>Free for the first 50 beta users.</h1>
+            <p>After the early beta, HackerLeap will stay lean with a small fee. Help us understand what feels fair for software engineers in India.</p>
+        </div>
+
+        <div class="pricing-panel">
+            {% if existing_suggestion %}
+                <div class="pricing-submitted">
+                    <p class="pricing-kicker">Suggestion Received</p>
+                    <h2>Thanks for helping shape HackerLeap pricing.</h2>
+                    <p>You suggested ₹{{ existing_suggestion.price }} for {{ existing_suggestion.no_of_months }} month{% if existing_suggestion.no_of_months != 1 %}s{% endif %}.</p>
+                </div>
+            {% else %}
+                <form class="pricing-form" method="post" action="{% url 'pricing_page' %}">
+                    {% csrf_token %}
+                    <div class="pricing-control">
+                        <div class="pricing-control-header">
+                            <label for="{{ pricing_form.price.id_for_label }}">Suggested price</label>
+                            <strong>₹<span data-pricing-value="price">{{ pricing_form.price.value|default:199 }}</span></strong>
+                        </div>
+                        {{ pricing_form.price }}
+                        <div class="pricing-scale">
+                            <span>₹99</span>
+                            <span>₹999</span>
+                        </div>
+                    </div>
+
+                    <div class="pricing-control">
+                        <div class="pricing-control-header">
+                            <label for="{{ pricing_form.no_of_months.id_for_label }}">Access duration</label>
+                            <strong><span data-pricing-value="months">{{ pricing_form.no_of_months.value|default:3 }}</span> month{% if pricing_form.no_of_months.value != 1 %}s{% endif %}</strong>
+                        </div>
+                        {{ pricing_form.no_of_months }}
+                        <div class="pricing-scale">
+                            <span>1 month</span>
+                            <span>12 months</span>
+                        </div>
+                    </div>
+
+                    <button class="pricing-submit" type="submit">Submit Suggestion</button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<script>
+    document.querySelectorAll(".pricing-range").forEach(function (input) {
+        var outputKey = input.name === "no_of_months" ? "months" : input.name;
+        var output = document.querySelector('[data-pricing-value="' + outputKey + '"]');
+        if (!output) {
+            return;
+        }
+
+        input.addEventListener("input", function () {
+            output.textContent = input.value;
+        });
+    });
+</script>
+{% endblock %}

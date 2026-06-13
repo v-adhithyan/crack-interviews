@@ -945,6 +945,112 @@ input {
     line-height: 1.75;
 }
 
+.pricing-page {
+    padding: 72px 0 86px;
+    background: linear-gradient(180deg, #fffdf6 0, #fff 100%);
+}
+
+.pricing-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(380px, 480px);
+    gap: 72px;
+    align-items: center;
+}
+
+.pricing-kicker {
+    margin: 0 0 14px;
+    color: var(--gold-dark);
+    font-size: 14px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.pricing-copy h1 {
+    margin: 0;
+    font-size: clamp(44px, 6vw, 68px);
+    line-height: 1.08;
+}
+
+.pricing-copy > p:not(.pricing-kicker) {
+    max-width: 650px;
+    margin: 24px 0 0;
+    color: var(--muted);
+    font-size: 21px;
+    line-height: 1.65;
+}
+
+.pricing-panel {
+    border: 1px solid #f0eee9;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: var(--shadow);
+    padding: 30px;
+}
+
+.pricing-form {
+    display: grid;
+    gap: 32px;
+}
+
+.pricing-control {
+    display: grid;
+    gap: 15px;
+}
+
+.pricing-control-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.pricing-control-header label {
+    color: #344054;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.pricing-control-header strong {
+    color: var(--ink);
+    font-size: 28px;
+}
+
+.pricing-range {
+    width: 100%;
+    accent-color: var(--gold);
+}
+
+.pricing-scale {
+    display: flex;
+    justify-content: space-between;
+    color: #667085;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.pricing-submit {
+    min-height: 58px;
+    border: 0;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #ffd400, #f7b801);
+    color: #050505;
+    cursor: pointer;
+    font-weight: 900;
+}
+
+.pricing-submitted h2 {
+    margin: 0 0 14px;
+    font-size: 30px;
+    line-height: 1.2;
+}
+
+.pricing-submitted p:last-child {
+    margin: 0;
+    color: var(--muted);
+    font-size: 18px;
+    line-height: 1.6;
+}
+
 @media (max-width: 980px) {
     .page-shell {
         width: min(100% - 32px, 760px);
@@ -1001,6 +1107,11 @@ input {
 
     .footer-grid {
         gap: 26px;
+    }
+
+    .pricing-layout {
+        grid-template-columns: 1fr;
+        gap: 36px;
     }
 }
 
@@ -1087,6 +1198,19 @@ input {
 
     .legal-page p {
         font-size: 17px;
+    }
+
+    .pricing-page {
+        padding: 48px 0 64px;
+    }
+
+    .pricing-panel {
+        padding: 22px;
+    }
+
+    .pricing-control-header {
+        display: grid;
+        gap: 8px;
     }
 
     .toast-stack {

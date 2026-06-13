@@ -9,6 +9,7 @@ from .admin import BlogPostAdmin
 from .admin import EarlyAccessUserAdmin
 from .models import BlogPost
 from .models import EarlyAccessUser
+from .models import PricingSuggestion
 
 
 class EarlyAccessSignupTests(TestCase):
@@ -198,3 +199,68 @@ class LegalPageTests(TestCase):
         self.assertContains(response, reverse("privacy_policy"))
         self.assertContains(response, reverse("terms_of_service"))
         self.assertContains(response, reverse("refund_policy"))
+
+
+class PricingSuggestionTests(TestCase):
+    def test_pricing_page_renders_slider_form(self):
+        response = self.client.get(reverse("pricing_page"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Free for the first 50 beta users.")
+        self.assertContains(response, 'name="price"')
+        self.assertContains(response, 'name="no_of_months"')
+
+    def test_pricing_submission_saves_suggestion_with_metadata(self):
+        response = self.client.post(
+            reverse("pricing_page"),
+            {"price": "499", "no_of_months": "6"},
+            HTTP_USER_AGENT="PricingTestAgent",
+            REMOTE_ADDR="203.0.113.10",
+            follow=True,
+        )
+
+        self.assertRedirects(response, reverse("pricing_page"))
+        suggestion = PricingSuggestion.objects.get()
+        self.assertEqual(suggestion.price, 499)
+        self.assertEqual(suggestion.no_of_months, 6)
+        self.assertEqual(suggestion.ip_address, "203.0.113.10")
+        self.assertEqual(suggestion.metadata["user_agent"], "PricingTestAgent")
+        self.assertContains(response, "You suggested ₹499 for 6 months.")
+        self.assertNotContains(response, 'name="price"')
+
+    def test_pricing_submission_validates_ranges(self):
+        response = self.client.post(reverse("pricing_page"), {"price": "1000", "no_of_months": "13"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(PricingSuggestion.objects.exists())
+        self.assertIn("Please choose a price no more than ₹999.", [str(message) for message in get_messages(response.wsgi_request)])
+
+    def test_pricing_page_hides_form_when_session_already_suggested(self):
+        session = self.client.session
+        session.save()
+        PricingSuggestion.objects.create(
+            price=299,
+            no_of_months=3,
+            session_key=session.session_key,
+            metadata={},
+        )
+
+        response = self.client.get(reverse("pricing_page"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "You suggested ₹299 for 3 months.")
+        self.assertNotContains(response, 'name="price"')
+
+    def test_pricing_page_hides_form_when_ip_already_suggested(self):
+        PricingSuggestion.objects.create(
+            price=199,
+            no_of_months=1,
+            ip_address="203.0.113.11",
+            metadata={},
+        )
+
+        response = self.client.get(reverse("pricing_page"), REMOTE_ADDR="203.0.113.11")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "You suggested ₹199 for 1 month.")
+        self.assertNotContains(response, 'name="price"')

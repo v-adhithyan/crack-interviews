@@ -8,6 +8,7 @@ from django.utils.html import format_html
 
 from .models import BlogPost
 from .models import EarlyAccessUser
+from .models import PricingSuggestion
 
 
 @admin.register(EarlyAccessUser)
@@ -60,3 +61,12 @@ class BlogPostAdmin(admin.ModelAdmin):
 
         post = get_object_or_404(BlogPost, pk=object_id)
         return render(request, "website/blog/detail.html", {"post": post})
+
+
+@admin.register(PricingSuggestion)
+class PricingSuggestionAdmin(admin.ModelAdmin):
+    list_display = ("price", "no_of_months", "ip_address", "session_key", "created_at")
+    list_filter = ("price", "no_of_months", "created_at")
+    search_fields = ("session_key", "ip_address")
+    readonly_fields = ("created_at", "updated_at", "metadata")
+    ordering = ("-created_at",)
