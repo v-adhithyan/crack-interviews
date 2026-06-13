@@ -1,0 +1,39 @@
+{% extends "website/base.html" %}
+
+{% block title %}HackerLeap Blog | Resume, ATS, and Interview Tips{% endblock %}
+{% block meta_description %}Read HackerLeap blog posts about software engineering resumes, ATS optimization, job matching, and interview preparation.{% endblock %}
+{% block og_title %}HackerLeap Blog{% endblock %}
+{% block og_description %}Resume, ATS, and interview preparation insights for software engineers.{% endblock %}
+{% block twitter_title %}HackerLeap Blog{% endblock %}
+{% block twitter_description %}Resume, ATS, and interview preparation insights for software engineers.{% endblock %}
+
+{% block content %}
+<section class="blog-hero">
+    <div class="page-shell blog-hero-inner">
+        <p class="blog-kicker">HackerLeap Blog</p>
+        <h1>Notes for software engineers taking the next leap.</h1>
+        <p>Resume strategy, ATS optimization, interview preparation, and practical hiring lessons from the software engineering grind.</p>
+    </div>
+</section>
+
+<section class="page-shell blog-list-section" aria-label="Blog posts">
+    {% if posts %}
+        <div class="blog-list">
+            {% for post in posts %}
+                <article class="blog-list-item">
+                    <a href="{% url 'blog_detail' slug=post.slug %}">
+                        <p class="blog-list-meta">{{ post.author_name }}{% if post.published_at %} · {{ post.published_at|date:"M j, Y" }}{% endif %}</p>
+                        <h2>{{ post.title }}</h2>
+                        <p>{{ post.excerpt }}</p>
+                    </a>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="blog-empty">
+            <h2>No posts published yet.</h2>
+            <p>New writing will appear here once it is published.</p>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

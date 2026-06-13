@@ -1,0 +1,27 @@
+{% extends "website/base.html" %}
+
+{% block title %}{{ post.meta_title }} | HackerLeap Blog{% endblock %}
+{% block meta_description %}{{ post.meta_description }}{% endblock %}
+{% block og_title %}{{ post.meta_title }}{% endblock %}
+{% block og_description %}{{ post.meta_description }}{% endblock %}
+{% block twitter_title %}{{ post.meta_title }}{% endblock %}
+{% block twitter_description %}{{ post.meta_description }}{% endblock %}
+
+{% block content %}
+<article class="blog-article">
+    <header class="blog-article-header">
+        <a class="blog-back-link" href="{% url 'blog_index' %}">Blog</a>
+        <h1>{{ post.title }}</h1>
+        <p>{{ post.excerpt }}</p>
+        <div class="blog-byline">
+            <span>{{ post.author_name }}</span>
+            {% if post.published_at %}
+                <span>{{ post.published_at|date:"M j, Y" }}</span>
+            {% endif %}
+        </div>
+    </header>
+    <div class="blog-article-body">
+        {{ post.content|linebreaks }}
+    </div>
+</article>
+{% endblock %}

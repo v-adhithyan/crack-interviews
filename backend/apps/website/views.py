@@ -1,8 +1,11 @@
+from django.shortcuts import get_object_or_404
 from django.contrib import messages
 from django.shortcuts import redirect
 from django.shortcuts import render
+from django.utils import timezone
 
 from .forms import EarlyAccessForm
+from .models import BlogPost
 from .models import EarlyAccessUser
 
 
@@ -28,3 +31,18 @@ def home_page(request):
         messages.error(request, message)
 
     return render(request, "website/home.html", {"early_access_form": form})
+
+
+def blog_index(request):
+    posts = BlogPost.objects.filter(status=BlogPost.Status.PUBLISHED, published_at__lte=timezone.now())
+    return render(request, "website/blog/index.html", {"posts": posts})
+
+
+def blog_detail(request, slug):
+    post = get_object_or_404(
+        BlogPost,
+        slug=slug,
+        status=BlogPost.Status.PUBLISHED,
+        published_at__lte=timezone.now(),
+    )
+    return render(request, "website/blog/detail.html", {"post": post})

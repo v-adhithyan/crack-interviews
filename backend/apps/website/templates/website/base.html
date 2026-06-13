@@ -24,8 +24,8 @@
     <meta property="og:image:height" content="630">
     <meta property="og:image:alt" content="HackerLeap closed beta for software engineers">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="HackerLeap | Land your next job">
-    <meta name="twitter:description" content="Resume matching, ATS optimization, AI resume rewriting, and interview prep for software engineers.">
+    <meta name="twitter:title" content="{% block twitter_title %}HackerLeap | Land your next job{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}Resume matching, ATS optimization, AI resume rewriting, and interview prep for software engineers.{% endblock %}">
     <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ og_image_path }}">
     <meta name="twitter:image:alt" content="HackerLeap closed beta for software engineers">
     <link rel="canonical" href="{{ request.build_absolute_uri }}">
