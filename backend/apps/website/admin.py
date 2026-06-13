@@ -1,9 +1,12 @@
+import uuid
+
 from django.contrib import admin
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
 from django.shortcuts import render
 from django.urls import path
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.html import format_html
 
 from .models import BlogPost
@@ -14,11 +17,39 @@ from .models import WebsitePage
 
 @admin.register(EarlyAccessUser)
 class EarlyAccessUserAdmin(admin.ModelAdmin):
-    list_display = ("email", "is_beta_active", "created_at", "updated_at")
-    list_filter = ("is_beta_active", "created_at", "updated_at")
-    search_fields = ("email",)
+    actions = ("activate_beta_and_refresh_signup_links",)
+    list_display = ("email", "is_beta_active", "signup_link", "signup_completed_at", "user", "created_at", "updated_at")
+    list_filter = ("is_beta_active", "signup_completed_at", "created_at", "updated_at")
+    search_fields = ("email", "user__email", "user__username")
     ordering = ("-created_at",)
-    readonly_fields = ("created_at", "updated_at")
+    readonly_fields = ("signup_link", "signup_token", "signup_token_created_at", "signup_completed_at", "user", "created_at", "updated_at")
+    fieldsets = (
+        (None, {"fields": ("email", "is_beta_active", "signup_link")}),
+        ("Signup", {"fields": ("signup_token", "signup_token_created_at", "signup_completed_at", "date_of_birth", "user")}),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )
+
+    def signup_link(self, obj):
+        if not obj.pk:
+            return "Save this early access user before copying a signup link."
+
+        url = reverse("early_access_signup", kwargs={"token": obj.signup_token})
+        return format_html('<a href="{}" target="_blank" rel="noopener">{}</a>', url, url)
+
+    signup_link.short_description = "Signup link"
+
+    @admin.action(description="Activate beta access and refresh signup links")
+    def activate_beta_and_refresh_signup_links(self, request, queryset):
+        updated = 0
+        for early_access_user in queryset:
+            if early_access_user.has_completed_signup:
+                continue
+            early_access_user.is_beta_active = True
+            early_access_user.signup_token = uuid.uuid4()
+            early_access_user.signup_token_created_at = timezone.now()
+            early_access_user.save(update_fields=("is_beta_active", "signup_token", "signup_token_created_at", "updated_at"))
+            updated += 1
+        self.message_user(request, f"{updated} signup link(s) refreshed and marked beta active.")
 
 
 @admin.register(BlogPost)

@@ -1,0 +1,36 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#ffc400">
+    <title>{% block title %}HackerLeap App{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'product/css/product.css' %}">
+</head>
+<body class="product-body">
+    {% if messages %}
+        <div class="product-toast-stack" role="status" aria-live="polite" aria-atomic="true">
+            {% for message in messages %}
+                <div class="product-toast product-toast-{{ message.tags|default:'info' }}">
+                    <span>{{ message }}</span>
+                    <button class="product-toast-close" type="button" aria-label="Dismiss notification">&times;</button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    {% block body %}{% endblock %}
+    <script>
+        document.querySelectorAll(".product-toast-close").forEach(function (button) {
+            button.addEventListener("click", function () {
+                var toast = button.closest(".product-toast");
+                if (toast) {
+                    toast.remove();
+                }
+            });
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

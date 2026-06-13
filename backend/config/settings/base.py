@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "apps.core",
     "apps.website",
+    "apps.product",
 ]
 
 MIDDLEWARE = [
@@ -78,6 +79,9 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "product_dashboard"
+LOGOUT_REDIRECT_URL = "home_page"
 
 CORS_ALLOWED_ORIGINS = [
     origin.strip()

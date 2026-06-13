@@ -1,3 +1,6 @@
+import uuid
+
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -5,8 +8,23 @@ from django.utils import timezone
 class EarlyAccessUser(models.Model):
     email = models.EmailField(unique=True, blank=False, null=False)
     is_beta_active = models.BooleanField(default=False)
+    signup_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    signup_token_created_at = models.DateTimeField(default=timezone.now)
+    signup_completed_at = models.DateTimeField(blank=True, null=True)
+    date_of_birth = models.DateField(blank=True, null=True)
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="early_access_invite",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    @property
+    def has_completed_signup(self):
+        return self.signup_completed_at is not None and self.user_id is not None
 
     def __str__(self):
         return self.email

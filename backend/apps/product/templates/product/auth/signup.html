@@ -1,0 +1,73 @@
+{% extends "product/base.html" %}
+
+{% block title %}Create beta account | HackerLeap{% endblock %}
+
+{% block body %}
+<main class="auth-page">
+    <section class="auth-panel signup-panel" aria-labelledby="signup-title">
+        {% include "product/includes/brand.html" %}
+        <div>
+            <h1 id="signup-title">Create your beta account</h1>
+            <p>Your invite is ready. Set your password to start using HackerLeap.</p>
+        </div>
+        <form method="post" class="auth-form" novalidate>
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+                <div class="form-error">{{ form.non_field_errors|join:" " }}</div>
+            {% endif %}
+
+            <label for="{{ form.email.id_for_label }}">Email</label>
+            {{ form.email }}
+            {% for error in form.email.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+
+            <label for="{{ form.date_of_birth.id_for_label }}">Date of birth</label>
+            {{ form.date_of_birth }}
+            {% for error in form.date_of_birth.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+
+            <label for="{{ form.password1.id_for_label }}">Password</label>
+            {{ form.password1 }}
+            {% for error in form.password1.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+
+            <ul class="password-rules" data-password-rules aria-label="Password requirements">
+                <li data-rule="length">At least 8 characters</li>
+                <li data-rule="upper">One uppercase letter</li>
+                <li data-rule="lower">One lowercase letter</li>
+                <li data-rule="number">One number</li>
+                <li data-rule="symbol">One symbol</li>
+            </ul>
+
+            <label for="{{ form.password2.id_for_label }}">Confirm password</label>
+            {{ form.password2 }}
+            {% for error in form.password2.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+
+            <button type="submit">Create Account</button>
+        </form>
+    </section>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    var passwordInput = document.querySelector("[data-password-input]");
+    var rules = document.querySelector("[data-password-rules]");
+    if (passwordInput && rules) {
+        var checks = {
+            length: function (value) { return value.length >= 8; },
+            upper: function (value) { return /[A-Z]/.test(value); },
+            lower: function (value) { return /[a-z]/.test(value); },
+            number: function (value) { return /[0-9]/.test(value); },
+            symbol: function (value) { return /[^A-Za-z0-9]/.test(value); }
+        };
+        var updateRules = function () {
+            Object.keys(checks).forEach(function (ruleName) {
+                var item = rules.querySelector('[data-rule="' + ruleName + '"]');
+                if (item) {
+                    item.classList.toggle("valid", checks[ruleName](passwordInput.value));
+                }
+            });
+        };
+        passwordInput.addEventListener("input", updateRules);
+        updateRules();
+    }
+</script>
+{% endblock %}

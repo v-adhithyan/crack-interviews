@@ -1,0 +1,14 @@
+<header class="product-topbar">
+    <div></div>
+    <div class="topbar-actions">
+        <button class="icon-button" type="button" aria-label="Toggle theme">☼</button>
+        <div class="user-chip" aria-label="Logged in user">
+            <span>{{ request.user.email|default:request.user.username|first|upper }}</span>
+        </div>
+        <span class="user-name">{{ request.user.first_name|default:request.user.username }}</span>
+        <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button class="plain-button" type="submit" aria-label="Logout">⌄</button>
+        </form>
+    </div>
+</header>

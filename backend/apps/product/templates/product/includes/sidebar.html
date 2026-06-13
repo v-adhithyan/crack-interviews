@@ -1,0 +1,26 @@
+<aside class="product-sidebar" aria-label="Product navigation">
+    {% include "product/includes/brand.html" %}
+    <nav class="product-nav" aria-label="Dashboard">
+        <a class="active" href="{% url 'product_dashboard' %}">
+            <span aria-hidden="true">⌂</span>
+            <span>Dashboard</span>
+        </a>
+        <a href="{% url 'product_dashboard' %}">
+            <span aria-hidden="true">▧</span>
+            <span>Resume</span>
+        </a>
+        <a href="{% url 'product_dashboard' %}">
+            <span aria-hidden="true">◷</span>
+            <span>Analysis History</span>
+        </a>
+        <a href="{% url 'product_dashboard' %}">
+            <span aria-hidden="true">⚙</span>
+            <span>Settings</span>
+        </a>
+    </nav>
+    <div class="beta-card">
+        <strong>Closed Beta</strong>
+        <p>You're early! Thanks for being a part of HackerLeap.</p>
+        <a href="mailto:adhi@hackerleap.com">Share Feedback</a>
+    </div>
+</aside>

@@ -1,0 +1,124 @@
+{% extends "product/base.html" %}
+
+{% block title %}Dashboard | HackerLeap{% endblock %}
+
+{% block body %}
+<div class="product-layout">
+    {% include "product/includes/sidebar.html" %}
+    <div class="product-main-shell">
+        {% include "product/includes/topbar.html" %}
+        <main class="product-main">
+            <section class="dashboard-hero" aria-labelledby="dashboard-title">
+                <div>
+                    <h1 id="dashboard-title">Let's land your next opportunity. 🚀</h1>
+                    <p>Upload your resume, paste the job description and get AI-powered insights.</p>
+                </div>
+                <aside class="active-resume-card" aria-label="Active resume">
+                    <div class="resume-row">
+                        <span class="resume-icon" aria-hidden="true">▧</span>
+                        <div>
+                            <span>Active Resume</span>
+                            <strong>Ankit_Resume.pdf</strong>
+                            <small>Uploaded on May 12, 2024</small>
+                        </div>
+                    </div>
+                    <button type="button">Start New Analysis <span aria-hidden="true">↻</span></button>
+                </aside>
+            </section>
+
+            <section class="analysis-card" aria-labelledby="analysis-title">
+                <header>
+                    <h2 id="analysis-title">Start New Analysis</h2>
+                    <p>Just 3 simple steps to improve your application.</p>
+                </header>
+                <div class="analysis-steps">
+                    <article class="analysis-step">
+                        <span class="step-number">1</span>
+                        <h3>Upload Your Resume</h3>
+                        <p>We'll use this to compare with the job description.</p>
+                        <div class="uploaded-file">
+                            <span aria-hidden="true">▧</span>
+                            <div>
+                                <strong>Ankit_Resume.pdf</strong>
+                                <small>Uploaded</small>
+                            </div>
+                            <b aria-label="Uploaded successfully">✓</b>
+                        </div>
+                        <small>Only PDF, DOCX supported</small>
+                    </article>
+                    <article class="analysis-step">
+                        <span class="step-number">2</span>
+                        <h3>Paste Job Description</h3>
+                        <p>Add the job description you're targeting.</p>
+                        <label class="sr-only" for="job-description">Paste job description here</label>
+                        <textarea id="job-description" maxlength="8000" placeholder="Paste job description here..."></textarea>
+                        <span class="character-count">0 / 8000</span>
+                    </article>
+                    <article class="analysis-step">
+                        <span class="step-number">3</span>
+                        <h3>Get Results</h3>
+                        <p>Get matching score, missing skills, suggestions and more.</p>
+                        <div class="report-illustration" aria-hidden="true">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                        <button type="button">Analyze Now <span aria-hidden="true">→</span></button>
+                    </article>
+                </div>
+            </section>
+
+            <section class="recent-card" aria-labelledby="recent-title">
+                <div class="section-heading">
+                    <div>
+                        <h2 id="recent-title">Recent Analysis</h2>
+                        <p>View your recent job analyses and insights.</p>
+                    </div>
+                    <button type="button">View All History <span aria-hidden="true">◷</span></button>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Job Title</th>
+                                <th>Company</th>
+                                <th>Analyzed On</th>
+                                <th>Match</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Senior Backend Engineer</strong></td>
+                                <td>TechNova Inc.</td>
+                                <td>May 12, 2024 · 10:30 AM</td>
+                                <td><span class="score good">82%</span></td>
+                                <td><span class="status-dot"></span>Completed</td>
+                                <td><button type="button">View Report</button></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Software Engineer II</strong></td>
+                                <td>CodeCraft Labs</td>
+                                <td>May 10, 2024 · 04:15 PM</td>
+                                <td><span class="score warn">74%</span></td>
+                                <td><span class="status-dot"></span>Completed</td>
+                                <td><button type="button">View Report</button></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Full Stack Developer</strong></td>
+                                <td>InnovateX</td>
+                                <td>May 08, 2024 · 11:20 AM</td>
+                                <td><span class="score low">68%</span></td>
+                                <td><span class="status-dot"></span>Completed</td>
+                                <td><button type="button">View Report</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            <p class="privacy-note">▧ Only you can see your analysis results. Your data is private and secure.</p>
+        </main>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "product/base.html" %}
+
+{% block title %}Login | HackerLeap{% endblock %}
+
+{% block body %}
+<main class="auth-page">
+    <section class="auth-panel" aria-labelledby="login-title">
+        {% include "product/includes/brand.html" %}
+        <div>
+            <h1 id="login-title">Welcome back</h1>
+            <p>Sign in to continue to your HackerLeap dashboard.</p>
+        </div>
+        <form method="post" class="auth-form">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+                <div class="form-error">{{ form.non_field_errors|join:" " }}</div>
+            {% endif %}
+            <label for="{{ form.username.id_for_label }}">Email or username</label>
+            {{ form.username }}
+            {% for error in form.username.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+
+            <label for="{{ form.password.id_for_label }}">Password</label>
+            {{ form.password }}
+            {% for error in form.password.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+
+            <button type="submit">Login</button>
+        </form>
+    </section>
+</main>
+{% endblock %}
