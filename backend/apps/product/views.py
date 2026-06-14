@@ -12,10 +12,14 @@ from django.utils import timezone
 from apps.website.models import EarlyAccessUser
 
 from .decorators import product_access_required
+from .forms import AnalysisPromptForm
+from .forms import AnalysisResultForm
 from .forms import EarlyAccessSignupForm
 from .forms import ProductLoginForm
 from .forms import ResumeUploadForm
 from .models import Resume
+from .models import ResumeAnalysis
+from .services import build_resume_match_prompt
 
 
 class ProductLoginView(LoginView):
@@ -30,24 +34,81 @@ class ProductLoginView(LoginView):
 @product_access_required
 def dashboard(request):
     resume = Resume.objects.filter(user=request.user).first()
-    form = ResumeUploadForm()
+    resume_form = ResumeUploadForm()
+    analysis_form = AnalysisPromptForm()
+    result_form = AnalysisResultForm()
+    latest_analysis = ResumeAnalysis.objects.filter(user=request.user).first()
 
     if request.method == "POST":
-        form = ResumeUploadForm(request.POST, request.FILES)
-        if form.is_valid():
-            form.save(request.user)
-            messages.success(request, "Resume uploaded successfully.")
-            return redirect("product_dashboard")
+        action = request.POST.get("action", "upload_resume")
 
-        first_error = next(iter(form.errors.values()))[0] if form.errors else "Unable to upload your resume."
-        messages.error(request, first_error)
+        if action == "generate_prompt":
+            if not resume:
+                messages.error(request, "Please upload your resume before generating a prompt.")
+                return redirect("product_dashboard")
+            if not resume.parsed_text.strip():
+                messages.error(request, "We could not find readable text in your uploaded resume. Please upload a text-based PDF resume.")
+                return redirect("product_dashboard")
+
+            analysis_form = AnalysisPromptForm(request.POST)
+            if analysis_form.is_valid():
+                generated_prompt = build_resume_match_prompt(
+                    analysis_form.cleaned_data["job_description"],
+                    resume.parsed_text,
+                )
+                ResumeAnalysis.objects.create(
+                    user=request.user,
+                    resume=resume,
+                    job_description=analysis_form.cleaned_data["job_description"],
+                    resume_text=resume.parsed_text,
+                    generated_prompt=generated_prompt,
+                )
+                messages.success(request, "Prompt generated. Copy it, run it manually, then paste the JSON result below.")
+                return redirect("product_dashboard")
+
+            messages.error(request, "Please complete the analysis inputs.")
+
+        elif action == "save_analysis_json":
+            if not latest_analysis:
+                messages.error(request, "Generate a prompt before adding analysis JSON.")
+                return redirect("product_dashboard")
+
+            result_form = AnalysisResultForm(request.POST)
+            if result_form.is_valid():
+                latest_analysis.ai_response_json = result_form.parsed_json
+                latest_analysis.status = ResumeAnalysis.Status.RESULT_ADDED
+                latest_analysis.save(update_fields=("ai_response_json", "status", "updated_at"))
+                messages.success(request, "Analysis JSON saved.")
+                return redirect("product_dashboard")
+
+            messages.error(request, "Please paste valid analysis JSON.")
+
+        else:
+            resume_form = ResumeUploadForm(request.POST, request.FILES)
+            if resume_form.is_valid():
+                resume_form.save(request.user)
+                messages.success(request, "Resume uploaded successfully.")
+                return redirect("product_dashboard")
+
+            first_error = next(iter(resume_form.errors.values()))[0] if resume_form.errors else "Unable to upload your resume."
+            messages.error(request, first_error)
+
+    if latest_analysis and request.method != "POST":
+        analysis_form = AnalysisPromptForm(
+            initial={
+                "job_description": latest_analysis.job_description,
+            }
+        )
 
     return render(
         request,
         "product/dashboard.html",
         {
             "resume": resume,
-            "resume_form": form,
+            "resume_form": resume_form,
+            "analysis_form": analysis_form,
+            "result_form": result_form,
+            "latest_analysis": latest_analysis,
         },
     )
 

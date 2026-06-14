@@ -49,15 +49,19 @@
                         </a>
                         <form class="job-form" method="post" action="{% url 'product_dashboard' %}">
                             {% csrf_token %}
-                            <label for="job-description">Job Description</label>
-                            <textarea id="job-description" maxlength="8000" placeholder="Paste job description here..." disabled></textarea>
-                            <span class="character-count">0 / 8000</span>
-                            <button type="button" disabled>Analyze Now <span aria-hidden="true">→</span></button>
+                            <input type="hidden" name="action" value="generate_prompt">
+                            <label for="{{ analysis_form.job_description.id_for_label }}">Job Description</label>
+                            {{ analysis_form.job_description }}
+                            {% for error in analysis_form.job_description.errors %}
+                                <span class="field-error">{{ error }}</span>
+                            {% endfor %}
+                            <button type="submit">Analyze Now <span aria-hidden="true">→</span></button>
                         </form>
                     </div>
                 {% else %}
                     <form class="resume-upload-form" method="post" action="{% url 'product_dashboard' %}" enctype="multipart/form-data">
                         {% csrf_token %}
+                        <input type="hidden" name="action" value="upload_resume">
                         <label class="resume-dropzone" for="{{ resume_form.resume.id_for_label }}">
                             {% include "product/includes/resume_upload_icon.html" %}
                             <strong>Choose your resume PDF</strong>
@@ -73,6 +77,136 @@
                     </form>
                 {% endif %}
             </section>
+
+            {% if latest_analysis %}
+                <section class="prompt-card" aria-labelledby="prompt-title">
+                    <div class="section-heading">
+                        <div>
+                            <h2 id="prompt-title">Formatted Prompt</h2>
+                            <p>Copy this prompt, run it manually, then paste the JSON result below.</p>
+                        </div>
+                        <button class="outline-small" type="button" data-copy-prompt>Copy Prompt</button>
+                    </div>
+                    <label class="sr-only" for="generated-prompt">Generated prompt</label>
+                    <textarea id="generated-prompt" class="prompt-output" readonly>{{ latest_analysis.generated_prompt }}</textarea>
+                </section>
+
+                <section class="prompt-card" aria-labelledby="json-title">
+                    <div class="section-heading">
+                        <div>
+                            <h2 id="json-title">Paste Analysis JSON</h2>
+                            <p>For now, paste the JSON output here and HackerLeap will format the result.</p>
+                        </div>
+                    </div>
+                    <form class="json-result-form" method="post" action="{% url 'product_dashboard' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="save_analysis_json">
+                        <label for="{{ result_form.analysis_json.id_for_label }}">Analysis JSON</label>
+                        {{ result_form.analysis_json }}
+                        {% for error in result_form.analysis_json.errors %}
+                            <span class="field-error">{{ error }}</span>
+                        {% endfor %}
+                        <button type="submit">Save Analysis Result <span aria-hidden="true">→</span></button>
+                    </form>
+                </section>
+            {% endif %}
+
+            {% if latest_analysis.ai_response_json %}
+                <section class="analysis-result-card" aria-labelledby="analysis-result-title">
+                    <div class="section-heading">
+                        <div>
+                            <h2 id="analysis-result-title">Analysis Result</h2>
+                            <p>Formatted from the pasted JSON response.</p>
+                        </div>
+                    </div>
+
+                    {% if latest_analysis.ai_response_json.status == "refused" %}
+                        <div class="empty-history">
+                            <strong>Analysis refused</strong>
+                            <p>{{ latest_analysis.ai_response_json.reason }}</p>
+                        </div>
+                    {% else %}
+                        <div class="score-summary-grid">
+                            <div>
+                                <span>Overall Match</span>
+                                <strong>{{ latest_analysis.ai_response_json.overall_match_score }}%</strong>
+                                <small>{{ latest_analysis.ai_response_json.match_level }}</small>
+                            </div>
+                            <div>
+                                <span>ATS Compatibility</span>
+                                <strong>{{ latest_analysis.ai_response_json.ats_compatibility.score }}%</strong>
+                                <small>{{ latest_analysis.ai_response_json.ats_compatibility.status }}</small>
+                            </div>
+                            <div>
+                                <span>Application Confidence</span>
+                                <strong>{{ latest_analysis.ai_response_json.application_confidence.score }}%</strong>
+                                <small>{{ latest_analysis.ai_response_json.application_confidence.label }}</small>
+                            </div>
+                        </div>
+
+                        <div class="analysis-result-section">
+                            <h3>Summary</h3>
+                            <p><strong>Verdict:</strong> {{ latest_analysis.ai_response_json.summary.short_verdict }}</p>
+                            <p><strong>Positioning:</strong> {{ latest_analysis.ai_response_json.summary.candidate_positioning }}</p>
+                            <p><strong>Recruiter impression:</strong> {{ latest_analysis.ai_response_json.summary.recruiter_likely_impression }}</p>
+                        </div>
+
+                        <div class="analysis-result-grid">
+                            <section>
+                                <h3>Strengths</h3>
+                                {% for strength in latest_analysis.ai_response_json.strengths %}
+                                    <article>
+                                        <strong>{{ strength.title }}</strong>
+                                        <p>{{ strength.evidence_from_resume }}</p>
+                                        <small>{{ strength.relevance_to_job }}</small>
+                                    </article>
+                                {% empty %}
+                                    <p>No strengths returned.</p>
+                                {% endfor %}
+                            </section>
+                            <section>
+                                <h3>Missing Keywords</h3>
+                                {% for keyword in latest_analysis.ai_response_json.missing_keywords %}
+                                    <article>
+                                        <strong>{{ keyword.keyword }} · {{ keyword.importance }}</strong>
+                                        <p>{{ keyword.reason }}</p>
+                                    </article>
+                                {% empty %}
+                                    <p>No missing keywords returned.</p>
+                                {% endfor %}
+                            </section>
+                            <section>
+                                <h3>Gaps or Risks</h3>
+                                {% for gap in latest_analysis.ai_response_json.gaps_or_risks %}
+                                    <article>
+                                        <strong>{{ gap.gap }}</strong>
+                                        <p>{{ gap.why_it_matters }}</p>
+                                        <small>{{ gap.suggested_fix }}</small>
+                                    </article>
+                                {% empty %}
+                                    <p>No gaps returned.</p>
+                                {% endfor %}
+                            </section>
+                            <section>
+                                <h3>Matched Skills</h3>
+                                {% for skill in latest_analysis.ai_response_json.matched_skills %}
+                                    <article>
+                                        <strong>{{ skill.skill }}</strong>
+                                        <p>{{ skill.evidence_from_resume }}</p>
+                                    </article>
+                                {% empty %}
+                                    <p>No matched skills returned.</p>
+                                {% endfor %}
+                            </section>
+                        </div>
+
+                        <div class="analysis-result-section">
+                            <h3>Final Recommendation</h3>
+                            <p>{{ latest_analysis.ai_response_json.final_recommendation }}</p>
+                        </div>
+                    {% endif %}
+                </section>
+            {% endif %}
 
             <section class="recent-card" aria-labelledby="recent-title">
                 <div class="section-heading">
@@ -99,6 +233,19 @@
     if (resumeInput && selectedFileName) {
         resumeInput.addEventListener("change", function () {
             selectedFileName.textContent = resumeInput.files.length ? resumeInput.files[0].name : "No file selected";
+        });
+    }
+
+    var copyPromptButton = document.querySelector("[data-copy-prompt]");
+    var promptOutput = document.getElementById("generated-prompt");
+    if (copyPromptButton && promptOutput) {
+        copyPromptButton.addEventListener("click", function () {
+            promptOutput.select();
+            document.execCommand("copy");
+            copyPromptButton.textContent = "Copied";
+            window.setTimeout(function () {
+                copyPromptButton.textContent = "Copy Prompt";
+            }, 1600);
         });
     }
 </script>

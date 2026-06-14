@@ -1,5 +1,8 @@
+import json
 import shutil
 import tempfile
+
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -10,6 +13,7 @@ from django.urls import reverse
 from apps.website.models import EarlyAccessUser
 
 from .models import Resume
+from .models import ResumeAnalysis
 
 
 class ProductAccessTests(TestCase):
@@ -88,17 +92,33 @@ class ResumeUploadTests(TestCase):
             content_type="application/pdf",
         )
 
-        response = self.client.post(reverse("product_dashboard"), {"resume": resume_file}, follow=True)
+        with patch("apps.product.forms.extract_pdf_text", return_value="Parsed resume text."):
+            response = self.client.post(reverse("product_dashboard"), {"resume": resume_file}, follow=True)
 
         resume = Resume.objects.get(user=self.user)
         self.assertRedirects(response, reverse("product_dashboard"))
         self.assertEqual(resume.original_filename, "adhi_resume.pdf")
         self.assertEqual(resume.content_type, "application/pdf")
+        self.assertEqual(resume.parsed_text, "Parsed resume text.")
         self.assertContains(response, "adhi_resume.pdf")
         self.assertContains(response, reverse("resume_content", kwargs={"resume_uuid": resume.uuid}))
         self.assertContains(response, 'target="_blank"')
         self.assertContains(response, "Start New Analysis")
         self.assertNotContains(response, "Choose your resume PDF")
+
+    def test_pdf_resume_without_readable_text_is_rejected(self):
+        resume_file = SimpleUploadedFile(
+            "scanned_resume.pdf",
+            b"%PDF-1.4\nresume\n%%EOF",
+            content_type="application/pdf",
+        )
+
+        with patch("apps.product.forms.extract_pdf_text", return_value=""):
+            response = self.client.post(reverse("product_dashboard"), {"resume": resume_file})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Resume.objects.filter(user=self.user).exists())
+        self.assertContains(response, "We could not find readable text in this PDF.")
 
     def test_non_pdf_resume_is_rejected(self):
         resume_file = SimpleUploadedFile(
@@ -130,20 +150,24 @@ class ResumeUploadTests(TestCase):
         first_file = SimpleUploadedFile("first.pdf", b"%PDF-1.4\nfirst\n%%EOF", content_type="application/pdf")
         second_file = SimpleUploadedFile("second.pdf", b"%PDF-1.4\nsecond\n%%EOF", content_type="application/pdf")
 
-        self.client.post(reverse("product_dashboard"), {"resume": first_file})
+        with patch("apps.product.forms.extract_pdf_text", return_value="First resume text."):
+            self.client.post(reverse("product_dashboard"), {"resume": first_file})
         first_uuid = Resume.objects.get(user=self.user).uuid
-        self.client.post(reverse("product_dashboard"), {"resume": second_file})
+        with patch("apps.product.forms.extract_pdf_text", return_value="Second resume text."):
+            self.client.post(reverse("product_dashboard"), {"resume": second_file})
         resume = Resume.objects.get(user=self.user)
 
         self.assertEqual(Resume.objects.filter(user=self.user).count(), 1)
         self.assertEqual(resume.original_filename, "second.pdf")
+        self.assertEqual(resume.parsed_text, "Second resume text.")
         self.assertNotEqual(resume.uuid, first_uuid)
         self.assertEqual(self.client.get(reverse("resume_content", kwargs={"resume_uuid": first_uuid})).status_code, 404)
 
     def test_uploaded_resume_filename_has_tooltip(self):
         long_name = "adhithyan_vijayakumar_backend_engineer_resume_2026_final.pdf"
         resume_file = SimpleUploadedFile(long_name, b"%PDF-1.4\nresume\n%%EOF", content_type="application/pdf")
-        self.client.post(reverse("product_dashboard"), {"resume": resume_file})
+        with patch("apps.product.forms.extract_pdf_text", return_value="Parsed resume text."):
+            self.client.post(reverse("product_dashboard"), {"resume": resume_file})
 
         response = self.client.get(reverse("product_dashboard"))
 
@@ -153,7 +177,8 @@ class ResumeUploadTests(TestCase):
 
     def test_user_can_view_own_resume_content_with_private_cache_headers(self):
         resume_file = SimpleUploadedFile("own.pdf", b"%PDF-1.4\nown\n%%EOF", content_type="application/pdf")
-        self.client.post(reverse("product_dashboard"), {"resume": resume_file})
+        with patch("apps.product.forms.extract_pdf_text", return_value="Parsed resume text."):
+            self.client.post(reverse("product_dashboard"), {"resume": resume_file})
         resume = Resume.objects.get(user=self.user)
 
         response = self.client.get(reverse("resume_content", kwargs={"resume_uuid": resume.uuid}))
@@ -208,6 +233,96 @@ class ResumeUploadTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(b"".join(response.streaming_content), b"%PDF-1.4\nother\n%%EOF")
+
+    def test_analyze_now_generates_manual_prompt(self):
+        resume_file = SimpleUploadedFile("resume.pdf", b"%PDF-1.4\nresume\n%%EOF", content_type="application/pdf")
+        with patch("apps.product.forms.extract_pdf_text", return_value="Built Django APIs and Python services."):
+            self.client.post(reverse("product_dashboard"), {"resume": resume_file})
+
+        response = self.client.post(
+            reverse("product_dashboard"),
+            {
+                "action": "generate_prompt",
+                "job_description": "We need a Python Django backend engineer.",
+            },
+            follow=True,
+        )
+
+        analysis = ResumeAnalysis.objects.get(user=self.user)
+        self.assertRedirects(response, reverse("product_dashboard"))
+        self.assertContains(response, "Formatted Prompt")
+        self.assertContains(response, "HackerLeap Resume Match Analyzer")
+        self.assertContains(response, "We need a Python Django backend engineer.")
+        self.assertIn('"job_description": "We need a Python Django backend engineer."', analysis.generated_prompt)
+        self.assertIn('"resume_text": "Built Django APIs and Python services."', analysis.generated_prompt)
+
+    def test_pasted_json_result_is_saved_and_rendered(self):
+        resume_file = SimpleUploadedFile("resume.pdf", b"%PDF-1.4\nresume\n%%EOF", content_type="application/pdf")
+        with patch("apps.product.forms.extract_pdf_text", return_value="Python backend resume."):
+            self.client.post(reverse("product_dashboard"), {"resume": resume_file})
+        self.client.post(
+            reverse("product_dashboard"),
+            {
+                "action": "generate_prompt",
+                "job_description": "Python backend role.",
+            },
+        )
+        payload = {
+            "status": "success",
+            "overall_match_score": 82,
+            "match_level": "Strong",
+            "ats_compatibility": {"score": 78, "status": "Good", "summary": "Clear backend match."},
+            "summary": {
+                "short_verdict": "Strong fit.",
+                "candidate_positioning": "Backend engineer.",
+                "recruiter_likely_impression": "Relevant experience.",
+            },
+            "strengths": [{"title": "Python", "evidence_from_resume": "Built APIs.", "relevance_to_job": "Core skill."}],
+            "missing_keywords": [{"keyword": "Kubernetes", "importance": "Medium", "reason": "Not explicit."}],
+            "matched_skills": [{"skill": "Django", "evidence_from_resume": "Built Django APIs."}],
+            "gaps_or_risks": [{"gap": "Cloud", "why_it_matters": "Role mentions cloud.", "suggested_fix": "Add cloud work."}],
+            "application_confidence": {"score": 80, "label": "High", "reason": "Good overlap."},
+            "final_recommendation": "Apply with tailored keywords.",
+        }
+
+        response = self.client.post(
+            reverse("product_dashboard"),
+            {
+                "action": "save_analysis_json",
+                "analysis_json": json.dumps(payload),
+            },
+            follow=True,
+        )
+
+        analysis = ResumeAnalysis.objects.get(user=self.user)
+        self.assertEqual(analysis.status, ResumeAnalysis.Status.RESULT_ADDED)
+        self.assertEqual(analysis.ai_response_json["overall_match_score"], 82)
+        self.assertContains(response, "Analysis Result")
+        self.assertContains(response, "82%")
+        self.assertContains(response, "Apply with tailored keywords.")
+
+    def test_invalid_analysis_json_is_rejected(self):
+        resume_file = SimpleUploadedFile("resume.pdf", b"%PDF-1.4\nresume\n%%EOF", content_type="application/pdf")
+        with patch("apps.product.forms.extract_pdf_text", return_value="Python backend resume."):
+            self.client.post(reverse("product_dashboard"), {"resume": resume_file})
+        self.client.post(
+            reverse("product_dashboard"),
+            {
+                "action": "generate_prompt",
+                "job_description": "Python backend role.",
+            },
+        )
+
+        response = self.client.post(
+            reverse("product_dashboard"),
+            {
+                "action": "save_analysis_json",
+                "analysis_json": "not-json",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Please paste valid JSON.")
 
 
 class EarlyAccessSignupTests(TestCase):

@@ -1,3 +1,4 @@
+import json
 import re
 import uuid
 from pathlib import Path
@@ -9,6 +10,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.core.exceptions import ValidationError
 
 from .models import Resume
+from .pdf import extract_pdf_text
 
 
 MAX_RESUME_SIZE = 1024 * 1024
@@ -127,6 +129,17 @@ class ResumeUploadForm(forms.Form):
         if resume.size > MAX_RESUME_SIZE:
             raise ValidationError("Please upload a PDF no larger than 1 MB.")
 
+        try:
+            self.parsed_text = extract_pdf_text(resume)
+        except Exception as exc:
+            raise ValidationError("We could not read text from this PDF. Please upload a text-based PDF resume.") from exc
+
+        if not self.parsed_text:
+            raise ValidationError("We could not find readable text in this PDF. Please upload a text-based PDF resume.")
+
+        if hasattr(resume, "seek"):
+            resume.seek(0)
+
         return resume
 
     def save(self, user):
@@ -142,6 +155,7 @@ class ResumeUploadForm(forms.Form):
                 "original_filename": resume_file.name,
                 "content_type": getattr(resume_file, "content_type", "application/pdf") or "application/pdf",
                 "size": resume_file.size,
+                "parsed_text": self.parsed_text,
             },
         )
 
@@ -149,3 +163,39 @@ class ResumeUploadForm(forms.Form):
             old_file.delete(save=False)
 
         return resume
+
+
+class AnalysisPromptForm(forms.Form):
+    job_description = forms.CharField(
+        widget=forms.Textarea(
+            attrs={
+                "maxlength": "12000",
+                "placeholder": "Paste job description here...",
+            }
+        ),
+        error_messages={"required": "Please paste the job description."},
+    )
+
+
+class AnalysisResultForm(forms.Form):
+    analysis_json = forms.CharField(
+        widget=forms.Textarea(attrs={"placeholder": "Paste the JSON result here..."}),
+        error_messages={"required": "Please paste the JSON result."},
+    )
+
+    def clean_analysis_json(self):
+        raw_json = self.cleaned_data["analysis_json"]
+        try:
+            parsed_json = json.loads(raw_json)
+        except json.JSONDecodeError as exc:
+            raise ValidationError(f"Please paste valid JSON. {exc.msg}") from exc
+
+        if not isinstance(parsed_json, dict):
+            raise ValidationError("The analysis result must be a JSON object.")
+
+        status = parsed_json.get("status")
+        if status not in ("success", "refused"):
+            raise ValidationError('The JSON must include status as either "success" or "refused".')
+
+        self.parsed_json = parsed_json
+        return raw_json

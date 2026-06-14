@@ -18,6 +18,7 @@ class Resume(models.Model):
     original_filename = models.CharField(max_length=255)
     content_type = models.CharField(max_length=120)
     size = models.PositiveIntegerField()
+    parsed_text = models.TextField(blank=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -26,3 +27,25 @@ class Resume(models.Model):
 
     def __str__(self):
         return self.original_filename
+
+
+class ResumeAnalysis(models.Model):
+    class Status(models.TextChoices):
+        PROMPT_READY = "prompt_ready", "Prompt Ready"
+        RESULT_ADDED = "result_added", "Result Added"
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="resume_analyses")
+    resume = models.ForeignKey(Resume, on_delete=models.CASCADE, related_name="analyses")
+    job_description = models.TextField()
+    resume_text = models.TextField()
+    generated_prompt = models.TextField()
+    ai_response_json = models.JSONField(blank=True, null=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PROMPT_READY)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-updated_at",)
+
+    def __str__(self):
+        return f"Analysis for {self.resume.original_filename}"
