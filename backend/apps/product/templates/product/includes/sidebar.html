@@ -4,7 +4,7 @@
         <button class="sidebar-close" type="button" aria-label="Close navigation menu" data-menu-close>&times;</button>
     </div>
     <nav class="product-nav" aria-label="Dashboard">
-        <a class="active" href="{% url 'product_dashboard' %}">
+        <a class="{% if active_nav == 'dashboard' %}active{% endif %}" href="{% url 'product_dashboard' %}">
             <span aria-hidden="true">⌂</span>
             <span>Dashboard</span>
         </a>
@@ -12,7 +12,7 @@
             <span aria-hidden="true">▧</span>
             <span>Resume</span>
         </a>
-        <a href="{% url 'product_dashboard' %}">
+        <a class="{% if active_nav == 'analysis_history' %}active{% endif %}" href="{% url 'analysis_history' %}">
             <span aria-hidden="true">◷</span>
             <span>Analysis History</span>
         </a>

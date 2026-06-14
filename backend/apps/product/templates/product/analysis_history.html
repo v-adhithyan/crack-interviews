@@ -1,0 +1,33 @@
+{% extends "product/base.html" %}
+
+{% block title %}Analysis History | HackerLeap{% endblock %}
+
+{% block body %}
+<div class="product-layout">
+    {% include "product/includes/sidebar.html" %}
+    <div class="product-main-shell">
+        {% include "product/includes/topbar.html" %}
+        <main class="product-main">
+            <section class="page-heading" aria-labelledby="history-title">
+                <div>
+                    <span>Analysis History</span>
+                    <h1 id="history-title">Your resume match reports</h1>
+                    <p>Open any saved analysis to review the prompt, score, and pasted JSON result.</p>
+                </div>
+                <a class="outline-action page-heading-action" href="{% url 'product_dashboard' %}#new-analysis">Start New Analysis <span aria-hidden="true">→</span></a>
+            </section>
+
+            <section class="recent-card" aria-labelledby="all-history-title">
+                <div class="section-heading">
+                    <div>
+                        <h2 id="all-history-title">All Analysis</h2>
+                        <p>Reports are ordered by the most recently updated first.</p>
+                    </div>
+                </div>
+                {% include "product/includes/analysis_table.html" with analyses=analyses %}
+            </section>
+            <p class="privacy-note">▧ Only you can see your analysis results. Your data is private and secure.</p>
+        </main>
+    </div>
+</div>
+{% endblock %}

@@ -5,6 +5,8 @@ from . import views
 
 urlpatterns = [
     path("app/", views.dashboard, name="product_dashboard"),
+    path("app/analysis/", views.analysis_history, name="analysis_history"),
+    path("app/analysis/<int:analysis_id>/", views.analysis_detail, name="analysis_detail"),
     path("user-content/resume/<uuid:resume_uuid>/", views.resume_content, name="resume_content"),
     path("login/", views.ProductLoginView.as_view(), name="login"),
     path("logout/", LogoutView.as_view(), name="logout"),

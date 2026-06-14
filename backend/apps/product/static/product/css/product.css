@@ -321,6 +321,54 @@ a {
     padding: 18px 26px 34px;
 }
 
+.page-heading,
+.analysis-detail-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 4px 4px 18px;
+}
+
+.page-heading span,
+.breadcrumb {
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 750;
+}
+
+.page-heading h1,
+.analysis-detail-header h1 {
+    margin: 8px 0;
+    font-size: clamp(30px, 3vw, 42px);
+    line-height: 1.15;
+    letter-spacing: 0;
+}
+
+.page-heading p,
+.analysis-detail-header p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.65;
+}
+
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.breadcrumb a:hover,
+.analysis-title-link:hover {
+    color: #d08a00;
+}
+
+.page-heading-action {
+    width: max-content;
+    min-width: 190px;
+    margin-top: 8px;
+}
+
 .dashboard-hero {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 360px;
@@ -874,6 +922,11 @@ th {
     color: #ea580c;
 }
 
+.score.neutral {
+    background: #f2f4f7;
+    color: #475467;
+}
+
 .status-dot {
     display: inline-block;
     width: 8px;
@@ -881,6 +934,32 @@ th {
     margin-right: 8px;
     border-radius: 50%;
     background: var(--green);
+}
+
+.status-dot-muted {
+    background: #d0d5dd;
+}
+
+.analysis-table tbody tr {
+    transition: background 0.14s ease;
+}
+
+.analysis-table tbody tr:hover {
+    background: #fffaf0;
+}
+
+.clickable-row {
+    cursor: pointer;
+}
+
+.analysis-title-link {
+    font-weight: 850;
+}
+
+.table-action {
+    width: max-content;
+    min-height: 38px;
+    padding: 0 14px;
 }
 
 .privacy-note {
@@ -1053,6 +1132,33 @@ th {
     line-height: 1;
 }
 
+.source-input-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.source-input-grid article {
+    min-width: 0;
+    padding: 18px;
+    border: 1px solid #edf0f2;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.source-input-grid h3 {
+    margin: 0 0 12px;
+}
+
+.source-input-grid pre {
+    max-height: 360px;
+    margin: 0;
+    overflow: auto;
+    color: var(--muted);
+    font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    white-space: pre-wrap;
+}
+
 @media (max-width: 980px) {
     .product-layout {
         display: block;
@@ -1111,11 +1217,19 @@ th {
     }
 
     .dashboard-hero,
+    .page-heading,
+    .analysis-detail-header,
     .analysis-steps,
     .resume-ready-grid,
     .score-summary-grid,
-    .analysis-result-grid {
+    .analysis-result-grid,
+    .source-input-grid {
         grid-template-columns: 1fr;
+    }
+
+    .page-heading,
+    .analysis-detail-header {
+        display: grid;
     }
 
     .analysis-step {

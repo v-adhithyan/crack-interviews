@@ -1,0 +1,92 @@
+{% extends "product/base.html" %}
+
+{% block title %}{{ analysis.display_title }} | HackerLeap{% endblock %}
+
+{% block body %}
+<div class="product-layout">
+    {% include "product/includes/sidebar.html" %}
+    <div class="product-main-shell">
+        {% include "product/includes/topbar.html" %}
+        <main class="product-main">
+            <section class="analysis-detail-header" aria-labelledby="analysis-detail-title">
+                <div>
+                    <nav class="breadcrumb" aria-label="Breadcrumb">
+                        <a href="{% url 'analysis_history' %}">Analysis History</a>
+                        <span aria-hidden="true">›</span>
+                        <span>{{ analysis.display_title }}</span>
+                    </nav>
+                    <h1 id="analysis-detail-title">{{ analysis.display_title }}</h1>
+                    <p>
+                        {{ analysis.display_company }}
+                        <span aria-hidden="true">·</span>
+                        Analyzed on {{ analysis.updated_at|date:"M j, Y \\a\\t h:i A" }}
+                    </p>
+                </div>
+                <a class="outline-action page-heading-action" href="{% url 'product_dashboard' %}#new-analysis">Start New Analysis <span aria-hidden="true">→</span></a>
+            </section>
+
+            {% if analysis.ai_response_json %}
+                <section class="analysis-result-card" aria-labelledby="analysis-result-title">
+                    <div class="section-heading">
+                        <div>
+                            <h2 id="analysis-result-title">Analysis Result</h2>
+                            <p>Formatted from the saved JSON response.</p>
+                        </div>
+                    </div>
+                    {% include "product/includes/analysis_result.html" with analysis=analysis %}
+                </section>
+            {% else %}
+                <section class="prompt-card" aria-labelledby="pending-title">
+                    <div class="section-heading">
+                        <div>
+                            <h2 id="pending-title">Prompt Ready</h2>
+                            <p>This analysis is waiting for the JSON response to be pasted on the dashboard.</p>
+                        </div>
+                        <button class="outline-small" type="button" data-copy-prompt>Copy Prompt</button>
+                    </div>
+                    <label class="sr-only" for="generated-prompt">Generated prompt</label>
+                    <textarea id="generated-prompt" class="prompt-output" readonly>{{ analysis.generated_prompt }}</textarea>
+                </section>
+            {% endif %}
+
+            <section class="prompt-card" aria-labelledby="source-title">
+                <div class="section-heading">
+                    <div>
+                        <h2 id="source-title">Source Inputs</h2>
+                        <p>The job description and resume text snapshot used for this analysis.</p>
+                    </div>
+                </div>
+                <div class="source-input-grid">
+                    <article>
+                        <h3>Job Description</h3>
+                        <pre>{{ analysis.job_description }}</pre>
+                    </article>
+                    <article>
+                        <h3>Resume Snapshot</h3>
+                        <pre>{{ analysis.resume_text }}</pre>
+                    </article>
+                </div>
+            </section>
+
+            <p class="privacy-note">▧ Your data is private and secure. Only you can see this analysis.</p>
+        </main>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    var copyPromptButton = document.querySelector("[data-copy-prompt]");
+    var promptOutput = document.getElementById("generated-prompt");
+    if (copyPromptButton && promptOutput) {
+        copyPromptButton.addEventListener("click", function () {
+            promptOutput.select();
+            document.execCommand("copy");
+            copyPromptButton.textContent = "Copied";
+            window.setTimeout(function () {
+                copyPromptButton.textContent = "Copy Prompt";
+            }, 1600);
+        });
+    }
+</script>
+{% endblock %}

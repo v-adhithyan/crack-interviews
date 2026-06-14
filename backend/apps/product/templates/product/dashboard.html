@@ -119,92 +119,7 @@
                             <p>Formatted from the pasted JSON response.</p>
                         </div>
                     </div>
-
-                    {% if latest_analysis.ai_response_json.status == "refused" %}
-                        <div class="empty-history">
-                            <strong>Analysis refused</strong>
-                            <p>{{ latest_analysis.ai_response_json.reason }}</p>
-                        </div>
-                    {% else %}
-                        <div class="score-summary-grid">
-                            <div>
-                                <span>Overall Match</span>
-                                <strong>{{ latest_analysis.ai_response_json.overall_match_score }}%</strong>
-                                <small>{{ latest_analysis.ai_response_json.match_level }}</small>
-                            </div>
-                            <div>
-                                <span>ATS Compatibility</span>
-                                <strong>{{ latest_analysis.ai_response_json.ats_compatibility.score }}%</strong>
-                                <small>{{ latest_analysis.ai_response_json.ats_compatibility.status }}</small>
-                            </div>
-                            <div>
-                                <span>Application Confidence</span>
-                                <strong>{{ latest_analysis.ai_response_json.application_confidence.score }}%</strong>
-                                <small>{{ latest_analysis.ai_response_json.application_confidence.label }}</small>
-                            </div>
-                        </div>
-
-                        <div class="analysis-result-section">
-                            <h3>Summary</h3>
-                            <p><strong>Verdict:</strong> {{ latest_analysis.ai_response_json.summary.short_verdict }}</p>
-                            <p><strong>Positioning:</strong> {{ latest_analysis.ai_response_json.summary.candidate_positioning }}</p>
-                            <p><strong>Recruiter impression:</strong> {{ latest_analysis.ai_response_json.summary.recruiter_likely_impression }}</p>
-                        </div>
-
-                        <div class="analysis-result-grid">
-                            <section>
-                                <h3>Strengths</h3>
-                                {% for strength in latest_analysis.ai_response_json.strengths %}
-                                    <article>
-                                        <strong>{{ strength.title }}</strong>
-                                        <p>{{ strength.evidence_from_resume }}</p>
-                                        <small>{{ strength.relevance_to_job }}</small>
-                                    </article>
-                                {% empty %}
-                                    <p>No strengths returned.</p>
-                                {% endfor %}
-                            </section>
-                            <section>
-                                <h3>Missing Keywords</h3>
-                                {% for keyword in latest_analysis.ai_response_json.missing_keywords %}
-                                    <article>
-                                        <strong>{{ keyword.keyword }} · {{ keyword.importance }}</strong>
-                                        <p>{{ keyword.reason }}</p>
-                                    </article>
-                                {% empty %}
-                                    <p>No missing keywords returned.</p>
-                                {% endfor %}
-                            </section>
-                            <section>
-                                <h3>Gaps or Risks</h3>
-                                {% for gap in latest_analysis.ai_response_json.gaps_or_risks %}
-                                    <article>
-                                        <strong>{{ gap.gap }}</strong>
-                                        <p>{{ gap.why_it_matters }}</p>
-                                        <small>{{ gap.suggested_fix }}</small>
-                                    </article>
-                                {% empty %}
-                                    <p>No gaps returned.</p>
-                                {% endfor %}
-                            </section>
-                            <section>
-                                <h3>Matched Skills</h3>
-                                {% for skill in latest_analysis.ai_response_json.matched_skills %}
-                                    <article>
-                                        <strong>{{ skill.skill }}</strong>
-                                        <p>{{ skill.evidence_from_resume }}</p>
-                                    </article>
-                                {% empty %}
-                                    <p>No matched skills returned.</p>
-                                {% endfor %}
-                            </section>
-                        </div>
-
-                        <div class="analysis-result-section">
-                            <h3>Final Recommendation</h3>
-                            <p>{{ latest_analysis.ai_response_json.final_recommendation }}</p>
-                        </div>
-                    {% endif %}
+                    {% include "product/includes/analysis_result.html" with analysis=latest_analysis %}
                 </section>
             {% endif %}
 
@@ -214,11 +129,9 @@
                         <h2 id="recent-title">Recent Analysis</h2>
                         <p>View your recent job analyses and insights.</p>
                     </div>
+                    <a class="outline-small" href="{% url 'analysis_history' %}">View All History</a>
                 </div>
-                <div class="empty-history">
-                    <strong>No analyses yet</strong>
-                    <p>Your resume match reports will appear here after analysis is enabled.</p>
-                </div>
+                {% include "product/includes/analysis_table.html" with analyses=recent_analyses %}
             </section>
             <p class="privacy-note">▧ Only you can see your analysis results. Your data is private and secure.</p>
         </main>
@@ -248,5 +161,6 @@
             }, 1600);
         });
     }
+
 </script>
 {% endblock %}

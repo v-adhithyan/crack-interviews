@@ -72,6 +72,50 @@ class ResumeUploadTests(TestCase):
         )
         self.client.force_login(self.user)
 
+    def create_resume(self, user=None):
+        user = user or self.user
+        return Resume.objects.create(
+            user=user,
+            file=SimpleUploadedFile("resume.pdf", b"%PDF-1.4\nresume\n%%EOF", content_type="application/pdf"),
+            original_filename="resume.pdf",
+            content_type="application/pdf",
+            size=24,
+            parsed_text="Python Django resume.",
+        )
+
+    def create_analysis(self, user=None, resume=None, **overrides):
+        user = user or self.user
+        resume = resume or self.create_resume(user)
+        payload = {
+            "status": "success",
+            "role_title_detected": "Senior Backend Engineer",
+            "company_detected": "TechNova Inc.",
+            "overall_match_score": 82,
+            "match_level": "Strong",
+            "ats_compatibility": {"score": 78, "status": "Good", "summary": "Clear backend match."},
+            "summary": {
+                "short_verdict": "Strong fit.",
+                "candidate_positioning": "Backend engineer.",
+                "recruiter_likely_impression": "Relevant experience.",
+            },
+            "strengths": [{"title": "Python", "evidence_from_resume": "Built APIs.", "relevance_to_job": "Core skill."}],
+            "missing_keywords": [{"keyword": "Kubernetes", "importance": "Medium", "reason": "Not explicit."}],
+            "matched_skills": [{"skill": "Django", "evidence_from_resume": "Built Django APIs."}],
+            "gaps_or_risks": [{"gap": "Cloud", "why_it_matters": "Role mentions cloud.", "suggested_fix": "Add cloud work."}],
+            "application_confidence": {"score": 80, "label": "High", "reason": "Good overlap."},
+            "final_recommendation": "Apply with tailored keywords.",
+        }
+        payload.update(overrides.pop("ai_response_json", {}))
+        return ResumeAnalysis.objects.create(
+            user=user,
+            resume=resume,
+            job_description=overrides.pop("job_description", "Python backend role."),
+            resume_text=overrides.pop("resume_text", "Python Django resume."),
+            generated_prompt=overrides.pop("generated_prompt", "Formatted prompt."),
+            ai_response_json=payload,
+            status=overrides.pop("status", ResumeAnalysis.Status.RESULT_ADDED),
+        )
+
     def test_dashboard_shows_empty_resume_state(self):
         response = self.client.get(reverse("product_dashboard"))
 
@@ -323,6 +367,72 @@ class ResumeUploadTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Please paste valid JSON.")
+
+    def test_dashboard_recent_analysis_fetches_saved_results(self):
+        analysis = self.create_analysis()
+
+        response = self.client.get(reverse("product_dashboard"))
+
+        self.assertContains(response, "Recent Analysis")
+        self.assertContains(response, "Senior Backend Engineer")
+        self.assertContains(response, "TechNova Inc.")
+        self.assertContains(response, "82%")
+        self.assertContains(response, reverse("analysis_detail", kwargs={"analysis_id": analysis.id}))
+        self.assertNotContains(response, "Your resume match reports will appear here after you generate a prompt")
+
+    def test_analysis_history_lists_user_analyses(self):
+        analysis = self.create_analysis()
+
+        response = self.client.get(reverse("analysis_history"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Your resume match reports")
+        self.assertContains(response, "Senior Backend Engineer")
+        self.assertContains(response, reverse("analysis_detail", kwargs={"analysis_id": analysis.id}))
+
+    def test_analysis_detail_displays_saved_result(self):
+        analysis = self.create_analysis()
+
+        response = self.client.get(reverse("analysis_detail", kwargs={"analysis_id": analysis.id}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Senior Backend Engineer")
+        self.assertContains(response, "TechNova Inc.")
+        self.assertContains(response, "Analysis Result")
+        self.assertContains(response, "Final Recommendation")
+        self.assertContains(response, "Apply with tailored keywords.")
+
+    def test_user_cannot_view_another_users_analysis_detail(self):
+        other_user = get_user_model().objects.create_user(
+            username="other-analysis@example.com",
+            email="other-analysis@example.com",
+            password="Password1!",
+        )
+        analysis = self.create_analysis(user=other_user)
+
+        response = self.client.get(reverse("analysis_detail", kwargs={"analysis_id": analysis.id}))
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_staff_can_view_any_analysis_detail(self):
+        other_user = get_user_model().objects.create_user(
+            username="other-analysis@example.com",
+            email="other-analysis@example.com",
+            password="Password1!",
+        )
+        staff_user = get_user_model().objects.create_user(
+            username="staff-analysis",
+            email="staff-analysis@example.com",
+            password="Password1!",
+            is_staff=True,
+        )
+        analysis = self.create_analysis(user=other_user)
+        self.client.force_login(staff_user)
+
+        response = self.client.get(reverse("analysis_detail", kwargs={"analysis_id": analysis.id}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Senior Backend Engineer")
 
 
 class EarlyAccessSignupTests(TestCase):

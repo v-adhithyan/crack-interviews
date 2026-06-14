@@ -1,0 +1,85 @@
+{% if analysis.ai_response_json.status == "refused" %}
+    <div class="empty-history">
+        <strong>Analysis refused</strong>
+        <p>{{ analysis.ai_response_json.reason }}</p>
+    </div>
+{% else %}
+    <div class="score-summary-grid">
+        <div>
+            <span>Overall Match</span>
+            <strong>{{ analysis.ai_response_json.overall_match_score }}%</strong>
+            <small>{{ analysis.ai_response_json.match_level }}</small>
+        </div>
+        <div>
+            <span>ATS Compatibility</span>
+            <strong>{{ analysis.ai_response_json.ats_compatibility.score }}%</strong>
+            <small>{{ analysis.ai_response_json.ats_compatibility.status }}</small>
+        </div>
+        <div>
+            <span>Application Confidence</span>
+            <strong>{{ analysis.ai_response_json.application_confidence.score }}%</strong>
+            <small>{{ analysis.ai_response_json.application_confidence.label }}</small>
+        </div>
+    </div>
+
+    <div class="analysis-result-section">
+        <h3>Summary</h3>
+        <p><strong>Verdict:</strong> {{ analysis.ai_response_json.summary.short_verdict }}</p>
+        <p><strong>Positioning:</strong> {{ analysis.ai_response_json.summary.candidate_positioning }}</p>
+        <p><strong>Recruiter impression:</strong> {{ analysis.ai_response_json.summary.recruiter_likely_impression }}</p>
+    </div>
+
+    <div class="analysis-result-grid">
+        <section>
+            <h3>Strengths</h3>
+            {% for strength in analysis.ai_response_json.strengths %}
+                <article>
+                    <strong>{{ strength.title }}</strong>
+                    <p>{{ strength.evidence_from_resume }}</p>
+                    <small>{{ strength.relevance_to_job }}</small>
+                </article>
+            {% empty %}
+                <p>No strengths returned.</p>
+            {% endfor %}
+        </section>
+        <section>
+            <h3>Missing Keywords</h3>
+            {% for keyword in analysis.ai_response_json.missing_keywords %}
+                <article>
+                    <strong>{{ keyword.keyword }} · {{ keyword.importance }}</strong>
+                    <p>{{ keyword.reason }}</p>
+                </article>
+            {% empty %}
+                <p>No missing keywords returned.</p>
+            {% endfor %}
+        </section>
+        <section>
+            <h3>Gaps or Risks</h3>
+            {% for gap in analysis.ai_response_json.gaps_or_risks %}
+                <article>
+                    <strong>{{ gap.gap }}</strong>
+                    <p>{{ gap.why_it_matters }}</p>
+                    <small>{{ gap.suggested_fix }}</small>
+                </article>
+            {% empty %}
+                <p>No gaps returned.</p>
+            {% endfor %}
+        </section>
+        <section>
+            <h3>Matched Skills</h3>
+            {% for skill in analysis.ai_response_json.matched_skills %}
+                <article>
+                    <strong>{{ skill.skill }}</strong>
+                    <p>{{ skill.evidence_from_resume }}</p>
+                </article>
+            {% empty %}
+                <p>No matched skills returned.</p>
+            {% endfor %}
+        </section>
+    </div>
+
+    <div class="analysis-result-section">
+        <h3>Final Recommendation</h3>
+        <p>{{ analysis.ai_response_json.final_recommendation }}</p>
+    </div>
+{% endif %}

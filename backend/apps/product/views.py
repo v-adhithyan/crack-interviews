@@ -31,13 +31,29 @@ class ProductLoginView(LoginView):
         return self.get_redirect_url() or reverse_lazy("product_dashboard")
 
 
+def user_resume(user):
+    return Resume.objects.filter(user=user).first()
+
+
+def user_analysis_queryset(user):
+    return ResumeAnalysis.objects.filter(user=user).select_related("resume", "user")
+
+
+def get_visible_analysis_or_404(user, analysis_id):
+    queryset = ResumeAnalysis.objects.select_related("resume", "user")
+    if not user.is_staff:
+        queryset = queryset.filter(user=user)
+    return get_object_or_404(queryset, id=analysis_id)
+
+
 @product_access_required
 def dashboard(request):
-    resume = Resume.objects.filter(user=request.user).first()
+    resume = user_resume(request.user)
     resume_form = ResumeUploadForm()
     analysis_form = AnalysisPromptForm()
     result_form = AnalysisResultForm()
-    latest_analysis = ResumeAnalysis.objects.filter(user=request.user).first()
+    user_analyses = user_analysis_queryset(request.user)
+    latest_analysis = user_analyses.first()
 
     if request.method == "POST":
         action = request.POST.get("action", "upload_resume")
@@ -109,6 +125,38 @@ def dashboard(request):
             "analysis_form": analysis_form,
             "result_form": result_form,
             "latest_analysis": latest_analysis,
+            "recent_analyses": user_analyses[:5],
+            "active_nav": "dashboard",
+        },
+    )
+
+
+@product_access_required
+def analysis_history(request):
+    resume = user_resume(request.user)
+    analyses = user_analysis_queryset(request.user)
+    return render(
+        request,
+        "product/analysis_history.html",
+        {
+            "resume": resume,
+            "analyses": analyses,
+            "active_nav": "analysis_history",
+        },
+    )
+
+
+@product_access_required
+def analysis_detail(request, analysis_id):
+    analysis = get_visible_analysis_or_404(request.user, analysis_id)
+    resume = user_resume(request.user)
+    return render(
+        request,
+        "product/analysis_detail.html",
+        {
+            "resume": resume,
+            "analysis": analysis,
+            "active_nav": "analysis_history",
         },
     )
 

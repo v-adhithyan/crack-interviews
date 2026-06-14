@@ -1,0 +1,50 @@
+{% if analyses %}
+    <div class="table-wrap">
+        <table class="analysis-table">
+            <thead>
+                <tr>
+                    <th>Job Title</th>
+                    <th>Company</th>
+                    <th>Analyzed On</th>
+                    <th>Match</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for analysis in analyses %}
+                    <tr class="clickable-row" data-href="{% url 'analysis_detail' analysis_id=analysis.id %}">
+                        <td>
+                            <a class="analysis-title-link" href="{% url 'analysis_detail' analysis_id=analysis.id %}">
+                                {{ analysis.display_title }}
+                            </a>
+                        </td>
+                        <td>{{ analysis.display_company }}</td>
+                        <td>{{ analysis.updated_at|date:"M j, Y · h:i A" }}</td>
+                        <td>
+                            {% if analysis.has_score %}
+                                <span class="score {{ analysis.score_tone }}">{{ analysis.display_score }}%</span>
+                            {% else %}
+                                <span class="score neutral">--</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="status-dot {% if analysis.display_status != 'Completed' %}status-dot-muted{% endif %}" aria-hidden="true"></span>
+                            {{ analysis.display_status }}
+                        </td>
+                        <td>
+                            <a class="outline-small table-action" href="{% url 'analysis_detail' analysis_id=analysis.id %}">
+                                View Report
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="empty-history">
+        <strong>No analyses yet</strong>
+        <p>Your resume match reports will appear here after you generate a prompt and save the analysis JSON.</p>
+    </div>
+{% endif %}
