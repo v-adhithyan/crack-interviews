@@ -1,10 +1,17 @@
 import re
+import uuid
+from pathlib import Path
 
 from django import forms
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import AuthenticationForm
 from django.core.exceptions import ValidationError
+
+from .models import Resume
+
+
+MAX_RESUME_SIZE = 1024 * 1024
 
 
 class ProductLoginForm(AuthenticationForm):
@@ -100,3 +107,45 @@ class EarlyAccessSignupForm(forms.Form):
             email=email,
             password=self.cleaned_data["password1"],
         )
+
+
+class ResumeUploadForm(forms.Form):
+    resume = forms.FileField(
+        label="Resume",
+        widget=forms.ClearableFileInput(attrs={"accept": "application/pdf,.pdf"}),
+        error_messages={"required": "Please choose a PDF resume to upload."},
+    )
+
+    def clean_resume(self):
+        resume = self.cleaned_data["resume"]
+        extension = Path(resume.name).suffix.lower()
+        content_type = getattr(resume, "content_type", "")
+
+        if extension != ".pdf" or content_type not in ("application/pdf", "application/x-pdf", ""):
+            raise ValidationError("Please upload a PDF resume.")
+
+        if resume.size > MAX_RESUME_SIZE:
+            raise ValidationError("Please upload a PDF no larger than 1 MB.")
+
+        return resume
+
+    def save(self, user):
+        resume_file = self.cleaned_data["resume"]
+        existing_resume = Resume.objects.filter(user=user).first()
+        old_file = existing_resume.file if existing_resume else None
+
+        resume, _ = Resume.objects.update_or_create(
+            user=user,
+            defaults={
+                "uuid": uuid.uuid4(),
+                "file": resume_file,
+                "original_filename": resume_file.name,
+                "content_type": getattr(resume_file, "content_type", "application/pdf") or "application/pdf",
+                "size": resume_file.size,
+            },
+        )
+
+        if old_file and old_file.name != resume.file.name:
+            old_file.delete(save=False)
+
+        return resume

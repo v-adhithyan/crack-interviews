@@ -1,14 +1,27 @@
 <header class="product-topbar">
-    <div></div>
+    <button class="mobile-menu-button" type="button" aria-label="Open navigation menu" aria-controls="product-sidebar" aria-expanded="false" data-menu-toggle>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+    </button>
     <div class="topbar-actions">
-        <button class="icon-button" type="button" aria-label="Toggle theme">☼</button>
-        <div class="user-chip" aria-label="Logged in user">
-            <span>{{ request.user.email|default:request.user.username|first|upper }}</span>
-        </div>
-        <span class="user-name">{{ request.user.first_name|default:request.user.username }}</span>
-        <form method="post" action="{% url 'logout' %}">
-            {% csrf_token %}
-            <button class="plain-button" type="submit" aria-label="Logout">⌄</button>
-        </form>
+<!--        <button class="icon-button" type="button" aria-label="Toggle theme">☼</button>-->
+        <details class="user-menu">
+            <summary aria-label="Open user menu">
+                <span class="user-chip" aria-hidden="true">{{ request.user.email|default:request.user.username|first|upper }}</span>
+                <span class="user-name">{{ request.user.first_name|default:request.user.username }}</span>
+                <span class="user-menu-caret" aria-hidden="true">⌄</span>
+            </summary>
+            <div class="user-menu-panel">
+                <div class="user-menu-meta">
+                    <strong>{{ request.user.first_name|default:request.user.username }}</strong>
+                    <span>{{ request.user.email|default:request.user.username }}</span>
+                </div>
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit">Logout</button>
+                </form>
+            </div>
+        </details>
     </div>
 </header>

@@ -7,6 +7,7 @@
     <meta name="robots" content="noindex, nofollow">
     <meta name="theme-color" content="#ffc400">
     <title>{% block title %}HackerLeap App{% endblock %}</title>
+    <link rel="icon" href="{% static 'website/images/favicon.svg' %}" type="image/svg+xml">
     <link rel="stylesheet" href="{% static 'product/css/product.css' %}">
 </head>
 <body class="product-body">
@@ -29,6 +30,45 @@
                     toast.remove();
                 }
             });
+        });
+
+        var menuToggle = document.querySelector("[data-menu-toggle]");
+        var menuClose = document.querySelector("[data-menu-close]");
+        var setMenuOpen = function (isOpen) {
+            document.body.classList.toggle("mobile-nav-open", isOpen);
+            if (menuToggle) {
+                menuToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+            }
+        };
+        if (menuToggle) {
+            menuToggle.addEventListener("click", function () {
+                setMenuOpen(!document.body.classList.contains("mobile-nav-open"));
+            });
+        }
+        if (menuClose) {
+            menuClose.addEventListener("click", function () {
+                setMenuOpen(false);
+            });
+        }
+        document.querySelectorAll(".product-sidebar a").forEach(function (link) {
+            link.addEventListener("click", function () {
+                setMenuOpen(false);
+            });
+        });
+        document.addEventListener("click", function (event) {
+            document.querySelectorAll(".user-menu[open]").forEach(function (menu) {
+                if (!menu.contains(event.target)) {
+                    menu.removeAttribute("open");
+                }
+            });
+        });
+        document.addEventListener("keydown", function (event) {
+            if (event.key === "Escape") {
+                setMenuOpen(false);
+                document.querySelectorAll(".user-menu[open]").forEach(function (menu) {
+                    menu.removeAttribute("open");
+                });
+            }
         });
     </script>
     {% block scripts %}{% endblock %}

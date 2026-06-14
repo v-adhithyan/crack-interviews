@@ -13,59 +13,65 @@
                     <h1 id="dashboard-title">Let's land your next opportunity. 🚀</h1>
                     <p>Upload your resume, paste the job description and get AI-powered insights.</p>
                 </div>
+                {% if resume %}
                 <aside class="active-resume-card" aria-label="Active resume">
-                    <div class="resume-row">
-                        <span class="resume-icon" aria-hidden="true">▧</span>
+                    <a class="resume-row resume-link-row" href="{% url 'resume_content' resume_uuid=resume.uuid %}" target="_blank" rel="noopener">
+                        {% include "product/includes/resume_upload_icon.html" with class_name="resume-upload-icon-compact" %}
                         <div>
                             <span>Active Resume</span>
-                            <strong>Ankit_Resume.pdf</strong>
-                            <small>Uploaded on May 12, 2024</small>
+                            <strong class="filename-with-tooltip" title="{{ resume.original_filename }}" tabindex="0" data-tooltip="{{ resume.original_filename }}">
+                                {{ resume.original_filename }}
+                            </strong>
+                            <small>Uploaded on {{ resume.updated_at|date:"M j, Y" }}</small>
                         </div>
-                    </div>
-                    <button type="button">Start New Analysis <span aria-hidden="true">↻</span></button>
+                    </a>
+                    <a class="outline-action" href="#new-analysis">Start New Analysis <span aria-hidden="true">↻</span></a>
                 </aside>
+                {% endif %}
             </section>
 
-            <section class="analysis-card" aria-labelledby="analysis-title">
+            <section id="new-analysis" class="analysis-card" aria-labelledby="analysis-title">
                 <header>
-                    <h2 id="analysis-title">Start New Analysis</h2>
-                    <p>Just 3 simple steps to improve your application.</p>
+                    <h2 id="analysis-title">{% if resume %}Start New Analysis{% else %}Upload Your Resume{% endif %}</h2>
+                    <p>{% if resume %}Paste the job description to prepare your next analysis.{% else %}Upload one PDF resume to get started. You can replace it later.{% endif %}</p>
                 </header>
-                <div class="analysis-steps">
-                    <article class="analysis-step">
-                        <span class="step-number">1</span>
-                        <h3>Upload Your Resume</h3>
-                        <p>We'll use this to compare with the job description.</p>
-                        <div class="uploaded-file">
-                            <span aria-hidden="true">▧</span>
+                {% if resume %}
+                    <div class="resume-ready-grid">
+                        <a class="uploaded-file" href="{% url 'resume_content' resume_uuid=resume.uuid %}" target="_blank" rel="noopener">
+                            {% include "product/includes/resume_upload_icon.html" with class_name="resume-upload-icon-compact" %}
                             <div>
-                                <strong>Ankit_Resume.pdf</strong>
+                                <strong class="filename-with-tooltip" title="{{ resume.original_filename }}" tabindex="0" data-tooltip="{{ resume.original_filename }}">
+                                    {{ resume.original_filename }}
+                                </strong>
                                 <small>Uploaded</small>
                             </div>
                             <b aria-label="Uploaded successfully">✓</b>
-                        </div>
-                        <small>Only PDF, DOCX supported</small>
-                    </article>
-                    <article class="analysis-step">
-                        <span class="step-number">2</span>
-                        <h3>Paste Job Description</h3>
-                        <p>Add the job description you're targeting.</p>
-                        <label class="sr-only" for="job-description">Paste job description here</label>
-                        <textarea id="job-description" maxlength="8000" placeholder="Paste job description here..."></textarea>
-                        <span class="character-count">0 / 8000</span>
-                    </article>
-                    <article class="analysis-step">
-                        <span class="step-number">3</span>
-                        <h3>Get Results</h3>
-                        <p>Get matching score, missing skills, suggestions and more.</p>
-                        <div class="report-illustration" aria-hidden="true">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                        </div>
-                        <button type="button">Analyze Now <span aria-hidden="true">→</span></button>
-                    </article>
-                </div>
+                        </a>
+                        <form class="job-form" method="post" action="{% url 'product_dashboard' %}">
+                            {% csrf_token %}
+                            <label for="job-description">Job Description</label>
+                            <textarea id="job-description" maxlength="8000" placeholder="Paste job description here..." disabled></textarea>
+                            <span class="character-count">0 / 8000</span>
+                            <button type="button" disabled>Analyze Now <span aria-hidden="true">→</span></button>
+                        </form>
+                    </div>
+                {% else %}
+                    <form class="resume-upload-form" method="post" action="{% url 'product_dashboard' %}" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <label class="resume-dropzone" for="{{ resume_form.resume.id_for_label }}">
+                            {% include "product/includes/resume_upload_icon.html" %}
+                            <strong>Choose your resume PDF</strong>
+                            <small>Only PDF files up to 1 MB are supported.</small>
+                            <span class="file-picker-button">Select PDF</span>
+                            <span class="selected-file-name" data-selected-file-name>No file selected</span>
+                            {{ resume_form.resume }}
+                        </label>
+                        {% for error in resume_form.resume.errors %}
+                            <span class="field-error">{{ error }}</span>
+                        {% endfor %}
+                        <button type="submit">Upload Resume <span aria-hidden="true">→</span></button>
+                    </form>
+                {% endif %}
             </section>
 
             <section class="recent-card" aria-labelledby="recent-title">
@@ -74,51 +80,26 @@
                         <h2 id="recent-title">Recent Analysis</h2>
                         <p>View your recent job analyses and insights.</p>
                     </div>
-                    <button type="button">View All History <span aria-hidden="true">◷</span></button>
                 </div>
-                <div class="table-wrap">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Job Title</th>
-                                <th>Company</th>
-                                <th>Analyzed On</th>
-                                <th>Match</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><strong>Senior Backend Engineer</strong></td>
-                                <td>TechNova Inc.</td>
-                                <td>May 12, 2024 · 10:30 AM</td>
-                                <td><span class="score good">82%</span></td>
-                                <td><span class="status-dot"></span>Completed</td>
-                                <td><button type="button">View Report</button></td>
-                            </tr>
-                            <tr>
-                                <td><strong>Software Engineer II</strong></td>
-                                <td>CodeCraft Labs</td>
-                                <td>May 10, 2024 · 04:15 PM</td>
-                                <td><span class="score warn">74%</span></td>
-                                <td><span class="status-dot"></span>Completed</td>
-                                <td><button type="button">View Report</button></td>
-                            </tr>
-                            <tr>
-                                <td><strong>Full Stack Developer</strong></td>
-                                <td>InnovateX</td>
-                                <td>May 08, 2024 · 11:20 AM</td>
-                                <td><span class="score low">68%</span></td>
-                                <td><span class="status-dot"></span>Completed</td>
-                                <td><button type="button">View Report</button></td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="empty-history">
+                    <strong>No analyses yet</strong>
+                    <p>Your resume match reports will appear here after analysis is enabled.</p>
                 </div>
             </section>
             <p class="privacy-note">▧ Only you can see your analysis results. Your data is private and secure.</p>
         </main>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    var resumeInput = document.getElementById("{{ resume_form.resume.id_for_label }}");
+    var selectedFileName = document.querySelector("[data-selected-file-name]");
+    if (resumeInput && selectedFileName) {
+        resumeInput.addEventListener("change", function () {
+            selectedFileName.textContent = resumeInput.files.length ? resumeInput.files[0].name : "No file selected";
+        });
+    }
+</script>
 {% endblock %}

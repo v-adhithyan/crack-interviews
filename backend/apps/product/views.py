@@ -1,3 +1,5 @@
+from django.http import FileResponse
+from django.http import Http404
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.views import LoginView
@@ -12,6 +14,8 @@ from apps.website.models import EarlyAccessUser
 from .decorators import product_access_required
 from .forms import EarlyAccessSignupForm
 from .forms import ProductLoginForm
+from .forms import ResumeUploadForm
+from .models import Resume
 
 
 class ProductLoginView(LoginView):
@@ -25,7 +29,45 @@ class ProductLoginView(LoginView):
 
 @product_access_required
 def dashboard(request):
-    return render(request, "product/dashboard.html")
+    resume = Resume.objects.filter(user=request.user).first()
+    form = ResumeUploadForm()
+
+    if request.method == "POST":
+        form = ResumeUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save(request.user)
+            messages.success(request, "Resume uploaded successfully.")
+            return redirect("product_dashboard")
+
+        first_error = next(iter(form.errors.values()))[0] if form.errors else "Unable to upload your resume."
+        messages.error(request, first_error)
+
+    return render(
+        request,
+        "product/dashboard.html",
+        {
+            "resume": resume,
+            "resume_form": form,
+        },
+    )
+
+
+@product_access_required
+def resume_content(request, resume_uuid):
+    resume = get_object_or_404(Resume, uuid=resume_uuid)
+    if resume.user_id != request.user.id and not request.user.is_staff:
+        raise Http404
+
+    response = FileResponse(
+        resume.file.open("rb"),
+        content_type=resume.content_type or "application/pdf",
+        filename=resume.original_filename,
+        as_attachment=False,
+    )
+    response["Cache-Control"] = "private, max-age=31536000, immutable"
+    response["ETag"] = f'"resume-{resume.uuid}"'
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
 
 
 def early_access_signup(request, token):
