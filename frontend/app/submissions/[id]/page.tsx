@@ -18,6 +18,7 @@ export default async function SubmissionDetailPage({ params }: { params: { id: s
             <div>
               <p className="text-sm font-semibold text-zinc-600">{submission.question_title}</p>
               <h1 className="text-2xl font-bold">Submission #{submission.id}</h1>
+              <p className="mt-1 text-sm font-semibold text-zinc-600">{submission.language === "java" ? "Java 17" : "Python 3"}</p>
             </div>
             <StatusBadge status={submission.status} />
           </div>
@@ -53,7 +54,9 @@ export default async function SubmissionDetailPage({ params }: { params: { id: s
           </div>
         </div>
         <div className="rounded border border-line bg-[#10151f] p-4">
-          <h2 className="mb-3 text-sm font-bold uppercase tracking-normal text-white/70">Submitted code</h2>
+          <h2 className="mb-3 text-sm font-bold uppercase tracking-normal text-white/70">
+            Submitted code - {submission.language === "java" ? "Java 17" : "Python 3"}
+          </h2>
           <pre className="max-h-[720px] overflow-auto rounded bg-black/30 p-4 text-sm leading-6 text-white">{submission.code}</pre>
         </div>
       </section>

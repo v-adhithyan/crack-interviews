@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Crack Interviews",
-  description: "Personal Python interview practice",
+  description: "Personal Java interview practice",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

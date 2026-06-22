@@ -21,7 +21,7 @@ export default async function HomePage() {
             </div>
             <div>
               <h1 className="text-xl font-bold">Crack Interviews</h1>
-              <p className="text-sm text-zinc-600">Python practice, one problem at a time.</p>
+              <p className="text-sm text-zinc-600">Java interview practice, one problem at a time.</p>
             </div>
           </div>
           <div className="text-sm font-semibold text-zinc-600">

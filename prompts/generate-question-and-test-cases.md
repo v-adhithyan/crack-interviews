@@ -5,12 +5,14 @@ Use this prompt with any LLM to generate a coding question and CSV test cases fo
 ```text
 You are helping me create coding interview questions for a personal LeetCode/HackerRank-style platform.
 
-Generate one Python 3 coding problem and a CSV of test cases.
+Generate one Java 17 + Python 3 coding problem and a CSV of test cases.
 
 Requirements:
 - The problem must be solvable by reading from standard input and printing to standard output.
-- Do not require external libraries beyond Python standard library.
-- The solution should fit in a single Python file.
+- Do not require external libraries beyond the Java standard library and Python standard library.
+- The solution should fit in a single Java file and a single Python file.
+- The Java solution must compile with Java 17 using `javac --release 17`.
+- The Java starter code must include a `public class Main` with `public static void main(String[] args) throws Exception`.
 - Include clear input format, output format, constraints, and examples.
 - Make the problem unambiguous.
 - Include edge cases in the test cases.
@@ -40,7 +42,19 @@ easy | medium | hard
 DESCRIPTION:
 <full problem statement>
 
-STARTER_CODE:
+JAVA_STARTER_CODE:
+```java
+import java.io.*;
+import java.util.*;
+
+public class Main {
+    public static void main(String[] args) throws Exception {
+        // Read from standard input and print to standard output.
+    }
+}
+```
+
+PYTHON_STARTER_CODE:
 ```python
 def solve():
     pass
@@ -50,7 +64,12 @@ if __name__ == "__main__":
     solve()
 ```
 
-REFERENCE_SOLUTION:
+JAVA_REFERENCE_SOLUTION:
+```java
+<working Java 17 solution>
+```
+
+PYTHON_REFERENCE_SOLUTION:
 ```python
 <working Python 3 solution>
 ```

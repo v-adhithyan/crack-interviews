@@ -1,5 +1,7 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api";
 
+export type Language = "java" | "python";
+
 export type QuestionListItem = {
   id: number;
   title: string;
@@ -12,6 +14,8 @@ export type QuestionListItem = {
 export type QuestionDetail = QuestionListItem & {
   description: string;
   starter_code: string;
+  java_starter_code: string;
+  python_starter_code: string;
 };
 
 export type TestCaseResult = {
@@ -34,6 +38,7 @@ export type Submission = {
   question_slug: string;
   question_title: string;
   kind: "run" | "submit";
+  language: Language;
   code: string;
   status: SubmissionStatus;
   stdout: string;
@@ -74,17 +79,17 @@ export function getQuestion(slug: string) {
   return request<QuestionDetail>(`/questions/${slug}/`);
 }
 
-export function runCode(slug: string, code: string) {
+export function runCode(slug: string, code: string, language: Language) {
   return request<Submission>(`/questions/${slug}/run/`, {
     method: "POST",
-    body: JSON.stringify({ code }),
+    body: JSON.stringify({ code, language }),
   });
 }
 
-export function submitCode(slug: string, code: string, solveTimeSeconds?: number | null) {
+export function submitCode(slug: string, code: string, language: Language, solveTimeSeconds?: number | null) {
   return request<Submission>(`/questions/${slug}/submit/`, {
     method: "POST",
-    body: JSON.stringify({ code, solve_time_seconds: solveTimeSeconds ?? null }),
+    body: JSON.stringify({ code, language, solve_time_seconds: solveTimeSeconds ?? null }),
   });
 }
 

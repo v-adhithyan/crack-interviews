@@ -2,6 +2,30 @@ from django.db import models
 from django.utils.text import slugify
 
 
+JAVA_STARTER_CODE = (
+    "import java.io.*;\n"
+    "import java.util.*;\n\n"
+    "public class Main {\n"
+    "    public static void main(String[] args) throws Exception {\n"
+    "        Scanner scanner = new Scanner(System.in);\n"
+    "        int sum = 0;\n"
+    "        while (scanner.hasNextInt()) {\n"
+    "            sum += scanner.nextInt();\n"
+    "        }\n"
+    "        System.out.println(sum);\n"
+    "    }\n"
+    "}\n"
+)
+
+PYTHON_STARTER_CODE = (
+    "def solve():\n"
+    "    numbers = list(map(int, input().split()))\n"
+    "    print(sum(numbers))\n\n\n"
+    "if __name__ == \"__main__\":\n"
+    "    solve()\n"
+)
+
+
 class Question(models.Model):
     class Difficulty(models.TextChoices):
         EASY = "easy", "Easy"
@@ -12,7 +36,9 @@ class Question(models.Model):
     slug = models.SlugField(max_length=220, unique=True, blank=True)
     description = models.TextField()
     difficulty = models.CharField(max_length=20, choices=Difficulty.choices, default=Difficulty.EASY)
-    starter_code = models.TextField(default="def solve():\n    pass\n\n\nif __name__ == \"__main__\":\n    solve()\n")
+    starter_code = models.TextField(default=JAVA_STARTER_CODE)
+    java_starter_code = models.TextField(default=JAVA_STARTER_CODE)
+    python_starter_code = models.TextField(default=PYTHON_STARTER_CODE)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -47,6 +73,10 @@ class TestCase(models.Model):
 
 
 class Submission(models.Model):
+    class Language(models.TextChoices):
+        JAVA = "java", "Java 17"
+        PYTHON = "python", "Python 3"
+
     class Kind(models.TextChoices):
         RUN = "run", "Run"
         SUBMIT = "submit", "Submit"
@@ -60,6 +90,7 @@ class Submission(models.Model):
 
     question = models.ForeignKey(Question, related_name="submissions", on_delete=models.CASCADE)
     kind = models.CharField(max_length=20, choices=Kind.choices, default=Kind.SUBMIT)
+    language = models.CharField(max_length=20, choices=Language.choices, default=Language.JAVA)
     code = models.TextField()
     status = models.CharField(max_length=30, choices=Status.choices, default=Status.PENDING)
     stdout = models.TextField(blank=True)

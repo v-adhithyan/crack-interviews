@@ -17,7 +17,17 @@ class QuestionDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Question
-        fields = ["id", "title", "slug", "description", "difficulty", "starter_code", "solved"]
+        fields = [
+            "id",
+            "title",
+            "slug",
+            "description",
+            "difficulty",
+            "starter_code",
+            "java_starter_code",
+            "python_starter_code",
+            "solved",
+        ]
 
 
 class TestCaseResultSerializer(serializers.ModelSerializer):
@@ -43,6 +53,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
             "question_slug",
             "question_title",
             "kind",
+            "language",
             "code",
             "status",
             "stdout",
@@ -59,4 +70,4 @@ class SubmissionSerializer(serializers.ModelSerializer):
 class SubmissionListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Submission
-        fields = ["id", "kind", "status", "execution_time_ms", "solve_time_seconds", "passed_count", "total_count", "created_at"]
+        fields = ["id", "kind", "language", "status", "execution_time_ms", "solve_time_seconds", "passed_count", "total_count", "created_at"]

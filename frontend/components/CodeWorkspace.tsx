@@ -5,7 +5,7 @@ import { CheckCircle2, History, Pause, Play, RotateCcw, Send, Timer } from "luci
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { runCode, submitCode, type QuestionDetail, type Submission } from "@/lib/api";
+import { runCode, submitCode, type Language, type QuestionDetail, type Submission } from "@/lib/api";
 import { StatusBadge } from "@/components/StatusBadge";
 
 type Props = {
@@ -14,7 +14,8 @@ type Props = {
 
 export function CodeWorkspace({ question }: Props) {
   const router = useRouter();
-  const [code, setCode] = useState(question.starter_code);
+  const [language, setLanguage] = useState<Language>("java");
+  const [code, setCode] = useState(starterCodeFor("java", question));
   const [isRunning, setIsRunning] = useState(false);
   const [activeMode, setActiveMode] = useState<"run" | "submit" | null>(null);
   const [result, setResult] = useState<Submission | null>(null);
@@ -65,7 +66,7 @@ export function CodeWorkspace({ question }: Props) {
     const minimumFeedback = new Promise((resolve) => setTimeout(resolve, 450));
     const solveTimeSeconds = mode === "submit" && timerStarted ? elapsedSeconds : null;
     try {
-      const response = await (mode === "run" ? runCode(question.slug, code) : submitCode(question.slug, code, solveTimeSeconds));
+      const response = await (mode === "run" ? runCode(question.slug, code, language) : submitCode(question.slug, code, language, solveTimeSeconds));
       await minimumFeedback;
       setResult(response);
       if (mode === "submit" && timerStarted) {
@@ -85,6 +86,15 @@ export function CodeWorkspace({ question }: Props) {
   }
 
   const busyMessage = activeMode === "submit" ? "Submitting against all tests..." : "Running sample tests...";
+  const editorLanguage = language === "java" ? "java" : "python";
+  const languageLabel = language === "java" ? "Java 17" : "Python 3";
+
+  function selectLanguage(nextLanguage: Language) {
+    setLanguage(nextLanguage);
+    setResult(null);
+    setError("");
+    setCode(starterCodeFor(nextLanguage, question));
+  }
 
   return (
     <main className="min-h-screen bg-paper">
@@ -193,11 +203,28 @@ export function CodeWorkspace({ question }: Props) {
         </article>
 
         <aside className="flex min-h-[620px] flex-col bg-[#10151f]">
-          <div className="border-b border-white/10 px-4 py-3 text-sm font-semibold text-white">Python 3</div>
+          <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3 text-sm font-semibold text-white">
+            <span>{languageLabel}</span>
+            <div className="inline-flex rounded border border-white/15 bg-white/5 p-0.5">
+              {(["java", "python"] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => selectLanguage(option)}
+                  disabled={isRunning || language === option}
+                  className={`h-8 rounded px-3 text-xs font-bold transition disabled:cursor-default ${
+                    language === option ? "bg-white text-ink" : "text-white/75 hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  {option === "java" ? "Java 17" : "Python 3"}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="min-h-[420px] flex-1">
             <Editor
               height="100%"
-              defaultLanguage="python"
+              language={editorLanguage}
               theme="vs-dark"
               value={code}
               onChange={(value) => setCode(value ?? "")}
@@ -257,6 +284,41 @@ export function CodeWorkspace({ question }: Props) {
     </main>
   );
 }
+
+const JAVA_STARTER = `import java.io.*;
+import java.util.*;
+
+public class Main {
+    public static void main(String[] args) throws Exception {
+        Scanner scanner = new Scanner(System.in);
+        int sum = 0;
+        while (scanner.hasNextInt()) {
+            sum += scanner.nextInt();
+        }
+        System.out.println(sum);
+    }
+}
+`;
+
+function starterCodeFor(language: Language, question: QuestionDetail) {
+  if (language === "java") {
+    return question.java_starter_code || (looksLikeJava(question.starter_code) ? question.starter_code : JAVA_STARTER);
+  }
+  return question.python_starter_code || (looksLikeJava(question.starter_code) ? PYTHON_STARTER : question.starter_code);
+}
+
+function looksLikeJava(code: string) {
+  return /\bclass\s+\w+/.test(code) || /\bpublic\s+static\s+void\s+main\s*\(/.test(code);
+}
+
+const PYTHON_STARTER = `def solve():
+    numbers = list(map(int, input().split()))
+    print(sum(numbers))
+
+
+if __name__ == "__main__":
+    solve()
+`;
 
 function formatDuration(totalSeconds: number) {
   const hours = Math.floor(totalSeconds / 3600);
