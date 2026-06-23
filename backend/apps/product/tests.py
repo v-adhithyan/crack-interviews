@@ -14,6 +14,8 @@ from apps.website.models import EarlyAccessUser
 
 from .models import Resume
 from .models import ResumeAnalysis
+from .models import QuickRefreshNote
+from .models import QuickRefreshSettings
 
 
 class ProductAccessTests(TestCase):
@@ -48,6 +50,70 @@ class ProductAccessTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Recent Analysis")
+
+
+class QuickRefreshTests(TestCase):
+    def setUp(self):
+        self.staff_user = get_user_model().objects.create_user(
+            username="quick-staff",
+            email="quick-staff@example.com",
+            password="Password1!",
+            is_staff=True,
+        )
+
+    def test_anonymous_user_is_redirected_to_login(self):
+        response = self.client.get(reverse("quick_refresh"))
+
+        self.assertRedirects(response, f"{reverse('login')}?next={reverse('quick_refresh')}")
+
+    def test_regular_user_cannot_access_quick_refresh(self):
+        user = get_user_model().objects.create_user(
+            username="regular-quick@example.com",
+            email="regular-quick@example.com",
+            password="Password1!",
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("quick_refresh"))
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_staff_user_can_view_quick_refresh(self):
+        self.client.force_login(self.staff_user)
+
+        response = self.client.get(reverse("quick_refresh"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Quick Refresh")
+        self.assertContains(response, "Notepad")
+        self.assertTrue(QuickRefreshNote.objects.filter(user=self.staff_user).exists())
+
+    def test_staff_user_can_save_quick_refresh_note(self):
+        self.client.force_login(self.staff_user)
+
+        response = self.client.post(
+            reverse("quick_refresh"),
+            {
+                "content": "const answer = 42;",
+                "language": QuickRefreshNote.Language.JAVASCRIPT,
+            },
+            follow=True,
+        )
+
+        note = QuickRefreshNote.objects.get(user=self.staff_user)
+        self.assertRedirects(response, reverse("quick_refresh"))
+        self.assertEqual(note.content, "const answer = 42;")
+        self.assertEqual(note.language, QuickRefreshNote.Language.JAVASCRIPT)
+        self.assertContains(response, "Quick Refresh saved.")
+
+    def test_admin_toggle_can_disable_quick_refresh(self):
+        QuickRefreshSettings.load()
+        QuickRefreshSettings.objects.update(is_enabled=False)
+        self.client.force_login(self.staff_user)
+
+        response = self.client.get(reverse("quick_refresh"))
+
+        self.assertEqual(response.status_code, 404)
 
 
 class ResumeUploadTests(TestCase):

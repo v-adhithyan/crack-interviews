@@ -16,6 +16,12 @@
             <span aria-hidden="true">◷</span>
             <span>Analysis History</span>
         </a>
+        {% if request.user.is_staff %}
+        <a class="{% if active_nav == 'quick_refresh' %}active{% endif %}" href="{% url 'quick_refresh' %}">
+            <span aria-hidden="true">✎</span>
+            <span>Quick Refresh</span>
+        </a>
+        {% endif %}
 <!--        <a href="{% url 'product_dashboard' %}">-->
 <!--            <span aria-hidden="true">⚙</span>-->
 <!--            <span>Settings</span>-->

@@ -1,0 +1,128 @@
+{% extends "product/base.html" %}
+
+{% block title %}Quick Refresh | HackerLeap{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+{% endblock %}
+
+{% block body %}
+<div class="product-layout">
+    {% include "product/includes/sidebar.html" %}
+    <div class="product-main-shell">
+        {% include "product/includes/topbar.html" %}
+        <main class="product-main quick-refresh-main">
+            <section class="page-heading quick-refresh-heading" aria-labelledby="quick-refresh-title">
+                <div>
+                    <span>Admin Workspace</span>
+                    <h1 id="quick-refresh-title">Quick Refresh</h1>
+                    <p>Keep one admin-only reference page ready for fast review. Quickly refresh code before interview.</p>
+                </div>
+                <time datetime="{{ note.updated_at|date:'c' }}">Updated {{ note.updated_at|date:"M j, Y, g:i A" }}</time>
+            </section>
+
+            <section class="quick-refresh-card" aria-labelledby="quick-refresh-editor-title">
+                <div class="section-heading">
+                    <div>
+                        <h2 id="quick-refresh-editor-title">Notepad</h2>
+                        <p class="desktop-only-copy">Paste and edit content here from desktop.</p>
+                        <p class="mobile-only-copy">Mobile view is read only.</p>
+                    </div>
+                    <span class="quick-refresh-pill">{{ note.get_language_display }}</span>
+                </div>
+
+                <form class="quick-refresh-form" method="post" action="{% url 'quick_refresh' %}">
+                    {% csrf_token %}
+                    <div class="quick-refresh-toolbar">
+                        <label for="{{ form.language.id_for_label }}">Syntax</label>
+                        {{ form.language }}
+                        <button type="submit">Save</button>
+                    </div>
+                    {% for error in form.language.errors %}
+                        <span class="field-error">{{ error }}</span>
+                    {% endfor %}
+                    <label class="sr-only" for="{{ form.content.id_for_label }}">Quick Refresh content</label>
+                    <div class="quick-refresh-editor-wrap">
+                        {{ form.content }}
+                        {% for error in form.content.errors %}
+                            <span class="field-error">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                </form>
+
+                <article class="quick-refresh-mobile-view" aria-labelledby="quick-refresh-mobile-title">
+                    <h2 id="quick-refresh-mobile-title" class="sr-only">Quick Refresh content</h2>
+                    <pre><code class="language-{{ note.language }}">{{ note.content|default:"No Quick Refresh content saved yet." }}</code></pre>
+                </article>
+            </section>
+        </main>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/markdown/markdown.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/shell/shell.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+    var contentInput = document.getElementById("{{ form.content.id_for_label }}");
+    var languageInput = document.getElementById("{{ form.language.id_for_label }}");
+    var form = document.querySelector(".quick-refresh-form");
+    var modeByLanguage = {
+        plain: null,
+        javascript: "javascript",
+        typescript: "text/typescript",
+        python: "python",
+        java: "text/x-java",
+        json: {name: "javascript", json: true},
+        sql: "text/x-sql",
+        html: "htmlmixed",
+        css: "css",
+        markdown: "markdown",
+        bash: "shell"
+    };
+
+    if (window.CodeMirror && contentInput && languageInput) {
+        var editor = window.CodeMirror.fromTextArea(contentInput, {
+            fixedGutter: true,
+            indentUnit: 4,
+            lineNumbers: true,
+            lineWrapping: false,
+            mode: modeByLanguage[languageInput.value],
+            scrollbarStyle: "native",
+            tabSize: 4
+        });
+
+        editor.setSize("100%", "100%");
+        window.requestAnimationFrame(function () {
+            editor.refresh();
+        });
+        window.addEventListener("resize", function () {
+            editor.setSize("100%", "100%");
+            editor.refresh();
+        });
+
+        languageInput.addEventListener("change", function () {
+            editor.setOption("mode", modeByLanguage[languageInput.value]);
+        });
+
+        if (form) {
+            form.addEventListener("submit", function () {
+                editor.save();
+            });
+        }
+    }
+
+    if (window.hljs) {
+        window.hljs.highlightAll();
+    }
+</script>
+{% endblock %}

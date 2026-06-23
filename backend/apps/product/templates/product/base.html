@@ -9,6 +9,7 @@
     <title>{% block title %}HackerLeap App{% endblock %}</title>
     <link rel="icon" href="{% static 'website/images/favicon.svg' %}" type="image/svg+xml">
     <link rel="stylesheet" href="{% static 'product/css/product.css' %}">
+    {% block styles %}{% endblock %}
 </head>
 <body class="product-body">
     {% if messages %}

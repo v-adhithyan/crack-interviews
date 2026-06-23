@@ -16,7 +16,10 @@ from .forms import AnalysisPromptForm
 from .forms import AnalysisResultForm
 from .forms import EarlyAccessSignupForm
 from .forms import ProductLoginForm
+from .forms import QuickRefreshNoteForm
 from .forms import ResumeUploadForm
+from .models import QuickRefreshNote
+from .models import QuickRefreshSettings
 from .models import Resume
 from .models import ResumeAnalysis
 from .services import build_resume_match_prompt
@@ -177,6 +180,38 @@ def resume_content(request, resume_uuid):
     response["ETag"] = f'"resume-{resume.uuid}"'
     response["X-Content-Type-Options"] = "nosniff"
     return response
+
+
+@product_access_required
+def quick_refresh(request):
+    if not request.user.is_staff:
+        raise Http404
+
+    settings = QuickRefreshSettings.load()
+    if not settings.is_enabled:
+        raise Http404
+
+    note, _ = QuickRefreshNote.objects.get_or_create(user=request.user)
+    form = QuickRefreshNoteForm(instance=note)
+
+    if request.method == "POST":
+        form = QuickRefreshNoteForm(request.POST, instance=note)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Quick Refresh saved.")
+            return redirect("quick_refresh")
+        messages.error(request, "Please check the Quick Refresh content.")
+
+    return render(
+        request,
+        "product/quick_refresh.html",
+        {
+            "form": form,
+            "note": note,
+            "resume": user_resume(request.user),
+            "active_nav": "quick_refresh",
+        },
+    )
 
 
 def early_access_signup(request, token):
