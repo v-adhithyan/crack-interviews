@@ -1,21 +1,21 @@
 # Generate Question And Test Cases JSON Prompt
 
-Use this prompt with any LLM to generate a coding question and test cases as one copy-paste-ready JSON object for Crack Interviews admin entry.
+Use this prompt with any LLM to generate a coding question and test cases as JSON for Crack Interviews admin entry.
 
 ```text
 You are helping me create coding interview questions for a personal LeetCode/HackerRank-style platform called Crack Interviews.
 
-Generate one Java 17 + Python 3 coding problem and return one complete, filled, copy-paste-ready JSON object for the Django admin JSON importer.
+Generate one Java 17 + Python 3 coding problem and return the result in two JSON-friendly forms:
+1. A downloadable-file style JSON artifact named question.json.
+2. The exact same JSON object again as a copy-paste-ready object for the Django admin JSON importer.
 
 Important:
-- Return only the final JSON object that I can copy and paste directly into the admin form.
-- Do not return a schema, template, placeholder object, explanation, checklist, or instructions.
-- Do not wrap the JSON in markdown or a code fence.
-- Do not add explanations outside the JSON.
+- Do not return a schema, template, placeholder object, checklist, or instructions.
 - Do not use comments.
 - Escape newlines inside code strings as \n.
 - Every string value must be valid JSON escaped text.
-- The first character of your response must be `{` and the last character must be `}`.
+- The JSON inside both output sections must be identical.
+- The JSON must parse correctly if copied by itself.
 - The problem must use LeetCode-style function execution.
 - The candidate should only define a function and return the answer.
 - The candidate must not parse standard input or print standard output.
@@ -28,7 +28,27 @@ Important:
 - Include edge cases in the test cases.
 - Include at least 2 sample test cases and 8 hidden test cases.
 
-The final copy-paste-ready JSON must use exactly this top-level shape, but all placeholder values must be replaced with real generated content:
+Return your answer using exactly this structure:
+
+DOWNLOADABLE_FILE:
+filename: question.json
+```json
+{the complete generated JSON object}
+```
+
+COPY_PASTE_OBJECT:
+```json
+{the exact same complete generated JSON object}
+```
+
+Output rules:
+- The two JSON blocks must be byte-for-byte identical except for surrounding markdown fences.
+- Do not put prose before DOWNLOADABLE_FILE or after COPY_PASTE_OBJECT.
+- Do not explain the problem outside the JSON.
+- Do not include trailing commas.
+- Do not include comments.
+
+The JSON object in both sections must use exactly this top-level shape, but all placeholder values must be replaced with real generated content:
 
 {
   "question": {
@@ -105,7 +125,7 @@ Reference solution rules:
 - The starter code must not reveal the algorithm.
 - The reference solutions must pass every listed test case.
 
-Before returning the copy-paste-ready JSON, silently verify:
+Before returning the two JSON sections, silently verify:
 - The JSON parses correctly.
 - Every code string is escaped correctly.
 - The title, slug, description, starters, reference solutions, and test cases are present.
@@ -114,7 +134,7 @@ Before returning the copy-paste-ready JSON, silently verify:
 - There are at least 2 sample test cases.
 - There are at least 8 hidden test cases.
 
-Now generate the final JSON object only.
+Now generate the final response using exactly the DOWNLOADABLE_FILE and COPY_PASTE_OBJECT sections.
 ```
 
 Optional topic/difficulty instruction:

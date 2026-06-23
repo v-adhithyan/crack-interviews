@@ -4,6 +4,7 @@ import { getQuestion, getSubmission, getSubmissions, type Language } from "@/lib
 export default async function QuestionPage({ params }: { params: { slug: string } }) {
   const [question, submissions] = await Promise.all([getQuestion(params.slug), getSubmissions(params.slug)]);
   const latestSubmissionByLanguage = new Map<Language, number>();
+  const firstSubmission = submissions.length ? submissions[submissions.length - 1] : null;
 
   for (const submission of submissions) {
     if (!latestSubmissionByLanguage.has(submission.language)) {
@@ -18,5 +19,12 @@ export default async function QuestionPage({ params }: { params: { slug: string 
     }),
   );
 
-  return <CodeWorkspace question={question} latestSubmittedCode={Object.fromEntries(latestSubmissions) as Partial<Record<Language, { code: string; submittedAt: string }>>} />;
+  return (
+    <CodeWorkspace
+      question={question}
+      latestSubmittedCode={Object.fromEntries(latestSubmissions) as Partial<Record<Language, { code: string; submittedAt: string }>>}
+      firstSubmissionSolveTimeSeconds={firstSubmission?.solve_time_seconds ?? null}
+      hasSubmitted={submissions.length > 0}
+    />
+  );
 }

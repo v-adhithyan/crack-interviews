@@ -11,6 +11,8 @@ import { StatusBadge } from "@/components/StatusBadge";
 type Props = {
   question: QuestionDetail;
   latestSubmittedCode?: Partial<Record<Language, SubmittedCode>>;
+  firstSubmissionSolveTimeSeconds?: number | null;
+  hasSubmitted?: boolean;
 };
 
 type SubmittedCode = {
@@ -23,18 +25,20 @@ type SavedDraft = {
   updatedAt: string;
 };
 
-export function CodeWorkspace({ question, latestSubmittedCode = {} }: Props) {
+export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmissionSolveTimeSeconds = null, hasSubmitted = false }: Props) {
   const router = useRouter();
   const initialLanguage = latestSubmittedLanguage(latestSubmittedCode);
+  const initialTimerLocked = hasSubmitted || firstSubmissionSolveTimeSeconds !== null;
   const [language, setLanguage] = useState<Language>(initialLanguage);
   const [code, setCode] = useState(codeForLanguage(initialLanguage, question, latestSubmittedCode));
   const [isRunning, setIsRunning] = useState(false);
   const [activeMode, setActiveMode] = useState<"run" | "submit" | null>(null);
   const [result, setResult] = useState<Submission | null>(null);
   const [error, setError] = useState("");
-  const [timerStarted, setTimerStarted] = useState(false);
+  const [timerStarted, setTimerStarted] = useState(initialTimerLocked);
   const [timerRunning, setTimerRunning] = useState(false);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState(firstSubmissionSolveTimeSeconds ?? 0);
+  const [timerLocked, setTimerLocked] = useState(initialTimerLocked);
   const [toastMessage, setToastMessage] = useState("");
   const resultPanelRef = useRef<HTMLElement>(null);
   const hasLoadedSavedCode = useRef(false);
@@ -81,11 +85,17 @@ export function CodeWorkspace({ question, latestSubmittedCode = {} }: Props) {
   }, [code, language, question.slug]);
 
   function toggleTimer() {
+    if (timerLocked) {
+      return;
+    }
     setTimerStarted(true);
     setTimerRunning((current) => !current);
   }
 
   function resetTimer() {
+    if (timerLocked) {
+      return;
+    }
     setTimerStarted(false);
     setTimerRunning(false);
     setElapsedSeconds(0);
@@ -97,6 +107,11 @@ export function CodeWorkspace({ question, latestSubmittedCode = {} }: Props) {
     setError("");
     const minimumFeedback = new Promise((resolve) => setTimeout(resolve, 450));
     const solveTimeSeconds = mode === "submit" && timerStarted ? elapsedSeconds : null;
+    const wasTimerRunning = timerRunning;
+    if (mode === "submit") {
+      setTimerRunning(false);
+      setTimerLocked(true);
+    }
     try {
       const response = await (mode === "run" ? runCode(question.slug, code, language) : submitCode(question.slug, code, language, solveTimeSeconds));
       await minimumFeedback;
@@ -111,15 +126,22 @@ export function CodeWorkspace({ question, latestSubmittedCode = {} }: Props) {
         resultPanelRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
         resultPanelRef.current?.focus({ preventScroll: true });
       }, 0);
-      if (mode === "submit" && timerStarted) {
-        resetTimer();
-        setToastMessage("Submission saved. Timer reset.");
+      if (mode === "submit") {
+        if (response.solve_time_seconds !== null) {
+          setElapsedSeconds(response.solve_time_seconds);
+          setTimerStarted(true);
+        }
+        setToastMessage("Submission saved. Timer frozen.");
       }
       if (mode === "submit") {
         router.push(`/submissions/${response.id}`);
       }
     } catch (err) {
       await minimumFeedback;
+      if (mode === "submit" && !hasSubmitted) {
+        setTimerLocked(false);
+        setTimerRunning(wasTimerRunning);
+      }
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setIsRunning(false);
@@ -172,17 +194,17 @@ export function CodeWorkspace({ question, latestSubmittedCode = {} }: Props) {
             <button
               type="button"
               onClick={toggleTimer}
-              disabled={isRunning}
+              disabled={isRunning || timerLocked}
               className="grid h-10 w-10 place-items-center disabled:opacity-50"
-              aria-label={timerRunning ? "Pause timer" : "Start timer"}
-              title={timerRunning ? "Pause timer" : "Start timer"}
+              aria-label={timerLocked ? "Timer frozen after first submission" : timerRunning ? "Pause timer" : "Start timer"}
+              title={timerLocked ? "Timer frozen after first submission" : timerRunning ? "Pause timer" : "Start timer"}
             >
               {timerRunning ? <Pause size={16} /> : <Play size={16} />}
             </button>
             <button
               type="button"
               onClick={resetTimer}
-              disabled={isRunning || elapsedSeconds === 0}
+              disabled={isRunning || elapsedSeconds === 0 || timerLocked}
               className="grid h-10 w-10 place-items-center border-l border-line disabled:opacity-50"
               aria-label="Reset timer"
               title="Reset timer"
