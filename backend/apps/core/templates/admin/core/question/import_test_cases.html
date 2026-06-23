@@ -3,7 +3,8 @@
 {% block content %}
   <h1>Import test cases for {{ question.title }}</h1>
   <p>Upload a CSV file or paste CSV values directly. Use the replace option when you want this import to become the question's full test suite.</p>
-  <p><strong>CSV headers:</strong> name, stdin, expected_output, is_sample, is_hidden, order</p>
+  <p><strong>Function-mode CSV headers:</strong> name, function_args, expected_value, expected_output, is_sample, is_hidden, order</p>
+  <p><strong>Standard-input CSV headers:</strong> name, stdin, expected_output, is_sample, is_hidden, order</p>
   <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     {{ form.non_field_errors }}
