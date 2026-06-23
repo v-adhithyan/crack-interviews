@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
+import { SubmittedCodeViewer } from "@/components/SubmittedCodeViewer";
 import { getSubmission } from "@/lib/api";
 
 export default async function SubmissionDetailPage({ params }: { params: { id: string } }) {
@@ -57,7 +58,7 @@ export default async function SubmissionDetailPage({ params }: { params: { id: s
           <h2 className="mb-3 text-sm font-bold uppercase tracking-normal text-white/70">
             Submitted code - {submission.language === "java" ? "Java 17" : "Python 3"}
           </h2>
-          <pre className="max-h-[720px] overflow-auto rounded bg-black/30 p-4 text-sm leading-6 text-white">{submission.code}</pre>
+          <SubmittedCodeViewer code={submission.code} language={submission.language} />
         </div>
       </section>
     </main>
