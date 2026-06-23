@@ -1,5 +1,6 @@
 import csv
 import io
+import json
 
 from django import forms
 from django.contrib import admin, messages
@@ -46,17 +47,22 @@ class CsvImportForm(forms.Form):
 class TestCaseInline(admin.TabularInline):
     model = TestCase
     extra = 1
-    fields = ["name", "stdin", "expected_output", "is_sample", "is_hidden", "order"]
+    fields = ["name", "stdin", "function_args", "expected_value", "expected_output", "is_sample", "is_hidden", "order"]
 
 
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):
-    list_display = ["title", "difficulty", "is_active", "test_case_count", "test_case_csv", "created_at"]
-    list_filter = ["difficulty", "is_active"]
+    list_display = ["title", "difficulty", "execution_mode", "function_name", "is_active", "test_case_count", "test_case_csv", "created_at"]
+    list_filter = ["difficulty", "execution_mode", "is_active"]
     search_fields = ["title", "description"]
     prepopulated_fields = {"slug": ("title",)}
     inlines = [TestCaseInline]
     change_form_template = "admin/core/question/change_form.html"
+    fieldsets = (
+        (None, {"fields": ("title", "slug", "description", "difficulty", "is_active")}),
+        ("Execution", {"fields": ("execution_mode", "function_name")}),
+        ("Starter code", {"fields": ("starter_code", "java_starter_code", "python_starter_code")}),
+    )
 
     def test_case_count(self, obj):
         return obj.test_cases.count()
@@ -84,7 +90,7 @@ class QuestionAdmin(admin.ModelAdmin):
             if form.is_valid():
                 content = form.csv_content()
                 reader = csv.DictReader(io.StringIO(content))
-                required_fields = {"name", "stdin", "expected_output", "is_sample", "is_hidden", "order"}
+                required_fields = {"name", "expected_output", "is_sample", "is_hidden", "order"}
                 missing_fields = required_fields - set(reader.fieldnames or [])
                 if missing_fields:
                     self.message_user(
@@ -99,10 +105,14 @@ class QuestionAdmin(admin.ModelAdmin):
                     if form.cleaned_data["replace_existing"]:
                         question.test_cases.all().delete()
                     for row in reader:
+                        function_args = row.get("function_args", "").strip()
+                        expected_value = row.get("expected_value", "").strip()
                         TestCase.objects.create(
                             question=question,
                             name=row.get("name", ""),
                             stdin=row.get("stdin", ""),
+                            function_args=json.loads(function_args) if function_args else None,
+                            expected_value=json.loads(expected_value) if expected_value else None,
                             expected_output=row.get("expected_output", ""),
                             is_sample=row.get("is_sample", "").lower() in {"1", "true", "yes", "y"},
                             is_hidden=row.get("is_hidden", "true").lower() in {"1", "true", "yes", "y"},

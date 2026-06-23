@@ -1,5 +1,11 @@
 import json
 
+from dataclasses import dataclass
+
+from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import ValidationError
+
 
 ANALYZER_INSTRUCTIONS = """You are HackerLeap Resume Match Analyzer.
 
@@ -123,6 +129,114 @@ def build_resume_match_prompt(job_description, resume_text):
     return f"{ANALYZER_INSTRUCTIONS}\n\nInput:\n{json.dumps(payload, ensure_ascii=False, indent=2)}"
 
 
-def run_resume_match_analysis(*, job_description, resume_text):
-    """Placeholder for the upcoming AI API integration."""
-    raise NotImplementedError("AI resume match analysis integration is not implemented yet.")
+def build_resume_match_payload(job_description, resume_text):
+    return {
+        "job_description": job_description.strip(),
+        "resume_text": resume_text.strip(),
+    }
+
+
+def parse_analysis_json(raw_json):
+    try:
+        parsed_json = json.loads(raw_json)
+    except json.JSONDecodeError as exc:
+        raise ValidationError(f"Please paste valid JSON. {exc.msg}") from exc
+
+    return validate_analysis_payload(parsed_json)
+
+
+def validate_analysis_payload(parsed_json):
+    if not isinstance(parsed_json, dict):
+        raise ValidationError("The analysis result must be a JSON object.")
+
+    status = parsed_json.get("status")
+    if status not in ("success", "refused"):
+        raise ValidationError('The JSON must include status as either "success" or "refused".')
+
+    return parsed_json
+
+
+@dataclass(frozen=True)
+class ResumeMatchResult:
+    generated_prompt: str
+    ai_response_json: dict | None
+    provider: str
+
+    @property
+    def is_complete(self):
+        return self.ai_response_json is not None
+
+
+class ResumeMatchAIClient:
+    provider_name = "base"
+
+    def analyze(self, *, job_description, resume_text):
+        raise NotImplementedError
+
+
+class ManualResumeMatchClient(ResumeMatchAIClient):
+    provider_name = "manual"
+
+    def analyze(self, *, job_description, resume_text):
+        return ResumeMatchResult(
+            generated_prompt=build_resume_match_prompt(job_description, resume_text),
+            ai_response_json=None,
+            provider=self.provider_name,
+        )
+
+
+class ChatGPTResumeMatchClient(ResumeMatchAIClient):
+    provider_name = "chatgpt"
+
+    def __init__(self, *, api_key=None, model=None):
+        self.api_key = api_key if api_key is not None else settings.OPENAI_API_KEY
+        self.model = model if model is not None else settings.OPENAI_MODEL
+
+    def analyze(self, *, job_description, resume_text):
+        if not self.api_key:
+            raise ImproperlyConfigured("OPENAI_API_KEY is required when HACKERLEAP_AI_MODE=chatgpt.")
+
+        from openai import OpenAI
+
+        payload = build_resume_match_payload(job_description, resume_text)
+        response = OpenAI(api_key=self.api_key).chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": ANALYZER_INSTRUCTIONS},
+                {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
+            ],
+            response_format={"type": "json_object"},
+        )
+        content = response.choices[0].message.content
+        return ResumeMatchResult(
+            generated_prompt=build_resume_match_prompt(job_description, resume_text),
+            ai_response_json=parse_analysis_json(content),
+            provider=self.provider_name,
+        )
+
+
+class ClaudeResumeMatchClient(ResumeMatchAIClient):
+    provider_name = "claude"
+
+    def analyze(self, *, job_description, resume_text):
+        raise NotImplementedError("Claude resume match analysis integration is not implemented yet.")
+
+
+def get_resume_match_client(mode=None):
+    selected_mode = (mode or settings.HACKERLEAP_AI_MODE or "manual").strip().lower()
+    clients = {
+        ManualResumeMatchClient.provider_name: ManualResumeMatchClient,
+        ChatGPTResumeMatchClient.provider_name: ChatGPTResumeMatchClient,
+        ClaudeResumeMatchClient.provider_name: ClaudeResumeMatchClient,
+    }
+    try:
+        return clients[selected_mode]()
+    except KeyError as exc:
+        raise ImproperlyConfigured(f"Unsupported HACKERLEAP_AI_MODE: {selected_mode}") from exc
+
+
+def run_resume_match_analysis(*, job_description, resume_text, mode=None):
+    return get_resume_match_client(mode=mode).analyze(
+        job_description=job_description,
+        resume_text=resume_text,
+    )

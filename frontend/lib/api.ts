@@ -16,6 +16,8 @@ export type QuestionDetail = QuestionListItem & {
   starter_code: string;
   java_starter_code: string;
   python_starter_code: string;
+  execution_mode: "stdin" | "function";
+  function_name: string;
 };
 
 export type TestCaseResult = {

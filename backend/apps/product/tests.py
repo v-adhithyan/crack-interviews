@@ -16,6 +16,7 @@ from .models import Resume
 from .models import ResumeAnalysis
 from .models import QuickRefreshNote
 from .models import QuickRefreshSettings
+from .services import ResumeMatchResult
 
 
 class ProductAccessTests(TestCase):
@@ -365,6 +366,70 @@ class ResumeUploadTests(TestCase):
         self.assertContains(response, "We need a Python Django backend engineer.")
         self.assertIn('"job_description": "We need a Python Django backend engineer."', analysis.generated_prompt)
         self.assertIn('"resume_text": "Built Django APIs and Python services."', analysis.generated_prompt)
+
+    @override_settings(HACKERLEAP_AI_MODE="chatgpt")
+    def test_chatgpt_mode_runs_ai_and_redirects_to_report(self):
+        resume_file = SimpleUploadedFile("resume.pdf", b"%PDF-1.4\nresume\n%%EOF", content_type="application/pdf")
+        with patch("apps.product.forms.extract_pdf_text", return_value="Built Django APIs and Python services."):
+            self.client.post(reverse("product_dashboard"), {"resume": resume_file})
+
+        ai_payload = {
+            "status": "success",
+            "role_title_detected": "Backend Engineer",
+            "company_detected": "Acme",
+            "overall_match_score": 88,
+            "match_level": "Strong",
+            "ats_compatibility": {"score": 86, "status": "Strong", "summary": "Good ATS fit."},
+            "summary": {
+                "short_verdict": "Strong fit.",
+                "candidate_positioning": "Backend engineer.",
+                "recruiter_likely_impression": "Relevant.",
+            },
+            "strengths": [],
+            "missing_keywords": [],
+            "matched_skills": [],
+            "gaps_or_risks": [],
+            "application_confidence": {"score": 84, "label": "High", "reason": "Good overlap."},
+            "final_recommendation": "Apply.",
+        }
+
+        with patch(
+            "apps.product.views.run_resume_match_analysis",
+            return_value=ResumeMatchResult(
+                generated_prompt="Formatted prompt.",
+                ai_response_json=ai_payload,
+                provider="chatgpt",
+            ),
+        ) as ai_runner:
+            response = self.client.post(
+                reverse("product_dashboard"),
+                {
+                    "action": "generate_prompt",
+                    "job_description": "We need a Python Django backend engineer.",
+                },
+                follow=True,
+            )
+
+        analysis = ResumeAnalysis.objects.get(user=self.user)
+        ai_runner.assert_called_once_with(
+            job_description="We need a Python Django backend engineer.",
+            resume_text="Built Django APIs and Python services.",
+        )
+        self.assertRedirects(response, reverse("analysis_detail", kwargs={"analysis_id": analysis.id}))
+        self.assertEqual(analysis.status, ResumeAnalysis.Status.RESULT_ADDED)
+        self.assertEqual(analysis.ai_response_json["overall_match_score"], 88)
+        self.assertContains(response, "Analysis complete.")
+        self.assertContains(response, "Backend Engineer")
+
+    @override_settings(HACKERLEAP_AI_MODE="chatgpt")
+    def test_chatgpt_mode_hides_manual_prompt_panels(self):
+        self.create_analysis()
+
+        response = self.client.get(reverse("product_dashboard"))
+
+        self.assertNotContains(response, "Formatted Prompt")
+        self.assertNotContains(response, "Paste Analysis JSON")
+        self.assertContains(response, "Analysis Result")
 
     def test_pasted_json_result_is_saved_and_rendered(self):
         resume_file = SimpleUploadedFile("resume.pdf", b"%PDF-1.4\nresume\n%%EOF", content_type="application/pdf")

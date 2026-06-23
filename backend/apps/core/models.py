@@ -25,12 +25,30 @@ PYTHON_STARTER_CODE = (
     "    solve()\n"
 )
 
+JAVA_FUNCTION_STARTER_CODE = (
+    "import java.util.*;\n\n"
+    "class Solution {\n"
+    "    public int solve(int a, int b) {\n"
+    "        return a + b;\n"
+    "    }\n"
+    "}\n"
+)
+
+PYTHON_FUNCTION_STARTER_CODE = (
+    "def solve(a, b):\n"
+    "    return a + b\n"
+)
+
 
 class Question(models.Model):
     class Difficulty(models.TextChoices):
         EASY = "easy", "Easy"
         MEDIUM = "medium", "Medium"
         HARD = "hard", "Hard"
+
+    class ExecutionMode(models.TextChoices):
+        STDIN = "stdin", "Standard input"
+        FUNCTION = "function", "Function call"
 
     title = models.CharField(max_length=200)
     slug = models.SlugField(max_length=220, unique=True, blank=True)
@@ -39,6 +57,8 @@ class Question(models.Model):
     starter_code = models.TextField(default=JAVA_STARTER_CODE)
     java_starter_code = models.TextField(default=JAVA_STARTER_CODE)
     python_starter_code = models.TextField(default=PYTHON_STARTER_CODE)
+    execution_mode = models.CharField(max_length=20, choices=ExecutionMode.choices, default=ExecutionMode.STDIN)
+    function_name = models.CharField(max_length=80, blank=True, default="")
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -59,6 +79,8 @@ class TestCase(models.Model):
     question = models.ForeignKey(Question, related_name="test_cases", on_delete=models.CASCADE)
     name = models.CharField(max_length=200, blank=True)
     stdin = models.TextField(blank=True)
+    function_args = models.JSONField(blank=True, null=True)
+    expected_value = models.JSONField(blank=True, null=True)
     expected_output = models.TextField()
     is_sample = models.BooleanField(default=False)
     is_hidden = models.BooleanField(default=True)

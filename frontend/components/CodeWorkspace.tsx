@@ -130,6 +130,7 @@ export function CodeWorkspace({ question, latestSubmittedCode = {} }: Props) {
   const busyMessage = activeMode === "submit" ? "Submitting against all tests..." : "Running sample tests...";
   const editorLanguage = language === "java" ? "java" : "python";
   const languageLabel = language === "java" ? "Java 17" : "Python 3";
+  const executionLabel = question.execution_mode === "function" ? `Function: ${question.function_name || "solve"}` : "Standard input";
 
   function selectLanguage(nextLanguage: Language) {
     setLanguage(nextLanguage);
@@ -246,7 +247,10 @@ export function CodeWorkspace({ question, latestSubmittedCode = {} }: Props) {
 
         <aside className="flex min-h-[620px] flex-col bg-[#10151f] lg:min-h-0">
           <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3 text-sm font-semibold text-white">
-            <span>{languageLabel}</span>
+            <div className="flex min-w-0 items-center gap-3">
+              <span>{languageLabel}</span>
+              <span className="rounded border border-white/15 bg-white/5 px-2 py-1 text-xs text-white/75">{executionLabel}</span>
+            </div>
             <div className="inline-flex rounded border border-white/15 bg-white/5 p-0.5">
               {(["java", "python"] as const).map((option) => (
                 <button

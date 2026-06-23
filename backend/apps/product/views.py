@@ -1,8 +1,11 @@
 from django.http import FileResponse
 from django.http import Http404
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.views import LoginView
+from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
@@ -22,7 +25,7 @@ from .models import QuickRefreshNote
 from .models import QuickRefreshSettings
 from .models import Resume
 from .models import ResumeAnalysis
-from .services import build_resume_match_prompt
+from .services import run_resume_match_analysis
 
 
 class ProductLoginView(LoginView):
@@ -49,6 +52,10 @@ def get_visible_analysis_or_404(user, analysis_id):
     return get_object_or_404(queryset, id=analysis_id)
 
 
+def is_manual_ai_mode():
+    return (settings.HACKERLEAP_AI_MODE or "manual").strip().lower() == "manual"
+
+
 @product_access_required
 def dashboard(request):
     resume = user_resume(request.user)
@@ -71,17 +78,31 @@ def dashboard(request):
 
             analysis_form = AnalysisPromptForm(request.POST)
             if analysis_form.is_valid():
-                generated_prompt = build_resume_match_prompt(
-                    analysis_form.cleaned_data["job_description"],
-                    resume.parsed_text,
-                )
-                ResumeAnalysis.objects.create(
+                try:
+                    analysis_result = run_resume_match_analysis(
+                        job_description=analysis_form.cleaned_data["job_description"],
+                        resume_text=resume.parsed_text,
+                    )
+                except (ImproperlyConfigured, NotImplementedError, ValidationError) as exc:
+                    messages.error(request, str(exc))
+                    return redirect("product_dashboard")
+                except Exception:
+                    messages.error(request, "Unable to complete AI analysis right now. Please try again later.")
+                    return redirect("product_dashboard")
+
+                analysis = ResumeAnalysis.objects.create(
                     user=request.user,
                     resume=resume,
                     job_description=analysis_form.cleaned_data["job_description"],
                     resume_text=resume.parsed_text,
-                    generated_prompt=generated_prompt,
+                    generated_prompt=analysis_result.generated_prompt,
+                    ai_response_json=analysis_result.ai_response_json,
+                    status=ResumeAnalysis.Status.RESULT_ADDED if analysis_result.is_complete else ResumeAnalysis.Status.PROMPT_READY,
                 )
+                if analysis_result.is_complete:
+                    messages.success(request, "Analysis complete.")
+                    return redirect("analysis_detail", analysis_id=analysis.id)
+
                 messages.success(request, "Prompt generated. Copy it, run it manually, then paste the JSON result below.")
                 return redirect("product_dashboard")
 
@@ -130,6 +151,7 @@ def dashboard(request):
             "latest_analysis": latest_analysis,
             "recent_analyses": user_analyses[:5],
             "active_nav": "dashboard",
+            "is_manual_ai_mode": is_manual_ai_mode(),
         },
     )
 

@@ -1,4 +1,3 @@
-import json
 import re
 import uuid
 from pathlib import Path
@@ -12,6 +11,7 @@ from django.core.exceptions import ValidationError
 from .models import Resume
 from .models import QuickRefreshNote
 from .pdf import extract_pdf_text
+from .services import parse_analysis_json
 
 
 MAX_RESUME_SIZE = 1024 * 1024
@@ -186,19 +186,7 @@ class AnalysisResultForm(forms.Form):
 
     def clean_analysis_json(self):
         raw_json = self.cleaned_data["analysis_json"]
-        try:
-            parsed_json = json.loads(raw_json)
-        except json.JSONDecodeError as exc:
-            raise ValidationError(f"Please paste valid JSON. {exc.msg}") from exc
-
-        if not isinstance(parsed_json, dict):
-            raise ValidationError("The analysis result must be a JSON object.")
-
-        status = parsed_json.get("status")
-        if status not in ("success", "refused"):
-            raise ValidationError('The JSON must include status as either "success" or "refused".')
-
-        self.parsed_json = parsed_json
+        self.parsed_json = parse_analysis_json(raw_json)
         return raw_json
 
 

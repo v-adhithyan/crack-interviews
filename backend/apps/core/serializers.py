@@ -26,6 +26,8 @@ class QuestionDetailSerializer(serializers.ModelSerializer):
             "starter_code",
             "java_starter_code",
             "python_starter_code",
+            "execution_mode",
+            "function_name",
             "solved",
         ]
 

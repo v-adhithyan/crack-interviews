@@ -102,3 +102,7 @@ JAVAC_EXECUTABLE = os.getenv("JAVAC_EXECUTABLE", "javac")
 JAVA_RELEASE = int(os.getenv("JAVA_RELEASE", "17"))
 COMPILE_TIMEOUT_SECONDS = float(os.getenv("COMPILE_TIMEOUT_SECONDS", "8"))
 CODE_TIMEOUT_SECONDS = float(os.getenv("CODE_TIMEOUT_SECONDS", "2"))
+
+HACKERLEAP_AI_MODE = os.getenv("HACKERLEAP_AI_MODE", "manual").strip().lower()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
