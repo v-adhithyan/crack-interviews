@@ -1,6 +1,8 @@
 import shutil
+import json
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
@@ -121,3 +123,116 @@ class FunctionModeSubmissionTests(TestCase):
         self.assertEqual(response.data["status"], Submission.Status.ACCEPTED)
         self.assertEqual(response.data["passed_count"], 2)
         self.assertEqual(response.data["total_count"], 2)
+
+
+class QuestionAdminJsonImportTests(TestCase):
+    def setUp(self):
+        self.admin_user = get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="Password1!",
+        )
+        self.client.force_login(self.admin_user)
+
+    def payload(self, slug="sum-two-values"):
+        return {
+            "question": {
+                "title": "Sum Two Values",
+                "slug": slug,
+                "description": "Return the sum of two integers.\n\nFunction signature: solve(a, b)",
+                "difficulty": "easy",
+                "execution_mode": "function",
+                "function_name": "solve",
+                "is_active": True,
+                "starter_code": "class Solution { public int solve(int a, int b) { return 0; } }",
+                "java_starter_code": "class Solution { public int solve(int a, int b) { return 0; } }",
+                "python_starter_code": "def solve(a, b):\n    return 0\n",
+                "java_reference_solution": "class Solution { public int solve(int a, int b) { return a + b; } }",
+                "python_reference_solution": "def solve(a, b):\n    return a + b\n",
+            },
+            "test_cases": [
+                {
+                    "name": "Sample 1",
+                    "stdin": "",
+                    "function_args": [1, 2],
+                    "expected_value": 3,
+                    "expected_output": "3",
+                    "is_sample": True,
+                    "is_hidden": False,
+                    "order": 1,
+                },
+                {
+                    "name": "Hidden 1",
+                    "stdin": "",
+                    "function_args": [-5, 7],
+                    "expected_value": 2,
+                    "expected_output": "2",
+                    "is_sample": False,
+                    "is_hidden": True,
+                    "order": 2,
+                },
+            ],
+        }
+
+    def test_admin_can_import_question_json_with_test_cases(self):
+        response = self.client.post(
+            reverse("admin:core_question_import_json"),
+            {
+                "json_text": json.dumps(self.payload()),
+            },
+            follow=True,
+        )
+
+        question = Question.objects.get(slug="sum-two-values")
+        self.assertEqual(response.redirect_chain[0][0], f"../{question.pk}/change/")
+        self.assertEqual(question.execution_mode, Question.ExecutionMode.FUNCTION)
+        self.assertEqual(question.function_name, "solve")
+        self.assertEqual(question.test_cases.count(), 2)
+        self.assertEqual(question.test_cases.get(name="Sample 1").function_args, [1, 2])
+        self.assertContains(response, "Created question and imported 2 test cases.")
+
+    def test_admin_import_requires_replace_for_duplicate_slug(self):
+        Question.objects.create(
+            title="Existing",
+            slug="sum-two-values",
+            description="Existing question.",
+        )
+
+        response = self.client.post(
+            reverse("admin:core_question_import_json"),
+            {
+                "json_text": json.dumps(self.payload()),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "A question with this slug already exists.")
+        self.assertEqual(Question.objects.get(slug="sum-two-values").title, "Existing")
+
+    def test_admin_can_replace_existing_question_from_json(self):
+        question = Question.objects.create(
+            title="Existing",
+            slug="sum-two-values",
+            description="Existing question.",
+        )
+        QuestionTestCase.objects.create(
+            question=question,
+            name="Old",
+            expected_output="0",
+            order=1,
+        )
+
+        response = self.client.post(
+            reverse("admin:core_question_import_json"),
+            {
+                "json_text": json.dumps(self.payload()),
+                "replace_existing": "on",
+            },
+            follow=True,
+        )
+
+        question.refresh_from_db()
+        self.assertEqual(response.redirect_chain[0][0], f"../{question.pk}/change/")
+        self.assertEqual(question.title, "Sum Two Values")
+        self.assertEqual(question.test_cases.count(), 2)
+        self.assertFalse(question.test_cases.filter(name="Old").exists())

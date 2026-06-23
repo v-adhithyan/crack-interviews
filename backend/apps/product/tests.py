@@ -345,6 +345,7 @@ class ResumeUploadTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(b"".join(response.streaming_content), b"%PDF-1.4\nother\n%%EOF")
 
+    @override_settings(HACKERLEAP_AI_MODE="manual")
     def test_analyze_now_generates_manual_prompt(self):
         resume_file = SimpleUploadedFile("resume.pdf", b"%PDF-1.4\nresume\n%%EOF", content_type="application/pdf")
         with patch("apps.product.forms.extract_pdf_text", return_value="Built Django APIs and Python services."):
@@ -431,6 +432,7 @@ class ResumeUploadTests(TestCase):
         self.assertNotContains(response, "Paste Analysis JSON")
         self.assertContains(response, "Analysis Result")
 
+    @override_settings(HACKERLEAP_AI_MODE="manual")
     def test_pasted_json_result_is_saved_and_rendered(self):
         resume_file = SimpleUploadedFile("resume.pdf", b"%PDF-1.4\nresume\n%%EOF", content_type="application/pdf")
         with patch("apps.product.forms.extract_pdf_text", return_value="Python backend resume."):
@@ -476,6 +478,7 @@ class ResumeUploadTests(TestCase):
         self.assertContains(response, "82%")
         self.assertContains(response, "Apply with tailored keywords.")
 
+    @override_settings(HACKERLEAP_AI_MODE="manual")
     def test_invalid_analysis_json_is_rejected(self):
         resume_file = SimpleUploadedFile("resume.pdf", b"%PDF-1.4\nresume\n%%EOF", content_type="application/pdf")
         with patch("apps.product.forms.extract_pdf_text", return_value="Python backend resume."):

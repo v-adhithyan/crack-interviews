@@ -1,0 +1,32 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  <h1>Import question JSON</h1>
+  <p>Paste JSON generated from <code>prompts/generate-question-and-test-cases-json.md</code>. This creates the question and its test cases together.</p>
+
+  <form method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+
+    <fieldset class="module aligned">
+      <div class="form-row">
+        {{ form.json_text.errors }}
+        {{ form.json_text.label_tag }}
+        {{ form.json_text }}
+        {% if form.json_text.help_text %}<div class="help">{{ form.json_text.help_text }}</div>{% endif %}
+      </div>
+
+      <div class="form-row">
+        {{ form.replace_existing.errors }}
+        {{ form.replace_existing }}
+        {{ form.replace_existing.label_tag }}
+        {% if form.replace_existing.help_text %}<div class="help">{{ form.replace_existing.help_text }}</div>{% endif %}
+      </div>
+    </fieldset>
+
+    <div class="submit-row">
+      <input type="submit" value="Import question JSON" class="default">
+      <a href="../">Cancel</a>
+    </div>
+  </form>
+{% endblock %}
