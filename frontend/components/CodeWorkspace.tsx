@@ -25,6 +25,8 @@ type SavedDraft = {
   updatedAt: string;
 };
 
+const TIMER_FROZEN_MESSAGE = "Timer is frozen after the first submission for this problem.";
+
 export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmissionSolveTimeSeconds = null, hasSubmitted = false }: Props) {
   const router = useRouter();
   const initialLanguage = latestSubmittedLanguage(latestSubmittedCode);
@@ -39,6 +41,8 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
   const [timerRunning, setTimerRunning] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(firstSubmissionSolveTimeSeconds ?? 0);
   const [timerLocked, setTimerLocked] = useState(initialTimerLocked);
+  const [hasAnySubmission, setHasAnySubmission] = useState(hasSubmitted);
+  const [showTimerTooltip, setShowTimerTooltip] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const resultPanelRef = useRef<HTMLElement>(null);
   const hasLoadedSavedCode = useRef(false);
@@ -67,6 +71,15 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
   }, [toastMessage]);
 
   useEffect(() => {
+    if (!showTimerTooltip) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => setShowTimerTooltip(false), 2200);
+    return () => window.clearTimeout(timeout);
+  }, [showTimerTooltip]);
+
+  useEffect(() => {
     const restoredLanguage = chooseRestoredLanguage(question.slug, initialLanguage, latestSubmittedCode);
     setLanguage(restoredLanguage);
     setCode(codeForLanguage(restoredLanguage, question, latestSubmittedCode));
@@ -86,6 +99,7 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
 
   function toggleTimer() {
     if (timerLocked) {
+      setShowTimerTooltip(true);
       return;
     }
     setTimerStarted(true);
@@ -94,6 +108,7 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
 
   function resetTimer() {
     if (timerLocked) {
+      setShowTimerTooltip(true);
       return;
     }
     setTimerStarted(false);
@@ -106,7 +121,7 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
     setActiveMode(mode);
     setError("");
     const minimumFeedback = new Promise((resolve) => setTimeout(resolve, 450));
-    const solveTimeSeconds = mode === "submit" && timerStarted ? elapsedSeconds : null;
+    const solveTimeSeconds = mode === "submit" && !hasAnySubmission && timerStarted ? elapsedSeconds : null;
     const wasTimerRunning = timerRunning;
     if (mode === "submit") {
       setTimerRunning(false);
@@ -132,13 +147,14 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
           setTimerStarted(true);
         }
         setToastMessage("Submission saved. Timer frozen.");
+        setHasAnySubmission(true);
       }
       if (mode === "submit") {
         router.push(`/submissions/${response.id}`);
       }
     } catch (err) {
       await minimumFeedback;
-      if (mode === "submit" && !hasSubmitted) {
+      if (mode === "submit" && !hasAnySubmission) {
         setTimerLocked(false);
         setTimerRunning(wasTimerRunning);
       }
@@ -164,7 +180,7 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
   return (
     <main className="min-h-screen bg-paper lg:h-screen lg:overflow-hidden">
       <header className="grid min-h-16 grid-cols-[1fr_auto_1fr] items-center border-b border-line bg-white px-4">
-        <Link href="/" className="font-semibold text-ink">Crack Interviews</Link>
+        <Link href="/" className="font-semibold text-ink">HackerLeap</Link>
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -186,7 +202,12 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
           </button>
         </div>
         <div className="flex justify-end gap-2">
-          <div className="inline-flex h-10 items-center rounded border border-line bg-white text-sm font-semibold">
+          <div className="relative inline-flex h-10 items-center rounded border border-line bg-white text-sm font-semibold">
+            {showTimerTooltip ? (
+              <div role="tooltip" className="absolute right-0 top-12 z-40 w-64 rounded border border-line bg-ink px-3 py-2 text-xs font-semibold leading-5 text-white shadow-lg">
+                {TIMER_FROZEN_MESSAGE}
+              </div>
+            ) : null}
             <span className="inline-flex h-full items-center gap-2 border-r border-line px-3 tabular-nums">
               <Timer size={16} />
               {formattedElapsed}
@@ -194,8 +215,8 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
             <button
               type="button"
               onClick={toggleTimer}
-              disabled={isRunning || timerLocked}
-              className="grid h-10 w-10 place-items-center disabled:opacity-50"
+              disabled={isRunning}
+              className={`grid h-10 w-10 place-items-center disabled:opacity-50 ${timerLocked ? "cursor-help opacity-60" : ""}`}
               aria-label={timerLocked ? "Timer frozen after first submission" : timerRunning ? "Pause timer" : "Start timer"}
               title={timerLocked ? "Timer frozen after first submission" : timerRunning ? "Pause timer" : "Start timer"}
             >
@@ -204,10 +225,10 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
             <button
               type="button"
               onClick={resetTimer}
-              disabled={isRunning || elapsedSeconds === 0 || timerLocked}
-              className="grid h-10 w-10 place-items-center border-l border-line disabled:opacity-50"
-              aria-label="Reset timer"
-              title="Reset timer"
+              disabled={isRunning || (!timerLocked && elapsedSeconds === 0)}
+              className={`grid h-10 w-10 place-items-center border-l border-line disabled:opacity-50 ${timerLocked ? "cursor-help opacity-60" : ""}`}
+              aria-label={timerLocked ? "Timer frozen after first submission" : "Reset timer"}
+              title={timerLocked ? TIMER_FROZEN_MESSAGE : "Reset timer"}
             >
               <RotateCcw size={16} />
             </button>

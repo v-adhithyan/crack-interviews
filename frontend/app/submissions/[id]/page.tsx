@@ -18,7 +18,7 @@ export default async function SubmissionDetailPage({ params }: { params: { id: s
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-semibold text-zinc-600">{submission.question_title}</p>
-              <h1 className="text-2xl font-bold">Submission #{submission.id}</h1>
+              <h1 className="text-2xl font-bold">Submission #{submission.submission_number ?? submission.id}</h1>
               <p className="mt-1 text-sm font-semibold text-zinc-600">{submission.language === "java" ? "Java 17" : "Python 3"}</p>
             </div>
             <StatusBadge status={submission.status} />

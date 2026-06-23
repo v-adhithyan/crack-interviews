@@ -20,8 +20,8 @@ export default async function HomePage() {
               <Code2 size={20} />
             </div>
             <div>
-              <h1 className="text-xl font-bold">Crack Interviews</h1>
-              <p className="text-sm text-zinc-600">Java interview practice, one problem at a time.</p>
+              <h1 className="text-xl font-bold">HackerLeap</h1>
+              <p className="text-sm text-zinc-600">Let's crack the coding interview.</p>
             </div>
           </div>
           <div className="text-sm font-semibold text-zinc-600">

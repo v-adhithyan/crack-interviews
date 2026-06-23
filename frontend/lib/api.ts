@@ -39,6 +39,7 @@ export type Submission = {
   question: number;
   question_slug: string;
   question_title: string;
+  submission_number: number | null;
   kind: "run" | "submit";
   language: Language;
   code: string;

@@ -46,6 +46,24 @@ class SubmissionSerializer(serializers.ModelSerializer):
     results = TestCaseResultSerializer(many=True, read_only=True)
     question_slug = serializers.CharField(source="question.slug", read_only=True)
     question_title = serializers.CharField(source="question.title", read_only=True)
+    submission_number = serializers.SerializerMethodField()
+
+    def get_submission_number(self, obj):
+        if obj.kind != Submission.Kind.SUBMIT:
+            return None
+        return (
+            Submission.objects.filter(
+                question=obj.question,
+                kind=Submission.Kind.SUBMIT,
+                created_at__lt=obj.created_at,
+            ).count()
+            + Submission.objects.filter(
+                question=obj.question,
+                kind=Submission.Kind.SUBMIT,
+                created_at=obj.created_at,
+                id__lte=obj.id,
+            ).count()
+        )
 
     class Meta:
         model = Submission
@@ -54,6 +72,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
             "question",
             "question_slug",
             "question_title",
+            "submission_number",
             "kind",
             "language",
             "code",
@@ -70,6 +89,36 @@ class SubmissionSerializer(serializers.ModelSerializer):
 
 
 class SubmissionListSerializer(serializers.ModelSerializer):
+    submission_number = serializers.SerializerMethodField()
+
+    def get_submission_number(self, obj):
+        if obj.kind != Submission.Kind.SUBMIT:
+            return None
+        return (
+            Submission.objects.filter(
+                question=obj.question,
+                kind=Submission.Kind.SUBMIT,
+                created_at__lt=obj.created_at,
+            ).count()
+            + Submission.objects.filter(
+                question=obj.question,
+                kind=Submission.Kind.SUBMIT,
+                created_at=obj.created_at,
+                id__lte=obj.id,
+            ).count()
+        )
+
     class Meta:
         model = Submission
-        fields = ["id", "kind", "language", "status", "execution_time_ms", "solve_time_seconds", "passed_count", "total_count", "created_at"]
+        fields = [
+            "id",
+            "submission_number",
+            "kind",
+            "language",
+            "status",
+            "execution_time_ms",
+            "solve_time_seconds",
+            "passed_count",
+            "total_count",
+            "created_at",
+        ]

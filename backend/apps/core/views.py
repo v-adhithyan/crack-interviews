@@ -95,7 +95,8 @@ def submit_code(request, slug):
     if language is None:
         return Response({"detail": "Supported languages are java and python."}, status=status.HTTP_400_BAD_REQUEST)
 
-    solve_time_seconds = request.data.get("solve_time_seconds")
+    has_prior_submission = question.submissions.filter(kind=Submission.Kind.SUBMIT).exists()
+    solve_time_seconds = None if has_prior_submission else request.data.get("solve_time_seconds")
     if solve_time_seconds in ("", None):
         solve_time_seconds = None
     else:

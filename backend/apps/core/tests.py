@@ -124,6 +124,54 @@ class FunctionModeSubmissionTests(TestCase):
         self.assertEqual(response.data["passed_count"], 2)
         self.assertEqual(response.data["total_count"], 2)
 
+    def test_only_first_submission_records_solve_time(self):
+        question = self.create_function_question()
+        payload = {
+            "language": Submission.Language.PYTHON,
+            "code": "def solve(a, b):\n    return a + b\n",
+        }
+
+        first_response = self.client.post(
+            reverse("submit-code", kwargs={"slug": question.slug}),
+            {**payload, "solve_time_seconds": 125},
+            content_type="application/json",
+        )
+        second_response = self.client.post(
+            reverse("submit-code", kwargs={"slug": question.slug}),
+            {**payload, "solve_time_seconds": 999},
+            content_type="application/json",
+        )
+
+        self.assertEqual(first_response.status_code, 201)
+        self.assertEqual(second_response.status_code, 201)
+        self.assertEqual(first_response.data["solve_time_seconds"], 125)
+        self.assertIsNone(second_response.data["solve_time_seconds"])
+
+    def test_submission_number_is_ordered_per_problem(self):
+        question = self.create_function_question()
+        other_question = Question.objects.create(
+            title="Other",
+            slug="other-function",
+            description="Other.",
+            execution_mode=Question.ExecutionMode.FUNCTION,
+            function_name="solve",
+        )
+        payload = {
+            "language": Submission.Language.PYTHON,
+            "code": "def solve(a, b):\n    return a + b\n",
+        }
+
+        first_response = self.client.post(reverse("submit-code", kwargs={"slug": question.slug}), payload, content_type="application/json")
+        self.client.post(reverse("submit-code", kwargs={"slug": other_question.slug}), payload, content_type="application/json")
+        second_response = self.client.post(reverse("submit-code", kwargs={"slug": question.slug}), payload, content_type="application/json")
+        list_response = self.client.get(reverse("submission-list", kwargs={"slug": question.slug}))
+        detail_response = self.client.get(reverse("submission-detail", kwargs={"pk": second_response.data["id"]}))
+
+        self.assertEqual(first_response.data["submission_number"], 1)
+        self.assertEqual(second_response.data["submission_number"], 2)
+        self.assertEqual(detail_response.data["submission_number"], 2)
+        self.assertEqual([item["submission_number"] for item in list_response.data], [2, 1])
+
 
 class QuestionAdminJsonImportTests(TestCase):
     def setUp(self):
