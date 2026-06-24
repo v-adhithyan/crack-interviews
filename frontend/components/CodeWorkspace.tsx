@@ -5,6 +5,8 @@ import { CheckCircle2, History, Pause, Play, RotateCcw, Send, Timer } from "luci
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { runCode, submitCode, type Language, type QuestionDetail, type Submission } from "@/lib/api";
 import { StatusBadge } from "@/components/StatusBadge";
 
@@ -288,7 +290,9 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
               </span>
             ) : null}
           </div>
-          <div className="problem-copy rounded-lg border border-[rgba(15,23,42,0.08)] bg-white/90 p-5 text-[15px] shadow-product">{question.description}</div>
+          <div className="problem-copy rounded-lg border border-[rgba(15,23,42,0.08)] bg-white/90 p-5 text-[15px] shadow-product">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{question.description}</ReactMarkdown>
+          </div>
         </article>
 
         <aside className="flex min-h-[620px] flex-col bg-white/80 lg:min-h-0">

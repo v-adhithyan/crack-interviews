@@ -41,7 +41,6 @@ a {
 
 .problem-copy {
   line-height: 1.7;
-  white-space: pre-wrap;
 }
 
 .problem-copy h1,
@@ -49,6 +48,67 @@ a {
 .problem-copy h3 {
   font-weight: 750;
   margin: 1.2rem 0 0.5rem;
+}
+
+.problem-copy h1 {
+  font-size: 1.65rem;
+}
+
+.problem-copy h2 {
+  font-size: 1.25rem;
+}
+
+.problem-copy h3 {
+  font-size: 1.05rem;
+}
+
+.problem-copy p,
+.problem-copy ul,
+.problem-copy ol,
+.problem-copy table {
+  margin: 0.75rem 0;
+}
+
+.problem-copy ul,
+.problem-copy ol {
+  padding-left: 1.4rem;
+}
+
+.problem-copy ul {
+  list-style: disc;
+}
+
+.problem-copy ol {
+  list-style: decimal;
+}
+
+.problem-copy table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+}
+
+.problem-copy th,
+.problem-copy td {
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+
+.problem-copy th {
+  background: #fffaf0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.problem-copy blockquote {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border-left: 4px solid var(--gold);
+  background: #fffaf0;
+  color: var(--muted);
 }
 
 .problem-copy pre {
@@ -63,6 +123,12 @@ a {
   background: rgba(247, 184, 1, 0.14);
   border-radius: 4px;
   padding: 0.1rem 0.25rem;
+}
+
+.problem-copy pre code {
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
 }
 
 .progress-bar {

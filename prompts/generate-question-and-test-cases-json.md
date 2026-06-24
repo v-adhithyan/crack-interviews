@@ -24,6 +24,9 @@ Important:
 - Java must compile with Java 17 using javac --release 17.
 - Java starter and reference solution must use a single class named Solution.
 - Python starter and reference solution must use a top-level solve(...) function.
+- The "description" field must be valid Markdown.
+- The Markdown description should include these sections: `## Task`, `## Function Signature`, `## Arguments`, `## Return Value`, `## Constraints`, and `## Examples`.
+- Use fenced code blocks for example input/output or signatures when helpful.
 - Make the problem unambiguous and deterministic.
 - Include edge cases in the test cases.
 - Include at least 2 sample test cases and 8 hidden test cases.
@@ -82,13 +85,14 @@ The JSON object in both sections must use exactly this top-level shape, but all 
 Question field rules:
 - "title" should be short and admin-friendly.
 - "slug" must be lowercase kebab-case and match the title.
-- "description" must be a complete problem statement. Include:
+- "description" must be a complete Markdown problem statement. Include:
   - task overview
   - function signature
   - argument meanings
   - return value
   - constraints
   - at least 2 examples with explanations
+- "description" must be stored as one valid JSON string with Markdown newlines escaped as \n.
 - "difficulty" must be exactly one of: "easy", "medium", "hard".
 - "execution_mode" must be exactly "function".
 - "function_name" must be exactly "solve" unless I explicitly request another name.

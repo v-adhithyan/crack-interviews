@@ -17,6 +17,8 @@ Requirements:
 - The Java starter code must include `class Solution` with a `solve(...)` method.
 - The Python starter code must include a top-level `solve(...)` function.
 - Include the function signature, argument meanings, return value, constraints, and examples.
+- The description must be valid Markdown. Use headings, bullet lists, fenced code blocks, and tables only when useful.
+- The description should include these Markdown sections: `## Task`, `## Function Signature`, `## Arguments`, `## Return Value`, `## Constraints`, and `## Examples`.
 - Make the problem unambiguous.
 - Include edge cases in the test cases.
 - The CSV must use exactly this header:
@@ -44,7 +46,7 @@ DIFFICULTY:
 easy | medium | hard
 
 DESCRIPTION:
-<full problem statement>
+<full problem statement in Markdown>
 
 EXECUTION_MODE:
 function
