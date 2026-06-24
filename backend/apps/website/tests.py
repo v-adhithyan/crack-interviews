@@ -93,6 +93,39 @@ class BlogPostTests(TestCase):
         self.assertContains(response, "First paragraph.")
         self.assertContains(response, "Resume SEO description.")
 
+    def test_blog_detail_renders_markdown_content(self):
+        post = BlogPost.objects.create(
+            title="Markdown Lessons",
+            slug="markdown-lessons",
+            excerpt="Markdown blog content.",
+            content="## Main idea\n\n- Keep it tight\n- Show impact\n\nUse `metrics`.",
+            status=BlogPost.Status.PUBLISHED,
+            published_at=timezone.now(),
+        )
+
+        response = self.client.get(reverse("blog_detail", kwargs={"slug": post.slug}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "<h2>Main idea</h2>", html=True)
+        self.assertContains(response, "<li>Keep it tight</li>", html=True)
+        self.assertContains(response, "<code>metrics</code>", html=True)
+
+    def test_blog_detail_keeps_plain_text_rendering(self):
+        post = BlogPost.objects.create(
+            title="Plain Lessons",
+            slug="plain-lessons",
+            excerpt="Plain blog content.",
+            content="First paragraph.\n\nSecond paragraph.",
+            status=BlogPost.Status.PUBLISHED,
+            published_at=timezone.now(),
+        )
+
+        response = self.client.get(reverse("blog_detail", kwargs={"slug": post.slug}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "<p>First paragraph.</p>", html=True)
+        self.assertContains(response, "<p>Second paragraph.</p>", html=True)
+
     def test_blog_detail_does_not_render_drafts(self):
         post = BlogPost.objects.create(
             title="Draft post",

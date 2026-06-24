@@ -1,4 +1,5 @@
 {% extends "website/base.html" %}
+{% load blog_content %}
 
 {% block title %}{{ post.meta_title }} | HackerLeap Blog{% endblock %}
 {% block meta_description %}{{ post.meta_description }}{% endblock %}
@@ -21,7 +22,7 @@
         </div>
     </header>
     <div class="blog-article-body">
-        {{ post.content|linebreaks }}
+        {{ post.content|render_blog_content }}
     </div>
 </article>
 {% endblock %}
