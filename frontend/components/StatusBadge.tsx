@@ -1,11 +1,11 @@
 import type { SubmissionStatus } from "@/lib/api";
 
 const statusStyles: Record<SubmissionStatus, string> = {
-  pending: "bg-zinc-200 text-zinc-700",
-  accepted: "bg-emerald-100 text-emerald-800",
-  wrong_answer: "bg-amber-100 text-amber-900",
-  runtime_error: "bg-rose-100 text-rose-800",
-  time_limit_exceeded: "bg-violet-100 text-violet-800",
+  pending: "bg-zinc-100 text-muted",
+  accepted: "bg-mint text-emerald-800",
+  wrong_answer: "bg-soft text-[#946200]",
+  runtime_error: "bg-orange-100 text-orange-700",
+  time_limit_exceeded: "bg-zinc-200 text-ink",
 };
 
 const labels: Record<SubmissionStatus, string> = {
@@ -18,7 +18,7 @@ const labels: Record<SubmissionStatus, string> = {
 
 export function StatusBadge({ status }: { status: SubmissionStatus }) {
   return (
-    <span className={`inline-flex h-7 items-center rounded px-2 text-xs font-semibold ${statusStyles[status]}`}>
+    <span className={`inline-flex h-7 items-center rounded-[7px] px-2 text-xs font-bold ${statusStyles[status]}`}>
       {labels[status]}
     </span>
   );

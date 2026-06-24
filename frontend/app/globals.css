@@ -4,6 +4,17 @@
 
 :root {
   color-scheme: light;
+  --app-bg: #fffdf7;
+  --surface: #ffffff;
+  --ink: #0d1324;
+  --muted: #475467;
+  --line: #eee7d4;
+  --soft: #fff5d6;
+  --gold: #f7b801;
+  --gold-strong: #ffc400;
+  --green: #16a34a;
+  --shadow: 0 22px 70px rgba(15, 23, 42, 0.08);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 * {
@@ -12,17 +23,25 @@
 
 body {
   margin: 0;
-  background: #f7f6f2;
-  color: #18212f;
+  background: radial-gradient(circle at 52% 20%, #fff8df 0, #fff 34%, var(--app-bg) 100%);
+  color: var(--ink);
 }
 
 button,
+input,
+textarea {
+  font: inherit;
+}
+
 a {
   -webkit-tap-highlight-color: transparent;
+  color: inherit;
+  text-decoration: none;
 }
 
 .problem-copy {
   line-height: 1.7;
+  white-space: pre-wrap;
 }
 
 .problem-copy h1,
@@ -33,15 +52,15 @@ a {
 }
 
 .problem-copy pre {
-  background: #18212f;
-  color: #f7f6f2;
-  border-radius: 8px;
+  background: #101828;
+  color: #fffdf7;
+  border-radius: 7px;
   overflow: auto;
   padding: 1rem;
 }
 
 .problem-copy code {
-  background: rgba(24, 33, 47, 0.08);
+  background: rgba(247, 184, 1, 0.14);
   border-radius: 4px;
   padding: 0.1rem 0.25rem;
 }
@@ -60,7 +79,7 @@ a {
   position: absolute;
   inset: 0;
   width: 45%;
-  background: #ff7d64;
+  background: var(--gold);
   animation: progress-slide 1.1s ease-in-out infinite;
 }
 

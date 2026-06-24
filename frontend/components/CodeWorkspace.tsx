@@ -178,15 +178,18 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
   }
 
   return (
-    <main className="min-h-screen bg-paper lg:h-screen lg:overflow-hidden">
-      <header className="grid min-h-16 grid-cols-[1fr_auto_1fr] items-center border-b border-line bg-white px-4">
-        <Link href="/" className="font-semibold text-ink">HackerLeap</Link>
+    <main className="min-h-screen bg-paper text-ink lg:h-screen lg:overflow-hidden">
+      <header className="grid min-h-16 grid-cols-[1fr_auto_1fr] items-center border-b border-line bg-white/75 px-4">
+        <Link href="/" className="inline-flex items-center gap-3 font-[850] text-ink">
+          <span className="grid size-9 place-items-center rounded-[10px] bg-gradient-to-br from-[#ffe66b] to-gold-strong text-sm font-black shadow-[inset_8px_0_0_rgba(247,184,1,0.52)]">HL</span>
+          <span>HackerLeap</span>
+        </Link>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => execute("run")}
             disabled={isRunning}
-            className="inline-flex h-10 items-center gap-2 rounded bg-ink px-4 text-sm font-semibold text-white disabled:opacity-60"
+            className="inline-flex h-10 items-center gap-2 rounded-[7px] border border-line bg-white px-4 text-sm font-[850] text-ink disabled:opacity-60"
           >
             <Play size={16} className={activeMode === "run" ? "animate-pulse" : ""} />
             {activeMode === "run" ? "Running" : "Run"}
@@ -195,16 +198,16 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
             type="button"
             onClick={() => execute("submit")}
             disabled={isRunning}
-            className="inline-flex h-10 items-center gap-2 rounded bg-coral px-4 text-sm font-semibold text-white disabled:opacity-60"
+            className="inline-flex h-10 items-center gap-2 rounded-[7px] border border-[rgba(247,184,1,0.72)] bg-gradient-to-br from-[#ffd400] to-gold px-4 text-sm font-[850] text-black disabled:opacity-60"
           >
             <Send size={16} className={activeMode === "submit" ? "animate-pulse" : ""} />
             {activeMode === "submit" ? "Submitting" : "Submit"}
           </button>
         </div>
         <div className="flex justify-end gap-2">
-          <div className="relative inline-flex h-10 items-center rounded border border-line bg-white text-sm font-semibold">
+          <div className="relative inline-flex h-10 items-center rounded-[7px] border border-line bg-white text-sm font-bold">
             {showTimerTooltip ? (
-              <div role="tooltip" className="absolute right-0 top-12 z-40 w-64 rounded border border-line bg-ink px-3 py-2 text-xs font-semibold leading-5 text-white shadow-lg">
+              <div role="tooltip" className="absolute right-0 top-12 z-40 w-64 rounded-[7px] border border-line bg-ink px-3 py-2 text-xs font-bold leading-5 text-white shadow-lg">
                 {TIMER_FROZEN_MESSAGE}
               </div>
             ) : null}
@@ -235,7 +238,7 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
           </div>
           <Link
             href={`/questions/${question.slug}/submissions`}
-            className="inline-flex h-10 items-center gap-2 rounded border border-line bg-white px-3 text-sm font-semibold"
+            className="inline-flex h-10 items-center gap-2 rounded-[7px] border border-line bg-white px-3 text-sm font-bold hover:bg-[#fffaf0]"
           >
             <History size={16} />
             Submissions
@@ -250,12 +253,12 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
           aria-modal="true"
           aria-labelledby="submission-progress-title"
         >
-          <div className="w-full max-w-sm rounded border border-line bg-white p-5 shadow-2xl">
+          <div className="w-full max-w-sm rounded-lg border border-line bg-white p-5 shadow-product">
             <div className="mb-4">
               <h2 id="submission-progress-title" className="text-base font-bold text-ink">
                 {activeMode === "submit" ? "Submitting solution" : "Running code"}
               </h2>
-              <p className="mt-1 text-sm text-zinc-600">{busyMessage}</p>
+              <p className="mt-1 text-sm text-muted">{busyMessage}</p>
             </div>
             <div className="progress-bar" aria-label={busyMessage} />
           </div>
@@ -265,44 +268,44 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
       {toastMessage ? (
         <div
           role="status"
-          className="fixed right-4 top-20 z-50 rounded border border-emerald-200 bg-white px-4 py-3 text-sm font-semibold text-emerald-900 shadow-lg"
+          className="fixed right-4 top-20 z-50 rounded-[7px] border border-[rgba(247,184,1,0.45)] bg-white px-4 py-3 text-sm font-bold text-ink shadow-product"
         >
           {toastMessage}
         </div>
       ) : null}
 
       <section className="grid min-h-[calc(100vh-4rem)] grid-cols-1 lg:h-[calc(100vh-4rem)] lg:min-h-0 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:overflow-hidden">
-        <article className="min-h-0 overflow-y-auto border-r border-line bg-paper p-6">
+        <article className="min-h-0 overflow-y-auto border-r border-line bg-white/45 p-6">
           <div className="mb-5 flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-normal text-coral">{question.difficulty}</p>
-              <h1 className="mt-1 text-3xl font-bold">{question.title}</h1>
+              <p className="text-sm font-bold uppercase tracking-normal text-[#d08a00]">{question.difficulty}</p>
+              <h1 className="mt-1 text-3xl font-[850]">{question.title}</h1>
             </div>
             {question.solved ? (
-              <span className="inline-flex h-9 items-center gap-2 rounded bg-mint px-3 text-sm font-semibold text-emerald-900">
+              <span className="inline-flex h-9 items-center gap-2 rounded-[7px] bg-mint px-3 text-sm font-bold text-emerald-900">
                 <CheckCircle2 size={16} />
                 Solved
               </span>
             ) : null}
           </div>
-          <div className="problem-copy whitespace-pre-wrap text-[15px]">{question.description}</div>
+          <div className="problem-copy rounded-lg border border-[rgba(15,23,42,0.08)] bg-white/90 p-5 text-[15px] shadow-product">{question.description}</div>
         </article>
 
-        <aside className="flex min-h-[620px] flex-col bg-[#10151f] lg:min-h-0">
-          <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3 text-sm font-semibold text-white">
+        <aside className="flex min-h-[620px] flex-col bg-white/80 lg:min-h-0">
+          <div className="flex items-center justify-between gap-3 border-b border-line bg-white/75 px-4 py-3 text-sm font-bold text-ink">
             <div className="flex min-w-0 items-center gap-3">
               <span>{languageLabel}</span>
-              <span className="rounded border border-white/15 bg-white/5 px-2 py-1 text-xs text-white/75">{executionLabel}</span>
+              <span className="rounded-[7px] border border-[rgba(247,184,1,0.45)] bg-[#fffaf0] px-2 py-1 text-xs text-[#946200]">{executionLabel}</span>
             </div>
-            <div className="inline-flex rounded border border-white/15 bg-white/5 p-0.5">
+            <div className="inline-flex rounded-[7px] border border-line bg-white p-0.5">
               {(["java", "python"] as const).map((option) => (
                 <button
                   key={option}
                   type="button"
                   onClick={() => selectLanguage(option)}
                   disabled={isRunning || language === option}
-                  className={`h-8 rounded px-3 text-xs font-bold transition disabled:cursor-default ${
-                    language === option ? "bg-white text-ink" : "text-white/75 hover:bg-white/10 hover:text-white"
+                  className={`h-8 rounded-[6px] px-3 text-xs font-bold transition disabled:cursor-default ${
+                    language === option ? "bg-soft text-ink" : "text-muted hover:bg-[#fffaf0] hover:text-ink"
                   }`}
                 >
                   {option === "java" ? "Java 17" : "Python 3"}
@@ -310,7 +313,7 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
               ))}
             </div>
           </div>
-          <div className="min-h-[360px] flex-1 lg:min-h-0">
+          <div className="min-h-[360px] flex-1 border-x border-line bg-[#10151f] lg:min-h-0">
             <Editor
               height="100%"
               language={editorLanguage}
@@ -330,18 +333,18 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
           <section
             ref={resultPanelRef}
             tabIndex={-1}
-            className="max-h-[40vh] min-h-48 shrink-0 overflow-y-auto overscroll-contain border-t border-white/10 bg-white p-4 outline-none lg:max-h-[42vh]"
+            className="max-h-[40vh] min-h-48 shrink-0 overflow-y-auto overscroll-contain border-t border-line bg-white p-4 outline-none lg:max-h-[42vh]"
           >
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-sm font-bold">Result</h2>
               {result ? <StatusBadge status={result.status} /> : null}
             </div>
             {isRunning ? (
-              <div className="rounded border border-coral/30 bg-orange-50 px-3 py-2 text-sm font-semibold text-orange-900">
+              <div className="rounded-[7px] border border-[rgba(247,184,1,0.45)] bg-[#fffaf0] px-3 py-2 text-sm font-bold text-[#946200]">
                 {busyMessage}
               </div>
             ) : null}
-            {error ? <p className="text-sm font-semibold text-rose-700">{error}</p> : null}
+            {error ? <p className="text-sm font-bold text-orange-700">{error}</p> : null}
             {result ? (
               <div className="space-y-3 text-sm">
                 <p className="font-semibold">
@@ -351,25 +354,25 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
                   <p className="text-zinc-600">Solve time: {formatDuration(result.solve_time_seconds)}</p>
                 ) : null}
                 {result.results.map((item) => (
-                  <div key={item.id} className="rounded border border-line p-3">
+                  <div key={item.id} className="rounded-[7px] border border-line bg-white p-3">
                     <div className="mb-2 flex items-center justify-between gap-3">
-                      <span className="font-semibold">{item.name || "Test case"}</span>
+                      <span className="font-bold">{item.name || "Test case"}</span>
                       <StatusBadge status={item.status} />
                     </div>
                     {!item.is_hidden || item.is_sample ? (
                       <div className="grid gap-2 md:grid-cols-2">
-                        <pre className="overflow-auto rounded bg-zinc-100 p-2 text-xs">Output: {item.stdout || "(empty)"}</pre>
-                        <pre className="overflow-auto rounded bg-zinc-100 p-2 text-xs">Expected: {item.expected_output || "(empty)"}</pre>
+                        <pre className="overflow-auto rounded-[7px] bg-[#fffaf0] p-2 text-xs">Output: {item.stdout || "(empty)"}</pre>
+                        <pre className="overflow-auto rounded-[7px] bg-[#fffaf0] p-2 text-xs">Expected: {item.expected_output || "(empty)"}</pre>
                       </div>
                     ) : (
-                      <p className="text-xs text-zinc-500">Hidden test case</p>
+                      <p className="text-xs text-muted">Hidden test case</p>
                     )}
-                    {item.stderr ? <pre className="mt-2 overflow-auto rounded bg-rose-50 p-2 text-xs text-rose-800">{item.stderr}</pre> : null}
+                    {item.stderr ? <pre className="mt-2 overflow-auto rounded-[7px] bg-orange-50 p-2 text-xs text-orange-800">{item.stderr}</pre> : null}
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-zinc-500">Run sample tests or submit against all tests.</p>
+              <p className="text-sm text-muted">Run sample tests or submit against all tests.</p>
             )}
           </section>
         </aside>
