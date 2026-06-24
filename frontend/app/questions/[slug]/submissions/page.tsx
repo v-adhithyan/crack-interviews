@@ -1,10 +1,48 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { useEffect, useState } from "react";
+import { AuthGate } from "@/components/AuthGate";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getQuestion, getSubmissions } from "@/lib/api";
+import { getQuestion, getSubmissions, type QuestionDetail, type SubmissionListItem } from "@/lib/api";
 
-export default async function ProblemSubmissionsPage({ params }: { params: { slug: string } }) {
-  const [question, submissions] = await Promise.all([getQuestion(params.slug), getSubmissions(params.slug)]);
+export default function ProblemSubmissionsPage({ params }: { params: { slug: string } }) {
+  return (
+    <AuthGate>
+      {() => <ProblemSubmissionsContent slug={params.slug} />}
+    </AuthGate>
+  );
+}
+
+function ProblemSubmissionsContent({ slug }: { slug: string }) {
+  const [question, setQuestion] = useState<QuestionDetail | null>(null);
+  const [submissions, setSubmissions] = useState<SubmissionListItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function loadSubmissions() {
+      try {
+        const [loadedQuestion, loadedSubmissions] = await Promise.all([getQuestion(slug), getSubmissions(slug)]);
+        setQuestion(loadedQuestion);
+        setSubmissions(loadedSubmissions);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unable to load submissions.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadSubmissions();
+  }, [slug]);
+
+  if (isLoading) {
+    return <main className="grid min-h-screen place-items-center bg-paper text-sm font-bold text-muted">Loading submissions...</main>;
+  }
+
+  if (error || !question) {
+    return <main className="grid min-h-screen place-items-center bg-paper px-6 text-center font-bold text-orange-700">{error || "Question not found."}</main>;
+  }
 
   return (
     <main className="min-h-screen bg-paper text-ink">

@@ -6,12 +6,29 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
+from .models import AdminApiToken
 from .models import Question
 from .models import Submission
 from .models import TestCase as QuestionTestCase
 
 
 class FunctionModeSubmissionTests(TestCase):
+    def setUp(self):
+        self.admin_user = get_user_model().objects.create_user(
+            username="staff",
+            email="staff@example.com",
+            password="Password1!",
+            is_staff=True,
+        )
+        self.token = AdminApiToken.objects.create(user=self.admin_user)
+        self.auth_headers = {"HTTP_AUTHORIZATION": f"Bearer {self.token.token}"}
+
+    def api_get(self, name, kwargs=None):
+        return self.client.get(reverse(name, kwargs=kwargs), **self.auth_headers)
+
+    def api_post(self, name, data, kwargs=None):
+        return self.client.post(reverse(name, kwargs=kwargs), data, content_type="application/json", **self.auth_headers)
+
     def create_function_question(self):
         question = Question.objects.create(
             title="Add Two Numbers",
@@ -47,7 +64,7 @@ class FunctionModeSubmissionTests(TestCase):
     def test_question_detail_exposes_function_mode_metadata(self):
         question = self.create_function_question()
 
-        response = self.client.get(reverse("question-detail", kwargs={"slug": question.slug}))
+        response = self.api_get("question-detail", kwargs={"slug": question.slug})
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["execution_mode"], Question.ExecutionMode.FUNCTION)
@@ -56,13 +73,13 @@ class FunctionModeSubmissionTests(TestCase):
     def test_python_function_submission_runs_without_input_parsing(self):
         question = self.create_function_question()
 
-        response = self.client.post(
-            reverse("submit-code", kwargs={"slug": question.slug}),
+        response = self.api_post(
+            "submit-code",
             {
                 "language": Submission.Language.PYTHON,
                 "code": "def solve(a, b):\n    return a + b\n",
             },
-            content_type="application/json",
+            kwargs={"slug": question.slug},
         )
 
         self.assertEqual(response.status_code, 201)
@@ -75,13 +92,13 @@ class FunctionModeSubmissionTests(TestCase):
     def test_python_function_run_uses_sample_cases_only(self):
         question = self.create_function_question()
 
-        response = self.client.post(
-            reverse("run-code", kwargs={"slug": question.slug}),
+        response = self.api_post(
+            "run-code",
             {
                 "language": Submission.Language.PYTHON,
                 "code": "def solve(a, b):\n    return a + b\n",
             },
-            content_type="application/json",
+            kwargs={"slug": question.slug},
         )
 
         self.assertEqual(response.status_code, 201)
@@ -92,13 +109,13 @@ class FunctionModeSubmissionTests(TestCase):
     def test_python_function_wrong_return_is_wrong_answer(self):
         question = self.create_function_question()
 
-        response = self.client.post(
-            reverse("submit-code", kwargs={"slug": question.slug}),
+        response = self.api_post(
+            "submit-code",
             {
                 "language": Submission.Language.PYTHON,
                 "code": "def solve(a, b):\n    return a - b\n",
             },
-            content_type="application/json",
+            kwargs={"slug": question.slug},
         )
 
         self.assertEqual(response.status_code, 201)
@@ -110,13 +127,13 @@ class FunctionModeSubmissionTests(TestCase):
             self.skipTest("Java toolchain is not available.")
         question = self.create_function_question()
 
-        response = self.client.post(
-            reverse("submit-code", kwargs={"slug": question.slug}),
+        response = self.api_post(
+            "submit-code",
             {
                 "language": Submission.Language.JAVA,
                 "code": "class Solution { public int solve(int a, int b) { return a + b; } }",
             },
-            content_type="application/json",
+            kwargs={"slug": question.slug},
         )
 
         self.assertEqual(response.status_code, 201)
@@ -131,15 +148,15 @@ class FunctionModeSubmissionTests(TestCase):
             "code": "def solve(a, b):\n    return a + b\n",
         }
 
-        first_response = self.client.post(
-            reverse("submit-code", kwargs={"slug": question.slug}),
+        first_response = self.api_post(
+            "submit-code",
             {**payload, "solve_time_seconds": 125},
-            content_type="application/json",
+            kwargs={"slug": question.slug},
         )
-        second_response = self.client.post(
-            reverse("submit-code", kwargs={"slug": question.slug}),
+        second_response = self.api_post(
+            "submit-code",
             {**payload, "solve_time_seconds": 999},
-            content_type="application/json",
+            kwargs={"slug": question.slug},
         )
 
         self.assertEqual(first_response.status_code, 201)
@@ -161,16 +178,63 @@ class FunctionModeSubmissionTests(TestCase):
             "code": "def solve(a, b):\n    return a + b\n",
         }
 
-        first_response = self.client.post(reverse("submit-code", kwargs={"slug": question.slug}), payload, content_type="application/json")
-        self.client.post(reverse("submit-code", kwargs={"slug": other_question.slug}), payload, content_type="application/json")
-        second_response = self.client.post(reverse("submit-code", kwargs={"slug": question.slug}), payload, content_type="application/json")
-        list_response = self.client.get(reverse("submission-list", kwargs={"slug": question.slug}))
-        detail_response = self.client.get(reverse("submission-detail", kwargs={"pk": second_response.data["id"]}))
+        first_response = self.api_post("submit-code", payload, kwargs={"slug": question.slug})
+        self.api_post("submit-code", payload, kwargs={"slug": other_question.slug})
+        second_response = self.api_post("submit-code", payload, kwargs={"slug": question.slug})
+        list_response = self.api_get("submission-list", kwargs={"slug": question.slug})
+        detail_response = self.api_get("submission-detail", kwargs={"pk": second_response.data["id"]})
 
         self.assertEqual(first_response.data["submission_number"], 1)
         self.assertEqual(second_response.data["submission_number"], 2)
         self.assertEqual(detail_response.data["submission_number"], 2)
         self.assertEqual([item["submission_number"] for item in list_response.data], [2, 1])
+
+    def test_question_api_requires_admin_token(self):
+        self.create_function_question()
+
+        response = self.client.get(reverse("question-list"))
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_non_staff_user_cannot_login_to_code_api(self):
+        get_user_model().objects.create_user(
+            username="regular",
+            email="regular@example.com",
+            password="Password1!",
+        )
+
+        response = self.client.post(
+            reverse("auth-login"),
+            {"username": "regular", "password": "Password1!"},
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_submission_history_is_scoped_to_authenticated_user(self):
+        question = self.create_function_question()
+        other_user = get_user_model().objects.create_user(
+            username="other-staff",
+            email="other-staff@example.com",
+            password="Password1!",
+            is_staff=True,
+        )
+        other_token = AdminApiToken.objects.create(user=other_user)
+        payload = {
+            "language": Submission.Language.PYTHON,
+            "code": "def solve(a, b):\n    return a + b\n",
+        }
+
+        own_response = self.api_post("submit-code", payload, kwargs={"slug": question.slug})
+        self.client.post(
+            reverse("submit-code", kwargs={"slug": question.slug}),
+            payload,
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {other_token.token}",
+        )
+        list_response = self.api_get("submission-list", kwargs={"slug": question.slug})
+
+        self.assertEqual([item["id"] for item in list_response.data], [own_response.data["id"]])
 
 
 class QuestionAdminJsonImportTests(TestCase):

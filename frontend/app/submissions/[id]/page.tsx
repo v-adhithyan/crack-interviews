@@ -1,11 +1,46 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { useEffect, useState } from "react";
+import { AuthGate } from "@/components/AuthGate";
 import { StatusBadge } from "@/components/StatusBadge";
 import { SubmittedCodeViewer } from "@/components/SubmittedCodeViewer";
-import { getSubmission } from "@/lib/api";
+import { getSubmission, type Submission } from "@/lib/api";
 
-export default async function SubmissionDetailPage({ params }: { params: { id: string } }) {
-  const submission = await getSubmission(params.id);
+export default function SubmissionDetailPage({ params }: { params: { id: string } }) {
+  return (
+    <AuthGate>
+      {() => <SubmissionDetailContent id={params.id} />}
+    </AuthGate>
+  );
+}
+
+function SubmissionDetailContent({ id }: { id: string }) {
+  const [submission, setSubmission] = useState<Submission | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function loadSubmission() {
+      try {
+        setSubmission(await getSubmission(id));
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unable to load submission.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadSubmission();
+  }, [id]);
+
+  if (isLoading) {
+    return <main className="grid min-h-screen place-items-center bg-paper text-sm font-bold text-muted">Loading submission...</main>;
+  }
+
+  if (error || !submission) {
+    return <main className="grid min-h-screen place-items-center bg-paper px-6 text-center font-bold text-orange-700">{error || "Submission not found."}</main>;
+  }
 
   return (
     <main className="min-h-screen bg-paper text-ink">

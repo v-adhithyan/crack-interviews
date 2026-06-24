@@ -1,6 +1,10 @@
+"use client";
+
 import { CheckCircle2, Circle, Code2 } from "lucide-react";
 import Link from "next/link";
-import { getQuestions } from "@/lib/api";
+import { useEffect, useState } from "react";
+import { AuthGate } from "@/components/AuthGate";
+import { getQuestions, type QuestionListItem } from "@/lib/api";
 
 const difficultyStyles = {
   easy: "bg-mint text-emerald-800",
@@ -8,8 +12,31 @@ const difficultyStyles = {
   hard: "bg-orange-100 text-orange-700",
 };
 
-export default async function HomePage() {
-  const questions = await getQuestions();
+export default function HomePage() {
+  return (
+    <AuthGate>
+      {() => <QuestionListPage />}
+    </AuthGate>
+  );
+}
+
+function QuestionListPage() {
+  const [questions, setQuestions] = useState<QuestionListItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function loadQuestions() {
+      try {
+        setQuestions(await getQuestions());
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unable to load questions.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadQuestions();
+  }, []);
 
   return (
     <main className="min-h-screen bg-paper text-ink">
@@ -38,7 +65,11 @@ export default async function HomePage() {
             <span>Tests</span>
             <span>Status</span>
           </div>
-          {questions.length === 0 ? (
+          {isLoading ? (
+            <div className="px-4 py-10 text-center text-muted">Loading questions...</div>
+          ) : error ? (
+            <div className="px-4 py-10 text-center font-bold text-orange-700">{error}</div>
+          ) : questions.length === 0 ? (
             <div className="px-4 py-10 text-center text-muted">No active questions yet. Add one in Django admin.</div>
           ) : (
             questions.map((question) => (

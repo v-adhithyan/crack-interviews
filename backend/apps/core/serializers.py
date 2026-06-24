@@ -54,11 +54,13 @@ class SubmissionSerializer(serializers.ModelSerializer):
         return (
             Submission.objects.filter(
                 question=obj.question,
+                user=obj.user,
                 kind=Submission.Kind.SUBMIT,
                 created_at__lt=obj.created_at,
             ).count()
             + Submission.objects.filter(
                 question=obj.question,
+                user=obj.user,
                 kind=Submission.Kind.SUBMIT,
                 created_at=obj.created_at,
                 id__lte=obj.id,
@@ -97,11 +99,13 @@ class SubmissionListSerializer(serializers.ModelSerializer):
         return (
             Submission.objects.filter(
                 question=obj.question,
+                user=obj.user,
                 kind=Submission.Kind.SUBMIT,
                 created_at__lt=obj.created_at,
             ).count()
             + Submission.objects.filter(
                 question=obj.question,
+                user=obj.user,
                 kind=Submission.Kind.SUBMIT,
                 created_at=obj.created_at,
                 id__lte=obj.id,

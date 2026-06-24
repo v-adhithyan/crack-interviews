@@ -1,4 +1,5 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api";
+const AUTH_TOKEN_KEY = "hackerleap-code-admin-token";
 
 export type Language = "java" | "python";
 
@@ -56,11 +57,40 @@ export type Submission = {
 
 export type SubmissionListItem = Omit<Submission, "code" | "stdout" | "stderr" | "results" | "question">;
 
+export type AuthUser = {
+  id: number;
+  username: string;
+  email: string;
+  is_staff: boolean;
+};
+
+export type AuthSession = {
+  token: string;
+  user: AuthUser;
+};
+
+export function getAuthToken() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  return window.localStorage.getItem(AUTH_TOKEN_KEY);
+}
+
+export function setAuthToken(token: string) {
+  window.localStorage.setItem(AUTH_TOKEN_KEY, token);
+}
+
+export function clearAuthToken() {
+  window.localStorage.removeItem(AUTH_TOKEN_KEY);
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = getAuthToken();
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(init?.headers ?? {}),
     },
     cache: "no-store",
@@ -68,10 +98,34 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const detail = await response.json().catch(() => ({}));
+    if (response.status === 401) {
+      clearAuthToken();
+    }
     throw new Error(detail.detail ?? `Request failed with ${response.status}`);
   }
 
   return response.json();
+}
+
+export async function loginAdmin(username: string, password: string) {
+  const session = await request<AuthSession>("/auth/login/", {
+    method: "POST",
+    body: JSON.stringify({ username, password }),
+  });
+  setAuthToken(session.token);
+  return session;
+}
+
+export function getCurrentAdmin() {
+  return request<AuthUser>("/auth/me/");
+}
+
+export async function logoutAdmin() {
+  try {
+    await request<{ status: string }>("/auth/logout/", { method: "POST", body: "{}" });
+  } finally {
+    clearAuthToken();
+  }
 }
 
 export function getQuestions() {

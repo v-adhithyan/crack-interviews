@@ -11,7 +11,7 @@ from django.shortcuts import redirect, render
 from django.urls import path
 from django.utils.html import format_html
 
-from .models import Question, Submission, TestCase, TestCaseResult
+from .models import AdminApiToken, Question, Submission, TestCase, TestCaseResult
 
 
 class CsvImportForm(forms.Form):
@@ -271,8 +271,16 @@ class TestCaseResultInline(admin.TabularInline):
 
 @admin.register(Submission)
 class SubmissionAdmin(admin.ModelAdmin):
-    list_display = ["question", "kind", "language", "status", "passed_count", "total_count", "execution_time_ms", "solve_time_seconds", "created_at"]
-    list_filter = ["kind", "language", "status", "question"]
-    search_fields = ["question__title", "code"]
-    readonly_fields = ["question", "kind", "language", "code", "status", "stdout", "stderr", "execution_time_ms", "solve_time_seconds", "passed_count", "total_count", "created_at"]
+    list_display = ["question", "user", "kind", "language", "status", "passed_count", "total_count", "execution_time_ms", "solve_time_seconds", "created_at"]
+    list_filter = ["kind", "language", "status", "question", "user"]
+    search_fields = ["question__title", "user__username", "user__email", "code"]
+    readonly_fields = ["user", "question", "kind", "language", "code", "status", "stdout", "stderr", "execution_time_ms", "solve_time_seconds", "passed_count", "total_count", "created_at"]
     inlines = [TestCaseResultInline]
+
+
+@admin.register(AdminApiToken)
+class AdminApiTokenAdmin(admin.ModelAdmin):
+    list_display = ["user", "created_at", "last_used_at"]
+    list_filter = ["created_at", "last_used_at"]
+    search_fields = ["user__username", "user__email"]
+    readonly_fields = ["user", "token", "created_at", "last_used_at"]

@@ -1,3 +1,6 @@
+import secrets
+
+from django.conf import settings
 from django.db import models
 from django.utils.text import slugify
 
@@ -110,6 +113,7 @@ class Submission(models.Model):
         RUNTIME_ERROR = "runtime_error", "Runtime error"
         TIME_LIMIT_EXCEEDED = "time_limit_exceeded", "Time limit exceeded"
 
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="code_submissions", on_delete=models.CASCADE, null=True, blank=True)
     question = models.ForeignKey(Question, related_name="submissions", on_delete=models.CASCADE)
     kind = models.CharField(max_length=20, choices=Kind.choices, default=Kind.SUBMIT)
     language = models.CharField(max_length=20, choices=Language.choices, default=Language.JAVA)
@@ -128,6 +132,19 @@ class Submission(models.Model):
 
     def __str__(self):
         return f"{self.question.title} - {self.get_status_display()}"
+
+
+class AdminApiToken(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="admin_api_tokens", on_delete=models.CASCADE)
+    token = models.CharField(max_length=96, unique=True, default=secrets.token_urlsafe)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"API token for {self.user}"
 
 
 class TestCaseResult(models.Model):
