@@ -511,6 +511,26 @@ a {
     background: #fff;
 }
 
+.active-resume-replace-form {
+    margin-top: 18px;
+}
+
+.resume-replace-button {
+    width: 100%;
+    min-height: 46px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 0 20px;
+    border: 1px solid rgba(247, 184, 1, 0.72);
+    border-radius: 7px;
+    background: linear-gradient(135deg, #ffd400, var(--gold));
+    color: #050505;
+    font-weight: 850;
+    cursor: pointer;
+}
+
 .analysis-card,
 .prompt-card,
 .analysis-result-card,
@@ -624,7 +644,8 @@ a {
     height: 28px;
 }
 
-.resume-dropzone input {
+.resume-dropzone input,
+.resume-replace-input {
     position: absolute;
     width: 1px;
     height: 1px;

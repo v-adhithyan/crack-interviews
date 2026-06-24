@@ -25,7 +25,14 @@
                             <small>Uploaded on {{ resume.updated_at|date:"M j, Y" }}</small>
                         </div>
                     </a>
-                    <a class="outline-action" href="#new-analysis">Start New Analysis <span aria-hidden="true">↻</span></a>
+                    <form class="active-resume-replace-form" method="post" action="{% url 'product_dashboard' %}" enctype="multipart/form-data" data-replace-resume-form>
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="upload_resume">
+                        <label class="resume-replace-button" for="{{ resume_form.resume.id_for_label }}">
+                            Replace Resume <span aria-hidden="true">→</span>
+                        </label>
+                        <input class="resume-replace-input" type="file" name="{{ resume_form.resume.html_name }}" id="{{ resume_form.resume.id_for_label }}" accept="application/pdf,.pdf" required>
+                    </form>
                 </aside>
                 {% endif %}
             </section>
@@ -141,13 +148,19 @@
 
 {% block scripts %}
 <script>
-    var resumeInput = document.getElementById("{{ resume_form.resume.id_for_label }}");
-    var selectedFileName = document.querySelector("[data-selected-file-name]");
-    if (resumeInput && selectedFileName) {
+    var resumeInputs = document.querySelectorAll("input[type='file'][name='resume']");
+    resumeInputs.forEach(function (resumeInput) {
         resumeInput.addEventListener("change", function () {
-            selectedFileName.textContent = resumeInput.files.length ? resumeInput.files[0].name : "No file selected";
+            var form = resumeInput.closest("form");
+            var selectedFileName = form ? form.querySelector("[data-selected-file-name]") : null;
+            if (selectedFileName) {
+                selectedFileName.textContent = resumeInput.files.length ? resumeInput.files[0].name : "No file selected";
+            }
+            if (resumeInput.files.length && form && form.matches("[data-replace-resume-form]")) {
+                form.submit();
+            }
         });
-    }
+    });
 
     var copyPromptButton = document.querySelector("[data-copy-prompt]");
     var promptOutput = document.getElementById("generated-prompt");

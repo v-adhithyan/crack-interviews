@@ -126,8 +126,9 @@ def dashboard(request):
         else:
             resume_form = ResumeUploadForm(request.POST, request.FILES)
             if resume_form.is_valid():
+                success_message = "Resume replaced successfully." if resume else "Resume uploaded successfully."
                 resume_form.save(request.user)
-                messages.success(request, "Resume uploaded successfully.")
+                messages.success(request, success_message)
                 return redirect("product_dashboard")
 
             first_error = next(iter(resume_form.errors.values()))[0] if resume_form.errors else "Unable to upload your resume."
