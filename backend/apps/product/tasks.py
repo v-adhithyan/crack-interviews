@@ -20,6 +20,7 @@ def run_resume_analysis(analysis_id):
         result = run_resume_match_analysis(
             job_description=analysis.job_description,
             resume_text=analysis.resume_text,
+            mode=analysis.ai_provider,
         )
     except Exception as exc:
         ResumeAnalysis.objects.filter(id=analysis_id).update(

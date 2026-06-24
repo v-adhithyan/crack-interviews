@@ -143,6 +143,26 @@ class ResumeAnalysis(models.Model):
         return self.display_status
 
 
+class ResumeAnalysisSettings(models.Model):
+    class AIMode(models.TextChoices):
+        MANUAL = "manual", "Manual"
+        CHATGPT = "chatgpt", "ChatGPT"
+        CLAUDE = "claude", "Claude"
+
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="resume_analysis_settings")
+    ai_mode = models.CharField(max_length=20, choices=AIMode.choices, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Resume Analysis Settings"
+        verbose_name_plural = "Resume Analysis Settings"
+
+    def __str__(self):
+        mode = self.ai_mode or "default"
+        return f"{self.user} resume analysis mode: {mode}"
+
+
 class QuickRefreshSettings(models.Model):
     is_enabled = models.BooleanField(default=True)
     updated_at = models.DateTimeField(auto_now=True)

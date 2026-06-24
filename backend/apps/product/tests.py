@@ -14,6 +14,7 @@ from apps.website.models import EarlyAccessUser
 
 from .models import Resume
 from .models import ResumeAnalysis
+from .models import ResumeAnalysisSettings
 from .models import QuickRefreshNote
 from .models import QuickRefreshSettings
 from .services import ResumeMatchResult
@@ -401,6 +402,76 @@ class ResumeUploadTests(TestCase):
         self.assertContains(response, "Queued for analysis")
         self.assertContains(response, "Analysis queued.")
 
+    @override_settings(HACKERLEAP_AI_MODE="manual")
+    def test_user_analysis_mode_override_queues_when_global_mode_is_manual(self):
+        ResumeAnalysisSettings.objects.create(user=self.user, ai_mode=ResumeAnalysisSettings.AIMode.CHATGPT)
+        resume_file = SimpleUploadedFile("resume.pdf", b"%PDF-1.4\nresume\n%%EOF", content_type="application/pdf")
+        with patch("apps.product.forms.extract_pdf_text", return_value="Built Django APIs and Python services."):
+            self.client.post(reverse("product_dashboard"), {"resume": resume_file})
+
+        with patch("apps.product.views.enqueue_background_job", return_value="task-override") as enqueue_job:
+            response = self.client.post(
+                reverse("product_dashboard"),
+                {
+                    "action": "generate_prompt",
+                    "job_description": "We need a Python Django backend engineer.",
+                },
+                follow=True,
+            )
+
+        analysis = ResumeAnalysis.objects.get(user=self.user)
+        enqueue_job.assert_called_once_with("apps.product.tasks.run_resume_analysis", analysis.id)
+        self.assertRedirects(response, reverse("analysis_detail", kwargs={"analysis_uuid": analysis.uuid}))
+        self.assertEqual(analysis.status, ResumeAnalysis.Status.QUEUED)
+        self.assertEqual(analysis.ai_provider, "chatgpt")
+
+    @override_settings(HACKERLEAP_AI_MODE="chatgpt")
+    def test_user_analysis_mode_override_can_force_manual_mode(self):
+        ResumeAnalysisSettings.objects.create(user=self.user, ai_mode=ResumeAnalysisSettings.AIMode.MANUAL)
+        resume_file = SimpleUploadedFile("resume.pdf", b"%PDF-1.4\nresume\n%%EOF", content_type="application/pdf")
+        with patch("apps.product.forms.extract_pdf_text", return_value="Built Django APIs and Python services."):
+            self.client.post(reverse("product_dashboard"), {"resume": resume_file})
+
+        with patch("apps.product.views.enqueue_background_job") as enqueue_job:
+            response = self.client.post(
+                reverse("product_dashboard"),
+                {
+                    "action": "generate_prompt",
+                    "job_description": "We need a Python Django backend engineer.",
+                },
+                follow=True,
+            )
+
+        analysis = ResumeAnalysis.objects.get(user=self.user)
+        enqueue_job.assert_not_called()
+        self.assertRedirects(response, reverse("product_dashboard"))
+        self.assertEqual(analysis.status, ResumeAnalysis.Status.PROMPT_READY)
+        self.assertEqual(analysis.ai_provider, "manual")
+        self.assertContains(response, "Formatted Prompt")
+
+    @override_settings(HACKERLEAP_AI_MODE="manual")
+    def test_null_user_analysis_mode_falls_back_to_global_mode(self):
+        ResumeAnalysisSettings.objects.create(user=self.user, ai_mode=None)
+        resume_file = SimpleUploadedFile("resume.pdf", b"%PDF-1.4\nresume\n%%EOF", content_type="application/pdf")
+        with patch("apps.product.forms.extract_pdf_text", return_value="Built Django APIs and Python services."):
+            self.client.post(reverse("product_dashboard"), {"resume": resume_file})
+
+        with patch("apps.product.views.enqueue_background_job") as enqueue_job:
+            response = self.client.post(
+                reverse("product_dashboard"),
+                {
+                    "action": "generate_prompt",
+                    "job_description": "We need a Python Django backend engineer.",
+                },
+                follow=True,
+            )
+
+        analysis = ResumeAnalysis.objects.get(user=self.user)
+        enqueue_job.assert_not_called()
+        self.assertRedirects(response, reverse("product_dashboard"))
+        self.assertEqual(analysis.status, ResumeAnalysis.Status.PROMPT_READY)
+        self.assertEqual(analysis.ai_provider, "manual")
+
     @override_settings(HACKERLEAP_AI_MODE="chatgpt")
     def test_chatgpt_mode_hides_manual_prompt_panels(self):
         self.create_analysis()
@@ -624,6 +695,7 @@ class ResumeUploadTests(TestCase):
         ai_runner.assert_called_once_with(
             job_description="Python backend role.",
             resume_text="Python Django resume.",
+            mode="chatgpt",
         )
         self.assertEqual(analysis.status, ResumeAnalysis.Status.RESULT_ADDED)
         self.assertEqual(analysis.ai_response_json["overall_match_score"], 88)

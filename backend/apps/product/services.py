@@ -222,7 +222,7 @@ class ClaudeResumeMatchClient(ResumeMatchAIClient):
 
 
 def get_resume_match_client(mode=None):
-    selected_mode = (mode or settings.HACKERLEAP_AI_MODE or "manual").strip().lower()
+    selected_mode = normalize_resume_analysis_mode(mode or settings.HACKERLEAP_AI_MODE)
     clients = {
         ManualResumeMatchClient.provider_name: ManualResumeMatchClient,
         ChatGPTResumeMatchClient.provider_name: ChatGPTResumeMatchClient,
@@ -239,3 +239,20 @@ def run_resume_match_analysis(*, job_description, resume_text, mode=None):
         job_description=job_description,
         resume_text=resume_text,
     )
+
+
+def normalize_resume_analysis_mode(mode):
+    return (mode or "manual").strip().lower()
+
+
+def get_effective_resume_analysis_mode(user):
+    from .models import ResumeAnalysisSettings
+
+    user_mode = (
+        ResumeAnalysisSettings.objects.filter(user=user)
+        .exclude(ai_mode__isnull=True)
+        .exclude(ai_mode="")
+        .values_list("ai_mode", flat=True)
+        .first()
+    )
+    return normalize_resume_analysis_mode(user_mode or settings.HACKERLEAP_AI_MODE)

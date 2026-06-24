@@ -1,7 +1,6 @@
 from django.http import FileResponse
 from django.http import Http404
 from django.http import JsonResponse
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.views import LoginView
@@ -29,6 +28,7 @@ from .models import QuickRefreshSettings
 from .models import Resume
 from .models import ResumeAnalysis
 from .services import build_resume_match_prompt
+from .services import get_effective_resume_analysis_mode
 from .services import run_resume_match_analysis
 
 
@@ -56,12 +56,12 @@ def get_visible_analysis_or_404(user, analysis_uuid):
     return get_object_or_404(queryset, uuid=analysis_uuid)
 
 
-def is_manual_ai_mode():
-    return (settings.HACKERLEAP_AI_MODE or "manual").strip().lower() == "manual"
+def is_manual_ai_mode(user):
+    return get_effective_resume_analysis_mode(user) == "manual"
 
 
-def selected_ai_mode():
-    return (settings.HACKERLEAP_AI_MODE or "manual").strip().lower()
+def selected_ai_mode(user):
+    return get_effective_resume_analysis_mode(user)
 
 
 @product_access_required
@@ -87,7 +87,8 @@ def dashboard(request):
             analysis_form = AnalysisPromptForm(request.POST)
             if analysis_form.is_valid():
                 job_description = analysis_form.cleaned_data["job_description"]
-                if selected_ai_mode() in {"chatgpt", "claude"}:
+                ai_mode = selected_ai_mode(request.user)
+                if ai_mode in {"chatgpt", "claude"}:
                     analysis = ResumeAnalysis.objects.create(
                         user=request.user,
                         resume=resume,
@@ -95,7 +96,7 @@ def dashboard(request):
                         resume_text=resume.parsed_text,
                         generated_prompt=build_resume_match_prompt(job_description, resume.parsed_text),
                         status=ResumeAnalysis.Status.QUEUED,
-                        ai_provider=selected_ai_mode(),
+                        ai_provider=ai_mode,
                     )
                     try:
                         task_id = enqueue_background_job("apps.product.tasks.run_resume_analysis", analysis.id)
@@ -115,6 +116,7 @@ def dashboard(request):
                     analysis_result = run_resume_match_analysis(
                         job_description=job_description,
                         resume_text=resume.parsed_text,
+                        mode=ai_mode,
                     )
                 except (ImproperlyConfigured, NotImplementedError, ValidationError) as exc:
                     messages.error(request, str(exc))
@@ -184,7 +186,7 @@ def dashboard(request):
             "latest_analysis": latest_analysis,
             "recent_analyses": user_analyses[:5],
             "active_nav": "dashboard",
-            "is_manual_ai_mode": is_manual_ai_mode(),
+            "is_manual_ai_mode": is_manual_ai_mode(request.user),
         },
     )
 
