@@ -87,7 +87,6 @@ def dashboard(request):
                     messages.error(request, str(exc))
                     return redirect("product_dashboard")
                 except Exception as e:
-                    print(e)
                     messages.error(request, "Unable to complete AI analysis right now. Please try again later.")
                     return redirect("product_dashboard")
 
