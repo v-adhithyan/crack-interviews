@@ -6,6 +6,8 @@ STATIC_ROOT = Path(BASE_DIR / 'static')
 
 HACKERLEAP_CODE = 'https://code.hackerleap.com'
 
+JAVA_RELEASE = int(os.getenv("JAVA_RELEASE", "8"))
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",

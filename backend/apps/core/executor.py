@@ -19,9 +19,9 @@ import java.util.*;
 
 public class Harness {
     public static void main(String[] args) throws Exception {
-        String input = new String(System.in.readAllBytes());
+        String input = readInput();
         Object parsed = new JsonParser(input).parseValue();
-        List<?> callArgs = parsed instanceof List ? (List<?>) parsed : List.of(parsed);
+        List<?> callArgs = parsed instanceof List ? (List<?>) parsed : Collections.singletonList(parsed);
         Class<?> solutionClass = Class.forName("Solution");
         Method target = null;
         for (Method method : solutionClass.getDeclaredMethods()) {
@@ -42,6 +42,16 @@ public class Harness {
         }
         Object result = target.invoke(instance, convertedArgs);
         System.out.print(toJson(result));
+    }
+
+    static String readInput() throws IOException {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        byte[] buffer = new byte[4096];
+        int bytesRead;
+        while ((bytesRead = System.in.read(buffer)) != -1) {
+            output.write(buffer, 0, bytesRead);
+        }
+        return new String(output.toByteArray(), "UTF-8");
     }
 
     static Object convertValue(Object value, Class<?> targetType) {
@@ -269,6 +279,14 @@ def class_name_for_java(code):
     return class_names[0] if class_names else "Main"
 
 
+def javac_command(source_paths):
+    source_paths = [str(path) for path in source_paths]
+    if settings.JAVA_RELEASE <= 8:
+        release = str(settings.JAVA_RELEASE)
+        return [settings.JAVAC_EXECUTABLE, "-source", release, "-target", release, *source_paths]
+    return [settings.JAVAC_EXECUTABLE, "--release", str(settings.JAVA_RELEASE), *source_paths]
+
+
 def compile_java(code):
     temp_dir = tempfile.TemporaryDirectory()
     class_name = class_name_for_java(code)
@@ -277,7 +295,7 @@ def compile_java(code):
     started = time.perf_counter()
     try:
         completed = subprocess.run(
-            [settings.JAVAC_EXECUTABLE, "--release", str(settings.JAVA_RELEASE), str(source_path)],
+            javac_command([source_path]),
             text=True,
             capture_output=True,
             timeout=settings.COMPILE_TIMEOUT_SECONDS,
@@ -309,13 +327,7 @@ def compile_java_function(code, function_name):
     started = time.perf_counter()
     try:
         completed = subprocess.run(
-            [
-                settings.JAVAC_EXECUTABLE,
-                "--release",
-                str(settings.JAVA_RELEASE),
-                str(solution_path),
-                str(harness_path),
-            ],
+            javac_command([solution_path, harness_path]),
             text=True,
             capture_output=True,
             timeout=settings.COMPILE_TIMEOUT_SECONDS,
