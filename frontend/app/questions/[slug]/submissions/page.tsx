@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
+import { AppHeader } from "@/components/AppHeader";
 import { AuthGate } from "@/components/AuthGate";
 import { StatusBadge } from "@/components/StatusBadge";
 import { getQuestion, getSubmissions, type QuestionDetail, type SubmissionListItem } from "@/lib/api";
@@ -46,18 +47,15 @@ function ProblemSubmissionsContent({ slug }: { slug: string }) {
 
   return (
     <main className="min-h-screen bg-paper text-ink">
-      <header className="border-b border-line bg-white/75 px-6 py-5">
-        <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <div>
-            <Link href={`/questions/${question.slug}`} className="mb-2 inline-flex items-center gap-2 text-sm font-bold text-muted hover:text-[#d08a00]">
-              <ArrowLeft size={16} />
-              Back to problem
-            </Link>
-            <h1 className="text-2xl font-[850]">{question.title} submissions</h1>
-          </div>
-        </div>
-      </header>
+      <AppHeader maxWidthClassName="max-w-5xl" />
       <section className="mx-auto max-w-5xl px-6 py-8">
+        <div className="mb-5">
+          <Link href={`/questions/${question.slug}`} className="mb-2 inline-flex items-center gap-2 text-sm font-bold text-muted hover:text-[#d08a00]">
+            <ArrowLeft size={16} />
+            Back to problem
+          </Link>
+          <h1 className="text-2xl font-[850]">{question.title} submissions</h1>
+        </div>
         <div className="overflow-hidden rounded-lg border border-[rgba(15,23,42,0.08)] bg-white/90 shadow-product">
           {submissions.length === 0 ? (
             <div className="px-4 py-10 text-center text-muted">No submissions yet.</div>

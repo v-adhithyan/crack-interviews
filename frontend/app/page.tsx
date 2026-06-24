@@ -1,9 +1,10 @@
 "use client";
 
-import { CheckCircle2, Circle, Code2 } from "lucide-react";
+import { CheckCircle2, Circle } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AuthGate } from "@/components/AuthGate";
+import { BrandMark } from "@/components/BrandMark";
 import { getQuestions, type QuestionListItem } from "@/lib/api";
 
 const difficultyStyles = {
@@ -43,9 +44,7 @@ function QuestionListPage() {
       <header className="border-b border-line bg-white/75">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
           <div className="flex items-center gap-3">
-            <div className="grid size-10 place-items-center rounded-[10px] bg-gradient-to-br from-[#ffe66b] to-gold-strong text-ink shadow-[inset_8px_0_0_rgba(247,184,1,0.52)]">
-              <Code2 size={20} strokeWidth={2.8} />
-            </div>
+            <BrandMark />
             <div>
               <h1 className="text-xl font-[850]">HackerLeap</h1>
               <p className="text-sm text-muted">Let's crack the coding interview.</p>

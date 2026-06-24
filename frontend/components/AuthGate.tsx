@@ -2,6 +2,7 @@
 
 import { LogOut } from "lucide-react";
 import { FormEvent, ReactNode, useEffect, useState } from "react";
+import { BrandMark } from "@/components/BrandMark";
 import { getAuthToken, getCurrentAdmin, loginAdmin, logoutAdmin, type AuthUser } from "@/lib/api";
 
 type Props = {
@@ -75,7 +76,9 @@ export function AuthGate({ children }: Props) {
       <main className="grid min-h-screen place-items-center bg-paper px-6 text-ink">
         <section className="w-full max-w-md rounded-lg border border-[rgba(15,23,42,0.08)] bg-white/90 p-8 shadow-product">
           <div className="mb-7">
-            <div className="mb-4 grid size-11 place-items-center rounded-[10px] bg-gradient-to-br from-[#ffe66b] to-gold-strong font-black shadow-[inset_8px_0_0_rgba(247,184,1,0.52)]">HL</div>
+            <div className="mb-4">
+              <BrandMark size="lg" />
+            </div>
             <h1 className="text-2xl font-[850]">Admin Login</h1>
             <p className="mt-2 text-sm leading-6 text-muted">Use your HackerLeap admin account to access coding practice.</p>
           </div>

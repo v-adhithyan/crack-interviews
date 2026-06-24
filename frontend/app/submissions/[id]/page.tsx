@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
+import { AppHeader } from "@/components/AppHeader";
 import { AuthGate } from "@/components/AuthGate";
 import { StatusBadge } from "@/components/StatusBadge";
 import { SubmittedCodeViewer } from "@/components/SubmittedCodeViewer";
@@ -44,22 +45,15 @@ function SubmissionDetailContent({ id }: { id: string }) {
 
   return (
     <main className="min-h-screen bg-paper text-ink">
-      <header className="border-b border-line bg-white/75 px-6 py-5">
-        <div className="mx-auto max-w-6xl">
-          <Link href={`/questions/${submission.question_slug}`} className="mb-2 inline-flex items-center gap-2 text-sm font-bold text-muted hover:text-[#d08a00]">
-            <ArrowLeft size={16} />
-            Back to question
-          </Link>
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-bold text-muted">{submission.question_title}</p>
-              <h1 className="text-2xl font-[850]">Submission #{submission.submission_number ?? submission.id}</h1>
-              <p className="mt-1 text-sm font-bold text-muted">{submission.language === "java" ? "Java 17" : "Python 3"}</p>
-            </div>
-            <StatusBadge status={submission.status} />
-          </div>
-        </div>
-      </header>
+      <AppHeader rightSlot={<StatusBadge status={submission.status} />}>
+        <Link href={`/questions/${submission.question_slug}`} className="mb-2 inline-flex items-center gap-2 text-sm font-bold text-muted hover:text-[#d08a00]">
+          <ArrowLeft size={16} />
+          Back to question
+        </Link>
+        <p className="text-sm font-bold text-muted">{submission.question_title}</p>
+        <h1 className="text-2xl font-[850]">Submission #{submission.submission_number ?? submission.id}</h1>
+        <p className="mt-1 text-sm font-bold text-muted">{submission.language === "java" ? "Java 17" : "Python 3"}</p>
+      </AppHeader>
       <section className="mx-auto grid max-w-6xl gap-6 px-6 py-8 lg:grid-cols-[0.9fr_1.1fr]">
         <div className="rounded-lg border border-[rgba(15,23,42,0.08)] bg-white/90 p-4 shadow-product">
           <h2 className="mb-3 text-sm font-bold uppercase tracking-normal text-muted">Results</h2>

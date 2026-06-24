@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { BrandMark } from "@/components/BrandMark";
 import { runCode, submitCode, type Language, type QuestionDetail, type Submission } from "@/lib/api";
 import { StatusBadge } from "@/components/StatusBadge";
 
@@ -183,7 +184,7 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
     <main className="min-h-screen bg-paper text-ink lg:h-screen lg:overflow-hidden">
       <header className="grid min-h-16 grid-cols-[1fr_auto_1fr] items-center border-b border-line bg-white/75 px-4">
         <Link href="/" className="inline-flex items-center gap-3 font-[850] text-ink">
-          <span className="grid size-9 place-items-center rounded-[10px] bg-gradient-to-br from-[#ffe66b] to-gold-strong text-sm font-black shadow-[inset_8px_0_0_rgba(247,184,1,0.52)]">HL</span>
+          <BrandMark size="sm" />
           <span>HackerLeap</span>
         </Link>
         <div className="flex items-center gap-2">
