@@ -6,7 +6,6 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.core.exceptions import ValidationError
 
-
 ANALYZER_INSTRUCTIONS = """You are HackerLeap Resume Match Analyzer.
 
 Your only task is to compare a software engineering job description with a candidate resume and return a structured JSON analysis.
@@ -198,6 +197,7 @@ class ChatGPTResumeMatchClient(ResumeMatchAIClient):
 
         from openai import OpenAI
 
+        print(settings.OPENAI_API_KEY)
         payload = build_resume_match_payload(job_description, resume_text)
         response = OpenAI(api_key=self.api_key).chat.completions.create(
             model=self.model,

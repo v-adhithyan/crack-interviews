@@ -8,7 +8,12 @@ from config.compat import patch_django_context_copy_for_python_314
 patch_django_context_copy_for_python_314()
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-load_dotenv(BASE_DIR / ".env")
+
+_dotenv_override = os.getenv("DJANGO_DOTENV_OVERRIDE")
+if _dotenv_override is None:
+    _dotenv_override = str(os.getenv("DJANGO_SETTINGS_MODULE", "").endswith(".dev"))
+
+load_dotenv(BASE_DIR / ".env", override=_dotenv_override.lower() in {"1", "true", "yes", "on"})
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-secret-key-change-me")
 ALLOWED_HOSTS = [host.strip() for host in os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")]
