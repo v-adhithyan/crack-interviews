@@ -36,7 +36,7 @@
                     {% include "product/includes/analysis_result.html" with analysis=analysis %}
                 </section>
             {% elif analysis.is_queued_or_processing %}
-                <section class="analysis-progress-card" aria-labelledby="progress-title" data-analysis-progress data-status-url="{% url 'analysis_status' analysis_id=analysis.id %}">
+                <section class="analysis-progress-card" aria-labelledby="progress-title" data-analysis-progress data-status-url="{% url 'analysis_status' analysis_uuid=analysis.uuid %}">
                     <div class="section-heading">
                         <div>
                             <h2 id="progress-title" data-progress-label>{{ analysis.progress_label }}</h2>

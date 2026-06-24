@@ -13,9 +13,9 @@
             </thead>
             <tbody>
                 {% for analysis in analyses %}
-                    <tr class="clickable-row" data-href="{% url 'analysis_detail' analysis_id=analysis.id %}">
+                    <tr class="clickable-row" data-href="{% url 'analysis_detail' analysis_uuid=analysis.uuid %}">
                         <td>
-                            <a class="analysis-title-link" href="{% url 'analysis_detail' analysis_id=analysis.id %}">
+                            <a class="analysis-title-link" href="{% url 'analysis_detail' analysis_uuid=analysis.uuid %}">
                                 {{ analysis.display_title }}
                             </a>
                         </td>
@@ -33,7 +33,7 @@
                             {{ analysis.display_status }}
                         </td>
                         <td>
-                            <a class="outline-small table-action" href="{% url 'analysis_detail' analysis_id=analysis.id %}">
+                            <a class="outline-small table-action" href="{% url 'analysis_detail' analysis_uuid=analysis.uuid %}">
                                 View Report
                             </a>
                         </td>

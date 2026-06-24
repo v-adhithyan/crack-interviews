@@ -393,7 +393,7 @@ class ResumeUploadTests(TestCase):
 
         analysis = ResumeAnalysis.objects.get(user=self.user)
         enqueue_job.assert_called_once_with("apps.product.tasks.run_resume_analysis", analysis.id)
-        self.assertRedirects(response, reverse("analysis_detail", kwargs={"analysis_id": analysis.id}))
+        self.assertRedirects(response, reverse("analysis_detail", kwargs={"analysis_uuid": analysis.uuid}))
         self.assertEqual(analysis.status, ResumeAnalysis.Status.QUEUED)
         self.assertEqual(analysis.task_id, "task-123")
         self.assertEqual(analysis.ai_provider, "chatgpt")
@@ -490,7 +490,7 @@ class ResumeUploadTests(TestCase):
         self.assertContains(response, "Senior Backend Engineer")
         self.assertContains(response, "TechNova Inc.")
         self.assertContains(response, "82%")
-        self.assertContains(response, reverse("analysis_detail", kwargs={"analysis_id": analysis.id}))
+        self.assertContains(response, reverse("analysis_detail", kwargs={"analysis_uuid": analysis.uuid}))
         self.assertNotContains(response, "Your resume match reports will appear here after you generate a prompt")
 
     def test_analysis_history_lists_user_analyses(self):
@@ -501,12 +501,12 @@ class ResumeUploadTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Your resume match reports")
         self.assertContains(response, "Senior Backend Engineer")
-        self.assertContains(response, reverse("analysis_detail", kwargs={"analysis_id": analysis.id}))
+        self.assertContains(response, reverse("analysis_detail", kwargs={"analysis_uuid": analysis.uuid}))
 
     def test_analysis_detail_displays_saved_result(self):
         analysis = self.create_analysis()
 
-        response = self.client.get(reverse("analysis_detail", kwargs={"analysis_id": analysis.id}))
+        response = self.client.get(reverse("analysis_detail", kwargs={"analysis_uuid": analysis.uuid}))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Senior Backend Engineer")
@@ -514,6 +514,13 @@ class ResumeUploadTests(TestCase):
         self.assertContains(response, "Analysis Result")
         self.assertContains(response, "Final Recommendation")
         self.assertContains(response, "Apply with tailored keywords.")
+
+    def test_analysis_detail_does_not_use_numeric_primary_key_url(self):
+        analysis = self.create_analysis()
+
+        response = self.client.get(f"/app/analysis/{analysis.id}/")
+
+        self.assertEqual(response.status_code, 404)
 
     def test_user_cannot_view_another_users_analysis_detail(self):
         other_user = get_user_model().objects.create_user(
@@ -523,7 +530,7 @@ class ResumeUploadTests(TestCase):
         )
         analysis = self.create_analysis(user=other_user)
 
-        response = self.client.get(reverse("analysis_detail", kwargs={"analysis_id": analysis.id}))
+        response = self.client.get(reverse("analysis_detail", kwargs={"analysis_uuid": analysis.uuid}))
 
         self.assertEqual(response.status_code, 404)
 
@@ -542,7 +549,7 @@ class ResumeUploadTests(TestCase):
         analysis = self.create_analysis(user=other_user)
         self.client.force_login(staff_user)
 
-        response = self.client.get(reverse("analysis_detail", kwargs={"analysis_id": analysis.id}))
+        response = self.client.get(reverse("analysis_detail", kwargs={"analysis_uuid": analysis.uuid}))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Senior Backend Engineer")
@@ -554,7 +561,7 @@ class ResumeUploadTests(TestCase):
             ai_provider="chatgpt",
         )
 
-        response = self.client.get(reverse("analysis_status", kwargs={"analysis_id": analysis.id}))
+        response = self.client.get(reverse("analysis_status", kwargs={"analysis_uuid": analysis.uuid}))
 
         self.assertEqual(response.status_code, 200)
         data = response.json()
@@ -572,7 +579,7 @@ class ResumeUploadTests(TestCase):
         )
         analysis = self.create_analysis(user=other_user)
 
-        response = self.client.get(reverse("analysis_status", kwargs={"analysis_id": analysis.id}))
+        response = self.client.get(reverse("analysis_status", kwargs={"analysis_uuid": analysis.uuid}))
 
         self.assertEqual(response.status_code, 404)
 

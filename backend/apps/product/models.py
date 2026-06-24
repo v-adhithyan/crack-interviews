@@ -39,6 +39,7 @@ class ResumeAnalysis(models.Model):
         FAILED = "failed", "Failed"
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="resume_analyses")
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     resume = models.ForeignKey(Resume, on_delete=models.CASCADE, related_name="analyses")
     job_description = models.TextField()
     resume_text = models.TextField()

@@ -49,11 +49,11 @@ def user_analysis_queryset(user):
     return ResumeAnalysis.objects.filter(user=user).select_related("resume", "user")
 
 
-def get_visible_analysis_or_404(user, analysis_id):
+def get_visible_analysis_or_404(user, analysis_uuid):
     queryset = ResumeAnalysis.objects.select_related("resume", "user")
     if not user.is_staff:
         queryset = queryset.filter(user=user)
-    return get_object_or_404(queryset, id=analysis_id)
+    return get_object_or_404(queryset, uuid=analysis_uuid)
 
 
 def is_manual_ai_mode():
@@ -105,11 +105,11 @@ def dashboard(request):
                         analysis.completed_at = timezone.now()
                         analysis.save(update_fields=("status", "error_message", "completed_at", "updated_at"))
                         messages.error(request, "Unable to queue analysis right now. Please try again later.")
-                        return redirect("analysis_detail", analysis_id=analysis.id)
+                        return redirect("analysis_detail", analysis_uuid=analysis.uuid)
                     analysis.task_id = task_id or ""
                     analysis.save(update_fields=("task_id", "updated_at"))
                     messages.success(request, "Analysis queued. We will update this page as it runs.")
-                    return redirect("analysis_detail", analysis_id=analysis.id)
+                    return redirect("analysis_detail", analysis_uuid=analysis.uuid)
 
                 try:
                     analysis_result = run_resume_match_analysis(
@@ -205,8 +205,8 @@ def analysis_history(request):
 
 
 @product_access_required
-def analysis_detail(request, analysis_id):
-    analysis = get_visible_analysis_or_404(request.user, analysis_id)
+def analysis_detail(request, analysis_uuid):
+    analysis = get_visible_analysis_or_404(request.user, analysis_uuid)
     resume = user_resume(request.user)
     return render(
         request,
@@ -220,8 +220,8 @@ def analysis_detail(request, analysis_id):
 
 
 @product_access_required
-def analysis_status(request, analysis_id):
-    analysis = get_visible_analysis_or_404(request.user, analysis_id)
+def analysis_status(request, analysis_uuid):
+    analysis = get_visible_analysis_or_404(request.user, analysis_uuid)
     return JsonResponse(
         {
             "status": analysis.status,
@@ -231,7 +231,7 @@ def analysis_status(request, analysis_id):
             "is_complete": analysis.status == ResumeAnalysis.Status.RESULT_ADDED,
             "is_failed": analysis.status == ResumeAnalysis.Status.FAILED,
             "error_message": analysis.error_message,
-            "detail_url": reverse("analysis_detail", kwargs={"analysis_id": analysis.id}),
+            "detail_url": reverse("analysis_detail", kwargs={"analysis_uuid": analysis.uuid}),
         }
     )
 
