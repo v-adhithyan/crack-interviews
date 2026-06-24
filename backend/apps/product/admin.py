@@ -16,10 +16,10 @@ class ResumeAdmin(admin.ModelAdmin):
 
 @admin.register(ResumeAnalysis)
 class ResumeAnalysisAdmin(admin.ModelAdmin):
-    list_display = ("resume", "user", "status", "updated_at")
-    list_filter = ("status", "created_at", "updated_at")
-    search_fields = ("resume__original_filename", "user__username", "user__email", "job_description", "resume_text")
-    readonly_fields = ("created_at", "updated_at")
+    list_display = ("resume", "user", "status", "ai_provider", "task_id", "updated_at")
+    list_filter = ("status", "ai_provider", "created_at", "updated_at")
+    search_fields = ("resume__original_filename", "user__username", "user__email", "job_description", "resume_text", "task_id")
+    readonly_fields = ("task_id", "started_at", "completed_at", "created_at", "updated_at")
 
 
 @admin.register(QuickRefreshSettings)

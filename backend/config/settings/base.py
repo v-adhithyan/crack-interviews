@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "corsheaders",
+    "django_q",
     "rest_framework",
     "apps.core",
     "apps.website",
@@ -111,3 +112,13 @@ CODE_TIMEOUT_SECONDS = float(os.getenv("CODE_TIMEOUT_SECONDS", "2"))
 HACKERLEAP_AI_MODE = os.getenv("HACKERLEAP_AI_MODE", "manual").strip().lower()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+
+Q_CLUSTER = {
+    "name": "HackerLeap",
+    "workers": int(os.getenv("DJANGO_Q_WORKERS", "1")),
+    "timeout": int(os.getenv("DJANGO_Q_TIMEOUT", "600")),
+    "retry": int(os.getenv("DJANGO_Q_RETRY", "900")),
+    "queue_limit": int(os.getenv("DJANGO_Q_QUEUE_LIMIT", "50")),
+    "bulk": int(os.getenv("DJANGO_Q_BULK", "5")),
+    "orm": os.getenv("DJANGO_Q_ORM", "default"),
+}

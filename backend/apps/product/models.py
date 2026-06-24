@@ -4,6 +4,7 @@ from pathlib import Path
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 
 def resume_upload_path(instance, filename):
@@ -31,8 +32,11 @@ class Resume(models.Model):
 
 class ResumeAnalysis(models.Model):
     class Status(models.TextChoices):
+        QUEUED = "queued", "Queued"
+        PROCESSING = "processing", "Processing"
         PROMPT_READY = "prompt_ready", "Prompt Ready"
         RESULT_ADDED = "result_added", "Result Added"
+        FAILED = "failed", "Failed"
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="resume_analyses")
     resume = models.ForeignKey(Resume, on_delete=models.CASCADE, related_name="analyses")
@@ -41,6 +45,11 @@ class ResumeAnalysis(models.Model):
     generated_prompt = models.TextField()
     ai_response_json = models.JSONField(blank=True, null=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PROMPT_READY)
+    task_id = models.CharField(max_length=255, blank=True)
+    ai_provider = models.CharField(max_length=40, blank=True)
+    error_message = models.TextField(blank=True)
+    started_at = models.DateTimeField(blank=True, null=True)
+    completed_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -89,9 +98,48 @@ class ResumeAnalysis(models.Model):
 
     @property
     def display_status(self):
+        return {
+            self.Status.QUEUED: "Queued",
+            self.Status.PROCESSING: "Processing",
+            self.Status.PROMPT_READY: "Prompt Ready",
+            self.Status.RESULT_ADDED: "Completed",
+            self.Status.FAILED: "Failed",
+        }.get(self.status, "Prompt Ready")
+
+    @property
+    def is_queued_or_processing(self):
+        return self.status in {self.Status.QUEUED, self.Status.PROCESSING}
+
+    @property
+    def is_failed(self):
+        return self.status == self.Status.FAILED
+
+    @property
+    def progress_percent(self):
         if self.status == self.Status.RESULT_ADDED:
-            return "Completed"
-        return "Prompt Ready"
+            return 100
+        if self.status == self.Status.FAILED:
+            return 100
+        if self.status == self.Status.QUEUED:
+            return 15
+        if self.status == self.Status.PROCESSING:
+            if not self.started_at:
+                return 40
+            elapsed_seconds = max(0, (timezone.now() - self.started_at).total_seconds())
+            return min(90, 40 + int(elapsed_seconds // 3) * 5)
+        return 0
+
+    @property
+    def progress_label(self):
+        if self.status == self.Status.QUEUED:
+            return "Queued for analysis"
+        if self.status == self.Status.PROCESSING:
+            return "Analyzing resume"
+        if self.status == self.Status.RESULT_ADDED:
+            return "Analysis complete"
+        if self.status == self.Status.FAILED:
+            return "Analysis failed"
+        return self.display_status
 
 
 class QuickRefreshSettings(models.Model):

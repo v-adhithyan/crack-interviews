@@ -35,6 +35,31 @@
                     </div>
                     {% include "product/includes/analysis_result.html" with analysis=analysis %}
                 </section>
+            {% elif analysis.is_queued_or_processing %}
+                <section class="analysis-progress-card" aria-labelledby="progress-title" data-analysis-progress data-status-url="{% url 'analysis_status' analysis_id=analysis.id %}">
+                    <div class="section-heading">
+                        <div>
+                            <h2 id="progress-title" data-progress-label>{{ analysis.progress_label }}</h2>
+                            <p>We are comparing your resume with the job description in the background. You can leave this page and come back later.</p>
+                        </div>
+                    </div>
+                    <div class="progress-meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ analysis.progress_percent }}" data-progress-meter>
+                        <span style="width: {{ analysis.progress_percent }}%" data-progress-bar></span>
+                    </div>
+                    <div class="progress-meta">
+                        <span data-progress-status>{{ analysis.display_status }}</span>
+                        <strong data-progress-percent>{{ analysis.progress_percent }}%</strong>
+                    </div>
+                </section>
+            {% elif analysis.is_failed %}
+                <section class="analysis-progress-card analysis-progress-card-failed" aria-labelledby="failed-title">
+                    <div class="section-heading">
+                        <div>
+                            <h2 id="failed-title">Analysis failed</h2>
+                            <p>{{ analysis.error_message|default:"Unable to complete AI analysis right now. Please try again later." }}</p>
+                        </div>
+                    </div>
+                </section>
             {% else %}
                 <section class="prompt-card" aria-labelledby="pending-title">
                     <div class="section-heading">
@@ -87,6 +112,44 @@
                 copyPromptButton.textContent = "Copy Prompt";
             }, 1600);
         });
+    }
+
+    var progressCard = document.querySelector("[data-analysis-progress]");
+    if (progressCard) {
+        var statusUrl = progressCard.getAttribute("data-status-url");
+        var progressLabel = progressCard.querySelector("[data-progress-label]");
+        var progressStatus = progressCard.querySelector("[data-progress-status]");
+        var progressPercent = progressCard.querySelector("[data-progress-percent]");
+        var progressMeter = progressCard.querySelector("[data-progress-meter]");
+        var progressBar = progressCard.querySelector("[data-progress-bar]");
+
+        var pollStatus = function () {
+            fetch(statusUrl, {headers: {"X-Requested-With": "XMLHttpRequest"}})
+                .then(function (response) {
+                    if (!response.ok) {
+                        throw new Error("Unable to fetch analysis status.");
+                    }
+                    return response.json();
+                })
+                .then(function (data) {
+                    var progress = Math.max(0, Math.min(100, data.progress || 0));
+                    progressLabel.textContent = data.label;
+                    progressStatus.textContent = data.display_status;
+                    progressPercent.textContent = progress + "%";
+                    progressMeter.setAttribute("aria-valuenow", progress);
+                    progressBar.style.width = progress + "%";
+                    if (data.is_complete || data.is_failed) {
+                        window.location.href = data.detail_url;
+                    } else {
+                        window.setTimeout(pollStatus, 3000);
+                    }
+                })
+                .catch(function () {
+                    window.setTimeout(pollStatus, 5000);
+                });
+        };
+
+        window.setTimeout(pollStatus, 1500);
     }
 </script>
 {% endblock %}

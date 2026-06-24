@@ -1,5 +1,6 @@
 from django.http import FileResponse
 from django.http import Http404
+from django.http import JsonResponse
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
@@ -9,10 +10,12 @@ from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
+from django.urls import reverse
 from django.urls import reverse_lazy
 from django.utils import timezone
 
 from apps.website.models import EarlyAccessUser
+from apps.core.jobs import enqueue_background_job
 
 from .decorators import product_access_required
 from .forms import AnalysisPromptForm
@@ -25,6 +28,7 @@ from .models import QuickRefreshNote
 from .models import QuickRefreshSettings
 from .models import Resume
 from .models import ResumeAnalysis
+from .services import build_resume_match_prompt
 from .services import run_resume_match_analysis
 
 
@@ -56,6 +60,10 @@ def is_manual_ai_mode():
     return (settings.HACKERLEAP_AI_MODE or "manual").strip().lower() == "manual"
 
 
+def selected_ai_mode():
+    return (settings.HACKERLEAP_AI_MODE or "manual").strip().lower()
+
+
 @product_access_required
 def dashboard(request):
     resume = user_resume(request.user)
@@ -78,30 +86,53 @@ def dashboard(request):
 
             analysis_form = AnalysisPromptForm(request.POST)
             if analysis_form.is_valid():
+                job_description = analysis_form.cleaned_data["job_description"]
+                if selected_ai_mode() in {"chatgpt", "claude"}:
+                    analysis = ResumeAnalysis.objects.create(
+                        user=request.user,
+                        resume=resume,
+                        job_description=job_description,
+                        resume_text=resume.parsed_text,
+                        generated_prompt=build_resume_match_prompt(job_description, resume.parsed_text),
+                        status=ResumeAnalysis.Status.QUEUED,
+                        ai_provider=selected_ai_mode(),
+                    )
+                    try:
+                        task_id = enqueue_background_job("apps.product.tasks.run_resume_analysis", analysis.id)
+                    except Exception as exc:
+                        analysis.status = ResumeAnalysis.Status.FAILED
+                        analysis.error_message = str(exc) or "Unable to queue analysis right now. Please try again later."
+                        analysis.completed_at = timezone.now()
+                        analysis.save(update_fields=("status", "error_message", "completed_at", "updated_at"))
+                        messages.error(request, "Unable to queue analysis right now. Please try again later.")
+                        return redirect("analysis_detail", analysis_id=analysis.id)
+                    analysis.task_id = task_id or ""
+                    analysis.save(update_fields=("task_id", "updated_at"))
+                    messages.success(request, "Analysis queued. We will update this page as it runs.")
+                    return redirect("analysis_detail", analysis_id=analysis.id)
+
                 try:
                     analysis_result = run_resume_match_analysis(
-                        job_description=analysis_form.cleaned_data["job_description"],
+                        job_description=job_description,
                         resume_text=resume.parsed_text,
                     )
                 except (ImproperlyConfigured, NotImplementedError, ValidationError) as exc:
                     messages.error(request, str(exc))
                     return redirect("product_dashboard")
-                except Exception as e:
+                except Exception:
                     messages.error(request, "Unable to complete AI analysis right now. Please try again later.")
                     return redirect("product_dashboard")
 
-                analysis = ResumeAnalysis.objects.create(
+                ResumeAnalysis.objects.create(
                     user=request.user,
                     resume=resume,
-                    job_description=analysis_form.cleaned_data["job_description"],
+                    job_description=job_description,
                     resume_text=resume.parsed_text,
                     generated_prompt=analysis_result.generated_prompt,
                     ai_response_json=analysis_result.ai_response_json,
                     status=ResumeAnalysis.Status.RESULT_ADDED if analysis_result.is_complete else ResumeAnalysis.Status.PROMPT_READY,
+                    ai_provider=analysis_result.provider,
                 )
-                if analysis_result.is_complete:
-                    messages.success(request, "Analysis complete.")
-                    return redirect("analysis_detail", analysis_id=analysis.id)
 
                 messages.success(request, "Prompt generated. Copy it, run it manually, then paste the JSON result below.")
                 return redirect("product_dashboard")
@@ -117,7 +148,8 @@ def dashboard(request):
             if result_form.is_valid():
                 latest_analysis.ai_response_json = result_form.parsed_json
                 latest_analysis.status = ResumeAnalysis.Status.RESULT_ADDED
-                latest_analysis.save(update_fields=("ai_response_json", "status", "updated_at"))
+                latest_analysis.completed_at = timezone.now()
+                latest_analysis.save(update_fields=("ai_response_json", "status", "completed_at", "updated_at"))
                 messages.success(request, "Analysis JSON saved.")
                 return redirect("product_dashboard")
 
@@ -184,6 +216,23 @@ def analysis_detail(request, analysis_id):
             "analysis": analysis,
             "active_nav": "analysis_history",
         },
+    )
+
+
+@product_access_required
+def analysis_status(request, analysis_id):
+    analysis = get_visible_analysis_or_404(request.user, analysis_id)
+    return JsonResponse(
+        {
+            "status": analysis.status,
+            "label": analysis.progress_label,
+            "display_status": analysis.display_status,
+            "progress": analysis.progress_percent,
+            "is_complete": analysis.status == ResumeAnalysis.Status.RESULT_ADDED,
+            "is_failed": analysis.status == ResumeAnalysis.Status.FAILED,
+            "error_message": analysis.error_message,
+            "detail_url": reverse("analysis_detail", kwargs={"analysis_id": analysis.id}),
+        }
     )
 
 

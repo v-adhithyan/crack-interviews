@@ -533,6 +533,7 @@ a {
 
 .analysis-card,
 .prompt-card,
+.analysis-progress-card,
 .analysis-result-card,
 .recent-card {
     padding: 22px;
@@ -541,6 +542,7 @@ a {
 
 .analysis-card h2,
 .prompt-card h2,
+.analysis-progress-card h2,
 .analysis-result-card h2,
 .recent-card h2 {
     margin: 0 0 6px;
@@ -756,11 +758,47 @@ a {
 }
 
 .prompt-card,
+.analysis-progress-card,
 .analysis-result-card {
     border: 1px solid rgba(15, 23, 42, 0.08);
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.9);
     box-shadow: var(--shadow);
+}
+
+.analysis-progress-card-failed {
+    border-color: rgba(220, 38, 38, 0.18);
+    background: #fffafa;
+}
+
+.progress-meter {
+    height: 12px;
+    margin-top: 22px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #f2f4f7;
+}
+
+.progress-meter span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(135deg, #ffd400, var(--gold));
+    transition: width 0.28s ease;
+}
+
+.progress-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 12px;
+    color: var(--muted);
+    font-weight: 750;
+}
+
+.progress-meta strong {
+    color: var(--ink);
 }
 
 .prompt-output {
@@ -959,6 +997,14 @@ th {
 
 .status-dot-muted {
     background: #d0d5dd;
+}
+
+.status-dot-active {
+    background: var(--gold);
+}
+
+.status-dot-failed {
+    background: #dc2626;
 }
 
 .analysis-table tbody tr {

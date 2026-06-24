@@ -17,6 +17,7 @@ from .models import ResumeAnalysis
 from .models import QuickRefreshNote
 from .models import QuickRefreshSettings
 from .services import ResumeMatchResult
+from .tasks import run_resume_analysis
 
 
 class ProductAccessTests(TestCase):
@@ -172,15 +173,21 @@ class ResumeUploadTests(TestCase):
             "application_confidence": {"score": 80, "label": "High", "reason": "Good overlap."},
             "final_recommendation": "Apply with tailored keywords.",
         }
-        payload.update(overrides.pop("ai_response_json", {}))
+        ai_response_json = overrides.pop("ai_response_json", payload)
+        if isinstance(ai_response_json, dict) and ai_response_json is not payload:
+            payload.update(ai_response_json)
+            ai_response_json = payload
         return ResumeAnalysis.objects.create(
             user=user,
             resume=resume,
             job_description=overrides.pop("job_description", "Python backend role."),
             resume_text=overrides.pop("resume_text", "Python Django resume."),
             generated_prompt=overrides.pop("generated_prompt", "Formatted prompt."),
-            ai_response_json=payload,
+            ai_response_json=ai_response_json,
             status=overrides.pop("status", ResumeAnalysis.Status.RESULT_ADDED),
+            task_id=overrides.pop("task_id", ""),
+            ai_provider=overrides.pop("ai_provider", ""),
+            error_message=overrides.pop("error_message", ""),
         )
 
     def test_dashboard_shows_empty_resume_state(self):
@@ -369,39 +376,12 @@ class ResumeUploadTests(TestCase):
         self.assertIn('"resume_text": "Built Django APIs and Python services."', analysis.generated_prompt)
 
     @override_settings(HACKERLEAP_AI_MODE="chatgpt")
-    def test_chatgpt_mode_runs_ai_and_redirects_to_report(self):
+    def test_chatgpt_mode_queues_ai_analysis_and_redirects_to_progress(self):
         resume_file = SimpleUploadedFile("resume.pdf", b"%PDF-1.4\nresume\n%%EOF", content_type="application/pdf")
         with patch("apps.product.forms.extract_pdf_text", return_value="Built Django APIs and Python services."):
             self.client.post(reverse("product_dashboard"), {"resume": resume_file})
 
-        ai_payload = {
-            "status": "success",
-            "role_title_detected": "Backend Engineer",
-            "company_detected": "Acme",
-            "overall_match_score": 88,
-            "match_level": "Strong",
-            "ats_compatibility": {"score": 86, "status": "Strong", "summary": "Good ATS fit."},
-            "summary": {
-                "short_verdict": "Strong fit.",
-                "candidate_positioning": "Backend engineer.",
-                "recruiter_likely_impression": "Relevant.",
-            },
-            "strengths": [],
-            "missing_keywords": [],
-            "matched_skills": [],
-            "gaps_or_risks": [],
-            "application_confidence": {"score": 84, "label": "High", "reason": "Good overlap."},
-            "final_recommendation": "Apply.",
-        }
-
-        with patch(
-            "apps.product.views.run_resume_match_analysis",
-            return_value=ResumeMatchResult(
-                generated_prompt="Formatted prompt.",
-                ai_response_json=ai_payload,
-                provider="chatgpt",
-            ),
-        ) as ai_runner:
+        with patch("apps.product.views.enqueue_background_job", return_value="task-123") as enqueue_job:
             response = self.client.post(
                 reverse("product_dashboard"),
                 {
@@ -412,15 +392,14 @@ class ResumeUploadTests(TestCase):
             )
 
         analysis = ResumeAnalysis.objects.get(user=self.user)
-        ai_runner.assert_called_once_with(
-            job_description="We need a Python Django backend engineer.",
-            resume_text="Built Django APIs and Python services.",
-        )
+        enqueue_job.assert_called_once_with("apps.product.tasks.run_resume_analysis", analysis.id)
         self.assertRedirects(response, reverse("analysis_detail", kwargs={"analysis_id": analysis.id}))
-        self.assertEqual(analysis.status, ResumeAnalysis.Status.RESULT_ADDED)
-        self.assertEqual(analysis.ai_response_json["overall_match_score"], 88)
-        self.assertContains(response, "Analysis complete.")
-        self.assertContains(response, "Backend Engineer")
+        self.assertEqual(analysis.status, ResumeAnalysis.Status.QUEUED)
+        self.assertEqual(analysis.task_id, "task-123")
+        self.assertEqual(analysis.ai_provider, "chatgpt")
+        self.assertIsNone(analysis.ai_response_json)
+        self.assertContains(response, "Queued for analysis")
+        self.assertContains(response, "Analysis queued.")
 
     @override_settings(HACKERLEAP_AI_MODE="chatgpt")
     def test_chatgpt_mode_hides_manual_prompt_panels(self):
@@ -567,6 +546,99 @@ class ResumeUploadTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Senior Backend Engineer")
+
+    def test_analysis_status_returns_progress_for_owner(self):
+        analysis = self.create_analysis(
+            status=ResumeAnalysis.Status.PROCESSING,
+            ai_response_json=None,
+            ai_provider="chatgpt",
+        )
+
+        response = self.client.get(reverse("analysis_status", kwargs={"analysis_id": analysis.id}))
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["status"], ResumeAnalysis.Status.PROCESSING)
+        self.assertEqual(data["display_status"], "Processing")
+        self.assertFalse(data["is_complete"])
+        self.assertFalse(data["is_failed"])
+        self.assertGreaterEqual(data["progress"], 40)
+
+    def test_user_cannot_poll_another_users_analysis_status(self):
+        other_user = get_user_model().objects.create_user(
+            username="other-status@example.com",
+            email="other-status@example.com",
+            password="Password1!",
+        )
+        analysis = self.create_analysis(user=other_user)
+
+        response = self.client.get(reverse("analysis_status", kwargs={"analysis_id": analysis.id}))
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_run_resume_analysis_task_saves_completed_result(self):
+        analysis = self.create_analysis(
+            status=ResumeAnalysis.Status.QUEUED,
+            ai_response_json=None,
+            generated_prompt="Queued prompt.",
+            ai_provider="chatgpt",
+        )
+        ai_payload = {
+            "status": "success",
+            "role_title_detected": "Backend Engineer",
+            "company_detected": "Acme",
+            "overall_match_score": 88,
+            "match_level": "Strong",
+            "ats_compatibility": {"score": 86, "status": "Strong", "summary": "Good ATS fit."},
+            "summary": {
+                "short_verdict": "Strong fit.",
+                "candidate_positioning": "Backend engineer.",
+                "recruiter_likely_impression": "Relevant.",
+            },
+            "strengths": [],
+            "missing_keywords": [],
+            "matched_skills": [],
+            "gaps_or_risks": [],
+            "application_confidence": {"score": 84, "label": "High", "reason": "Good overlap."},
+            "final_recommendation": "Apply.",
+        }
+
+        with patch(
+            "apps.product.tasks.run_resume_match_analysis",
+            return_value=ResumeMatchResult(
+                generated_prompt="Completed prompt.",
+                ai_response_json=ai_payload,
+                provider="chatgpt",
+            ),
+        ) as ai_runner:
+            run_resume_analysis(analysis.id)
+
+        analysis.refresh_from_db()
+        ai_runner.assert_called_once_with(
+            job_description="Python backend role.",
+            resume_text="Python Django resume.",
+        )
+        self.assertEqual(analysis.status, ResumeAnalysis.Status.RESULT_ADDED)
+        self.assertEqual(analysis.ai_response_json["overall_match_score"], 88)
+        self.assertEqual(analysis.generated_prompt, "Completed prompt.")
+        self.assertEqual(analysis.ai_provider, "chatgpt")
+        self.assertIsNotNone(analysis.started_at)
+        self.assertIsNotNone(analysis.completed_at)
+
+    def test_run_resume_analysis_task_saves_failure(self):
+        analysis = self.create_analysis(
+            status=ResumeAnalysis.Status.QUEUED,
+            ai_response_json=None,
+            ai_provider="chatgpt",
+        )
+
+        with patch("apps.product.tasks.run_resume_match_analysis", side_effect=RuntimeError("Provider timed out")):
+            run_resume_analysis(analysis.id)
+
+        analysis.refresh_from_db()
+        self.assertEqual(analysis.status, ResumeAnalysis.Status.FAILED)
+        self.assertEqual(analysis.error_message, "Provider timed out")
+        self.assertIsNotNone(analysis.completed_at)
 
 
 class EarlyAccessSignupTests(TestCase):
