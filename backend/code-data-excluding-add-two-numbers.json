@@ -1,0 +1,4058 @@
+{
+  "version": 1,
+  "excluded_slugs": [
+    "add-two-numbers"
+  ],
+  "questions": [
+    {
+      "title": "Connect Small Ropes",
+      "slug": "connect-small-ropes",
+      "description": "You are given several ropes with different lengths. You can connect exactly two ropes at a time. The cost of connecting two ropes is equal to the sum of their lengths. The newly connected rope can be used again in future connections.\n\nYour task is to return the minimum total cost required to connect all ropes into one rope.\n\nThis is a min-heap based problem because connecting the two smallest ropes first always gives the minimum total cost.\n\nImplement the function:\n\nJava: public int solve(int[] ropes)\nPython: def solve(ropes)\n\nArguments:\n- ropes: an array/list of positive integers where ropes[i] is the length of the i-th rope.\n\nReturn value:\n- Return an integer representing the minimum total cost to connect all ropes.\n\nImportant rules:\n- If there is only one rope, the cost is 0 because no connection is needed.\n- Each operation must connect exactly two ropes.\n- After connecting two ropes, their combined length is inserted back as a new rope.\n\nConstraints:\n- 1 <= ropes.length <= 10000\n- 1 <= ropes[i] <= 10000\n- The final answer fits in a 32-bit signed integer.\n\nExample 1:\nInput: ropes = [4,3,2,6]\nOutput: 29\nExplanation: Connect 2 and 3 with cost 5. Ropes become [4,5,6]. Connect 4 and 5 with cost 9. Ropes become [6,9]. Connect 6 and 9 with cost 15. Total cost = 5 + 9 + 15 = 29.\n\nExample 2:\nInput: ropes = [1,2,3]\nOutput: 9\nExplanation: Connect 1 and 2 with cost 3. Ropes become [3,3]. Connect 3 and 3 with cost 6. Total cost = 3 + 6 = 9.",
+      "difficulty": "easy",
+      "starter_code": "import java.util.*;\n\nclass Solution {\n    public int solve(int[] ropes) {\n        // Write your code here\n        return 0;\n    }\n}",
+      "java_starter_code": "import java.util.*;\n\nclass Solution {\n    public int solve(int[] ropes) {\n        // Write your code here\n        return 0;\n    }\n}",
+      "python_starter_code": "def solve(ropes):\n    # Write your code here\n    return 0",
+      "execution_mode": "function",
+      "function_name": "solve",
+      "is_active": true,
+      "created_at": "2026-06-23T18:08:11.578107+00:00",
+      "updated_at": "2026-06-23T18:08:11.578149+00:00",
+      "test_cases": [
+        {
+          "name": "sample_mixed_lengths",
+          "stdin": "",
+          "function_args": [
+            [
+              4,
+              3,
+              2,
+              6
+            ]
+          ],
+          "expected_value": 29,
+          "expected_output": "29",
+          "is_sample": true,
+          "is_hidden": false,
+          "order": 1,
+          "created_at": "2026-06-23T18:08:11.580744+00:00"
+        },
+        {
+          "name": "sample_three_ropes",
+          "stdin": "",
+          "function_args": [
+            [
+              1,
+              2,
+              3
+            ]
+          ],
+          "expected_value": 9,
+          "expected_output": "9",
+          "is_sample": true,
+          "is_hidden": false,
+          "order": 2,
+          "created_at": "2026-06-23T18:08:11.582484+00:00"
+        },
+        {
+          "name": "single_rope",
+          "stdin": "",
+          "function_args": [
+            [
+              10
+            ]
+          ],
+          "expected_value": 0,
+          "expected_output": "0",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 3,
+          "created_at": "2026-06-23T18:08:11.583272+00:00"
+        },
+        {
+          "name": "two_ropes",
+          "stdin": "",
+          "function_args": [
+            [
+              8,
+              5
+            ]
+          ],
+          "expected_value": 13,
+          "expected_output": "13",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 4,
+          "created_at": "2026-06-23T18:08:11.583860+00:00"
+        },
+        {
+          "name": "all_equal_ropes",
+          "stdin": "",
+          "function_args": [
+            [
+              5,
+              5,
+              5,
+              5
+            ]
+          ],
+          "expected_value": 40,
+          "expected_output": "40",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 5,
+          "created_at": "2026-06-23T18:08:11.584345+00:00"
+        },
+        {
+          "name": "already_sorted",
+          "stdin": "",
+          "function_args": [
+            [
+              1,
+              2,
+              4,
+              8
+            ]
+          ],
+          "expected_value": 25,
+          "expected_output": "25",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 6,
+          "created_at": "2026-06-23T18:08:11.584861+00:00"
+        },
+        {
+          "name": "reverse_sorted",
+          "stdin": "",
+          "function_args": [
+            [
+              9,
+              7,
+              5,
+              3,
+              1
+            ]
+          ],
+          "expected_value": 55,
+          "expected_output": "55",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 7,
+          "created_at": "2026-06-23T18:08:11.585404+00:00"
+        },
+        {
+          "name": "many_small_duplicates",
+          "stdin": "",
+          "function_args": [
+            [
+              1,
+              1,
+              1,
+              1,
+              1
+            ]
+          ],
+          "expected_value": 12,
+          "expected_output": "12",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 8,
+          "created_at": "2026-06-23T18:08:11.585912+00:00"
+        },
+        {
+          "name": "one_large_many_small",
+          "stdin": "",
+          "function_args": [
+            [
+              100,
+              1,
+              1,
+              1
+            ]
+          ],
+          "expected_value": 108,
+          "expected_output": "108",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 9,
+          "created_at": "2026-06-23T18:08:11.586329+00:00"
+        },
+        {
+          "name": "varied_lengths",
+          "stdin": "",
+          "function_args": [
+            [
+              6,
+              4,
+              4,
+              6
+            ]
+          ],
+          "expected_value": 40,
+          "expected_output": "40",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 10,
+          "created_at": "2026-06-23T18:08:11.586728+00:00"
+        },
+        {
+          "name": "larger_case",
+          "stdin": "",
+          "function_args": [
+            [
+              2,
+              3,
+              7,
+              9,
+              13
+            ]
+          ],
+          "expected_value": 75,
+          "expected_output": "75",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 11,
+          "created_at": "2026-06-23T18:08:11.587129+00:00"
+        },
+        {
+          "name": "maximumish_values",
+          "stdin": "",
+          "function_args": [
+            [
+              10000,
+              10000,
+              10000,
+              10000,
+              10000
+            ]
+          ],
+          "expected_value": 120000,
+          "expected_output": "120000",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 12,
+          "created_at": "2026-06-23T18:08:11.587519+00:00"
+        }
+      ],
+      "submissions": [
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Solution {\n    public int solve(int[] ropes) {\n        // Write your code here\n        PriorityQueue<Integer> minHeap = new PriorityQueue<>();\n        minHeap.offer(0);\n        Arrays.sort(ropes);\n\n        for(int rope: ropes) {\n            minHeap.offer(rope);\n            minHeap.offer(minHeap.poll() + minHeap.poll());\n        }\n\n        return minHeap.poll();\n    }\n}",
+          "status": "wrong_answer",
+          "stdout": "15\n6",
+          "stderr": "",
+          "execution_time_ms": 2813,
+          "solve_time_seconds": null,
+          "passed_count": 0,
+          "total_count": 2,
+          "created_at": "2026-06-23T18:12:29.446003+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_mixed_lengths",
+                "order": 1
+              },
+              "status": "wrong_answer",
+              "stdout": "15",
+              "stderr": "",
+              "expected_output": "29",
+              "execution_time_ms": 149
+            },
+            {
+              "test_case": {
+                "name": "sample_three_ropes",
+                "order": 2
+              },
+              "status": "wrong_answer",
+              "stdout": "6",
+              "stderr": "",
+              "expected_output": "9",
+              "execution_time_ms": 151
+            }
+          ]
+        },
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Solution {\n    public int solve(int[] ropes) {\n        // Write your code here\n        PriorityQueue<Integer> minHeap = new PriorityQueue<>();\n        minHeap.offer(0);\n        Arrays.sort(ropes);\n\n        for(int rope: ropes) {\n            minHeap.offer(rope);\n            minHeap.offer(minHeap.poll() + minHeap.poll());\n        }\n\n        int ans = 0;\n        while(minHeap.isEmpty()) {\n            ans += minHeap.poll();\n        }\n        return ans;\n    }\n}",
+          "status": "wrong_answer",
+          "stdout": "0\n0",
+          "stderr": "",
+          "execution_time_ms": 2518,
+          "solve_time_seconds": null,
+          "passed_count": 0,
+          "total_count": 2,
+          "created_at": "2026-06-23T18:14:49.972312+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_mixed_lengths",
+                "order": 1
+              },
+              "status": "wrong_answer",
+              "stdout": "0",
+              "stderr": "",
+              "expected_output": "29",
+              "execution_time_ms": 154
+            },
+            {
+              "test_case": {
+                "name": "sample_three_ropes",
+                "order": 2
+              },
+              "status": "wrong_answer",
+              "stdout": "0",
+              "stderr": "",
+              "expected_output": "9",
+              "execution_time_ms": 150
+            }
+          ]
+        },
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Solution {\n    public int solve(int[] ropes) {\n        // Write your code here\n        PriorityQueue<Integer> minHeap = new PriorityQueue<>();\n        minHeap.offer(0);\n        Arrays.sort(ropes);\n\n        for(int rope: ropes) {\n            minHeap.offer(rope);\n            minHeap.offer(minHeap.poll() + minHeap.poll());\n        }\n\n        int ans = 0;\n        while(!minHeap.isEmpty()) {\n            ans += minHeap.poll();\n        }\n        return ans;\n    }\n}",
+          "status": "wrong_answer",
+          "stdout": "15\n6",
+          "stderr": "",
+          "execution_time_ms": 2055,
+          "solve_time_seconds": null,
+          "passed_count": 0,
+          "total_count": 2,
+          "created_at": "2026-06-23T18:15:02.182002+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_mixed_lengths",
+                "order": 1
+              },
+              "status": "wrong_answer",
+              "stdout": "15",
+              "stderr": "",
+              "expected_output": "29",
+              "execution_time_ms": 156
+            },
+            {
+              "test_case": {
+                "name": "sample_three_ropes",
+                "order": 2
+              },
+              "status": "wrong_answer",
+              "stdout": "6",
+              "stderr": "",
+              "expected_output": "9",
+              "execution_time_ms": 150
+            }
+          ]
+        },
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Solution {\n    public int solve(int[] ropes) {\n        // Write your code here\n        PriorityQueue<Integer> minHeap = new PriorityQueue<>();\n        //minHeap.offer(0);\n        Arrays.sort(ropes);\n\n        for(int rope: ropes) {\n            minHeap.offer(rope);\n            minHeap.offer(minHeap.poll() + minHeap.poll());\n        }\n\n        return ans;\n    }\n}",
+          "status": "runtime_error",
+          "stdout": "",
+          "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmp935_j4ho/Solution.java:15: error: cannot find symbol\n        return ans;\n               ^\n  symbol:   variable ans\n  location: class Solution\n1 error\n",
+          "execution_time_ms": 1670,
+          "solve_time_seconds": null,
+          "passed_count": 0,
+          "total_count": 2,
+          "created_at": "2026-06-23T18:15:16.970075+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_mixed_lengths",
+                "order": 1
+              },
+              "status": "runtime_error",
+              "stdout": "",
+              "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmp935_j4ho/Solution.java:15: error: cannot find symbol\n        return ans;\n               ^\n  symbol:   variable ans\n  location: class Solution\n1 error\n",
+              "expected_output": "29",
+              "execution_time_ms": 1657
+            },
+            {
+              "test_case": {
+                "name": "sample_three_ropes",
+                "order": 2
+              },
+              "status": "runtime_error",
+              "stdout": "",
+              "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmp935_j4ho/Solution.java:15: error: cannot find symbol\n        return ans;\n               ^\n  symbol:   variable ans\n  location: class Solution\n1 error\n",
+              "expected_output": "9",
+              "execution_time_ms": 1657
+            }
+          ]
+        },
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Solution {\n    public int solve(int[] ropes) {\n        // Write your code here\n        PriorityQueue<Integer> minHeap = new PriorityQueue<>();\n        //minHeap.offer(0);\n        Arrays.sort(ropes);\n\n        for(int rope: ropes) {\n            minHeap.offer(rope);\n            minHeap.offer(minHeap.poll() + minHeap.poll());\n        }\n\n        return minHeap.poll();\n    }\n}",
+          "status": "runtime_error",
+          "stdout": "",
+          "stderr": "Exception in thread \"main\" java.lang.reflect.InvocationTargetException\n\tat java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)\n\tat java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)\n\tat java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)\n\tat java.base/java.lang.reflect.Method.invoke(Method.java:568)\n\tat Harness.main(Harness.java:29)\nCaused by: java.lang.NullPointerException: Cannot invoke \"java.lang.Integer.intValue()\" because the return value of \"java.util.PriorityQueue.poll()\" is null\n\tat Solution.solve(Solution.java:12)\n\t... 5 more\n\nException in thread \"main\" java.lang.reflect.InvocationTargetException\n\tat java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)\n\tat java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)\n\tat java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)\n\tat java.base/java.lang.reflect.Method.invoke(Method.java:568)\n\tat Harness.main(Harness.java:29)\nCaused by: java.lang.NullPointerException: Cannot invoke \"java.lang.Integer.intValue()\" because the return value of \"java.util.PriorityQueue.poll()\" is null\n\tat Solution.solve(Solution.java:12)\n\t... 5 more\n",
+          "execution_time_ms": 2014,
+          "solve_time_seconds": null,
+          "passed_count": 0,
+          "total_count": 2,
+          "created_at": "2026-06-23T18:15:26.205562+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_mixed_lengths",
+                "order": 1
+              },
+              "status": "runtime_error",
+              "stdout": "",
+              "stderr": "Exception in thread \"main\" java.lang.reflect.InvocationTargetException\n\tat java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)\n\tat java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)\n\tat java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)\n\tat java.base/java.lang.reflect.Method.invoke(Method.java:568)\n\tat Harness.main(Harness.java:29)\nCaused by: java.lang.NullPointerException: Cannot invoke \"java.lang.Integer.intValue()\" because the return value of \"java.util.PriorityQueue.poll()\" is null\n\tat Solution.solve(Solution.java:12)\n\t... 5 more\n",
+              "expected_output": "29",
+              "execution_time_ms": 157
+            },
+            {
+              "test_case": {
+                "name": "sample_three_ropes",
+                "order": 2
+              },
+              "status": "runtime_error",
+              "stdout": "",
+              "stderr": "Exception in thread \"main\" java.lang.reflect.InvocationTargetException\n\tat java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)\n\tat java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)\n\tat java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)\n\tat java.base/java.lang.reflect.Method.invoke(Method.java:568)\n\tat Harness.main(Harness.java:29)\nCaused by: java.lang.NullPointerException: Cannot invoke \"java.lang.Integer.intValue()\" because the return value of \"java.util.PriorityQueue.poll()\" is null\n\tat Solution.solve(Solution.java:12)\n\t... 5 more\n",
+              "expected_output": "9",
+              "execution_time_ms": 160
+            }
+          ]
+        },
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Solution {\n    public int solve(int[] ropes) {\n        // Write your code here\n        PriorityQueue<Integer> minHeap = new PriorityQueue<>();\n        minHeap.offer(0);\n        Arrays.sort(ropes);\n\n        for(int rope: ropes) {\n            minHeap.offer(rope);\n            minHeap.offer(minHeap.poll() + minHeap.poll());\n        }\n\n        return minHeap.poll();\n    }\n}",
+          "status": "wrong_answer",
+          "stdout": "15\n6",
+          "stderr": "",
+          "execution_time_ms": 2056,
+          "solve_time_seconds": null,
+          "passed_count": 0,
+          "total_count": 2,
+          "created_at": "2026-06-23T18:15:39.510475+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_mixed_lengths",
+                "order": 1
+              },
+              "status": "wrong_answer",
+              "stdout": "15",
+              "stderr": "",
+              "expected_output": "29",
+              "execution_time_ms": 158
+            },
+            {
+              "test_case": {
+                "name": "sample_three_ropes",
+                "order": 2
+              },
+              "status": "wrong_answer",
+              "stdout": "6",
+              "stderr": "",
+              "expected_output": "9",
+              "execution_time_ms": 167
+            }
+          ]
+        },
+        {
+          "kind": "submit",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Solution {\n    public int solve(int[] ropes) {\n        // Write your code here\n        PriorityQueue<Integer> minHeap = new PriorityQueue<>();\n        minHeap.offer(0);\n        Arrays.sort(ropes);\n\n        for(int rope: ropes) {\n            minHeap.offer(rope);\n            minHeap.offer(minHeap.poll() + minHeap.poll());\n        }\n\n        return minHeap.poll();\n    }\n}",
+          "status": "wrong_answer",
+          "stdout": "15\n6\n10\n13\n20\n15\n25\n5\n103\n20\n34\n50000",
+          "stderr": "",
+          "execution_time_ms": 3534,
+          "solve_time_seconds": null,
+          "passed_count": 1,
+          "total_count": 12,
+          "created_at": "2026-06-23T18:15:44.725317+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_mixed_lengths",
+                "order": 1
+              },
+              "status": "wrong_answer",
+              "stdout": "15",
+              "stderr": "",
+              "expected_output": "29",
+              "execution_time_ms": 164
+            },
+            {
+              "test_case": {
+                "name": "sample_three_ropes",
+                "order": 2
+              },
+              "status": "wrong_answer",
+              "stdout": "6",
+              "stderr": "",
+              "expected_output": "9",
+              "execution_time_ms": 176
+            },
+            {
+              "test_case": {
+                "name": "single_rope",
+                "order": 3
+              },
+              "status": "wrong_answer",
+              "stdout": "10",
+              "stderr": "",
+              "expected_output": "0",
+              "execution_time_ms": 149
+            },
+            {
+              "test_case": {
+                "name": "two_ropes",
+                "order": 4
+              },
+              "status": "accepted",
+              "stdout": "13",
+              "stderr": "",
+              "expected_output": "13",
+              "execution_time_ms": 151
+            },
+            {
+              "test_case": {
+                "name": "all_equal_ropes",
+                "order": 5
+              },
+              "status": "wrong_answer",
+              "stdout": "20",
+              "stderr": "",
+              "expected_output": "40",
+              "execution_time_ms": 147
+            },
+            {
+              "test_case": {
+                "name": "already_sorted",
+                "order": 6
+              },
+              "status": "wrong_answer",
+              "stdout": "15",
+              "stderr": "",
+              "expected_output": "25",
+              "execution_time_ms": 143
+            },
+            {
+              "test_case": {
+                "name": "reverse_sorted",
+                "order": 7
+              },
+              "status": "wrong_answer",
+              "stdout": "25",
+              "stderr": "",
+              "expected_output": "55",
+              "execution_time_ms": 152
+            },
+            {
+              "test_case": {
+                "name": "many_small_duplicates",
+                "order": 8
+              },
+              "status": "wrong_answer",
+              "stdout": "5",
+              "stderr": "",
+              "expected_output": "12",
+              "execution_time_ms": 156
+            },
+            {
+              "test_case": {
+                "name": "one_large_many_small",
+                "order": 9
+              },
+              "status": "wrong_answer",
+              "stdout": "103",
+              "stderr": "",
+              "expected_output": "108",
+              "execution_time_ms": 142
+            },
+            {
+              "test_case": {
+                "name": "varied_lengths",
+                "order": 10
+              },
+              "status": "wrong_answer",
+              "stdout": "20",
+              "stderr": "",
+              "expected_output": "40",
+              "execution_time_ms": 154
+            },
+            {
+              "test_case": {
+                "name": "larger_case",
+                "order": 11
+              },
+              "status": "wrong_answer",
+              "stdout": "34",
+              "stderr": "",
+              "expected_output": "75",
+              "execution_time_ms": 148
+            },
+            {
+              "test_case": {
+                "name": "maximumish_values",
+                "order": 12
+              },
+              "status": "wrong_answer",
+              "stdout": "50000",
+              "stderr": "",
+              "expected_output": "120000",
+              "execution_time_ms": 146
+            }
+          ]
+        },
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Solution {\n    public int solve(int[] ropes) {\n        // Write your code here\n        PriorityQueue<Integer> minHeap = new PriorityQueue<>();\n\n        for(int rope: ropes) {\n            minHeap.offer(rope);\n        }\n\n        while(minHeap.size() > 1) {\n            minHeap.offer(minHeap.poll() + minHeap.poll());\n        }\n        \n        return minHeap.poll();\n    }\n}",
+          "status": "wrong_answer",
+          "stdout": "15\n6",
+          "stderr": "",
+          "execution_time_ms": 2930,
+          "solve_time_seconds": null,
+          "passed_count": 0,
+          "total_count": 2,
+          "created_at": "2026-06-23T18:19:08.149817+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_mixed_lengths",
+                "order": 1
+              },
+              "status": "wrong_answer",
+              "stdout": "15",
+              "stderr": "",
+              "expected_output": "29",
+              "execution_time_ms": 157
+            },
+            {
+              "test_case": {
+                "name": "sample_three_ropes",
+                "order": 2
+              },
+              "status": "wrong_answer",
+              "stdout": "6",
+              "stderr": "",
+              "expected_output": "9",
+              "execution_time_ms": 151
+            }
+          ]
+        },
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Solution {\n    public int solve(int[] ropes) {\n        // Write your code here\n        PriorityQueue<Integer> minHeap = new PriorityQueue<>();\n\n        for(int rope: ropes) {\n            minHeap.offer(rope);\n        }\n\n        int total = 0;\n        while(minHeap.size() > 1) {\n            int first = minHeap.poll();\n            int second = minHeap.poll();\n            int cost = first + second;\n            total += cost;\n            minHeap.offer(cost);\n        }\n\n        return total;\n    }\n}",
+          "status": "accepted",
+          "stdout": "29\n9",
+          "stderr": "",
+          "execution_time_ms": 1808,
+          "solve_time_seconds": null,
+          "passed_count": 2,
+          "total_count": 2,
+          "created_at": "2026-06-23T18:20:29.838706+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_mixed_lengths",
+                "order": 1
+              },
+              "status": "accepted",
+              "stdout": "29",
+              "stderr": "",
+              "expected_output": "29",
+              "execution_time_ms": 170
+            },
+            {
+              "test_case": {
+                "name": "sample_three_ropes",
+                "order": 2
+              },
+              "status": "accepted",
+              "stdout": "9",
+              "stderr": "",
+              "expected_output": "9",
+              "execution_time_ms": 179
+            }
+          ]
+        },
+        {
+          "kind": "submit",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Solution {\n    public int solve(int[] ropes) {\n        // Write your code here\n        PriorityQueue<Integer> minHeap = new PriorityQueue<>();\n\n        for(int rope: ropes) {\n            minHeap.offer(rope);\n        }\n\n        int total = 0;\n        while(minHeap.size() > 1) {\n            int first = minHeap.poll();\n            int second = minHeap.poll();\n            int cost = first + second;\n            total += cost;\n            minHeap.offer(cost);\n        }\n\n        return total;\n    }\n}",
+          "status": "wrong_answer",
+          "stdout": "29\n9\n0\n13\n40\n25\n54\n12\n108\n40\n72\n120000",
+          "stderr": "",
+          "execution_time_ms": 4233,
+          "solve_time_seconds": null,
+          "passed_count": 10,
+          "total_count": 12,
+          "created_at": "2026-06-23T18:20:39.091277+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_mixed_lengths",
+                "order": 1
+              },
+              "status": "accepted",
+              "stdout": "29",
+              "stderr": "",
+              "expected_output": "29",
+              "execution_time_ms": 202
+            },
+            {
+              "test_case": {
+                "name": "sample_three_ropes",
+                "order": 2
+              },
+              "status": "accepted",
+              "stdout": "9",
+              "stderr": "",
+              "expected_output": "9",
+              "execution_time_ms": 223
+            },
+            {
+              "test_case": {
+                "name": "single_rope",
+                "order": 3
+              },
+              "status": "accepted",
+              "stdout": "0",
+              "stderr": "",
+              "expected_output": "0",
+              "execution_time_ms": 244
+            },
+            {
+              "test_case": {
+                "name": "two_ropes",
+                "order": 4
+              },
+              "status": "accepted",
+              "stdout": "13",
+              "stderr": "",
+              "expected_output": "13",
+              "execution_time_ms": 191
+            },
+            {
+              "test_case": {
+                "name": "all_equal_ropes",
+                "order": 5
+              },
+              "status": "accepted",
+              "stdout": "40",
+              "stderr": "",
+              "expected_output": "40",
+              "execution_time_ms": 151
+            },
+            {
+              "test_case": {
+                "name": "already_sorted",
+                "order": 6
+              },
+              "status": "accepted",
+              "stdout": "25",
+              "stderr": "",
+              "expected_output": "25",
+              "execution_time_ms": 181
+            },
+            {
+              "test_case": {
+                "name": "reverse_sorted",
+                "order": 7
+              },
+              "status": "wrong_answer",
+              "stdout": "54",
+              "stderr": "",
+              "expected_output": "55",
+              "execution_time_ms": 154
+            },
+            {
+              "test_case": {
+                "name": "many_small_duplicates",
+                "order": 8
+              },
+              "status": "accepted",
+              "stdout": "12",
+              "stderr": "",
+              "expected_output": "12",
+              "execution_time_ms": 149
+            },
+            {
+              "test_case": {
+                "name": "one_large_many_small",
+                "order": 9
+              },
+              "status": "accepted",
+              "stdout": "108",
+              "stderr": "",
+              "expected_output": "108",
+              "execution_time_ms": 147
+            },
+            {
+              "test_case": {
+                "name": "varied_lengths",
+                "order": 10
+              },
+              "status": "accepted",
+              "stdout": "40",
+              "stderr": "",
+              "expected_output": "40",
+              "execution_time_ms": 154
+            },
+            {
+              "test_case": {
+                "name": "larger_case",
+                "order": 11
+              },
+              "status": "wrong_answer",
+              "stdout": "72",
+              "stderr": "",
+              "expected_output": "75",
+              "execution_time_ms": 155
+            },
+            {
+              "test_case": {
+                "name": "maximumish_values",
+                "order": 12
+              },
+              "status": "accepted",
+              "stdout": "120000",
+              "stderr": "",
+              "expected_output": "120000",
+              "execution_time_ms": 156
+            }
+          ]
+        },
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Solution {\n    public int solve(int[] ropes) {\n        // Write your code here\n        PriorityQueue<Integer> minHeap = new PriorityQueue<>();\n\n        for(int rope: ropes) {\n            minHeap.offer(rope);\n        }\n\n        int total = 0;\n        while(minHeap.size() > 1) {\n            int first = minHeap.poll();\n            int second = minHeap.poll();\n            int cost = first + second;\n            total += cost;\n            minHeap.offer(cost);\n        }\n\n        return total;\n    }\n}",
+          "status": "accepted",
+          "stdout": "29\n9",
+          "stderr": "",
+          "execution_time_ms": 2256,
+          "solve_time_seconds": null,
+          "passed_count": 2,
+          "total_count": 2,
+          "created_at": "2026-06-24T03:06:43.239377+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_mixed_lengths",
+                "order": 1
+              },
+              "status": "accepted",
+              "stdout": "29",
+              "stderr": "",
+              "expected_output": "29",
+              "execution_time_ms": 170
+            },
+            {
+              "test_case": {
+                "name": "sample_three_ropes",
+                "order": 2
+              },
+              "status": "accepted",
+              "stdout": "9",
+              "stderr": "",
+              "expected_output": "9",
+              "execution_time_ms": 169
+            }
+          ]
+        },
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Solution {\n    public int solve(int[] ropes) {\n        // Write your code here\n        PriorityQueue<Integer> minHeap = new PriorityQueue<>();\n\n        for(int rope: ropes) {\n            minHeap.offer(rope);\n        }\n\n        int total = 0;\n        while(minHeap.size() > 1) {\n            int first = minHeap.poll();\n            int second = minHeap.poll();\n            int cost = first + second;\n            total += cost;\n            minHeap.offer(cost);\n        }\n\n        return total;\n    }\n}",
+          "status": "accepted",
+          "stdout": "29\n9",
+          "stderr": "",
+          "execution_time_ms": 3946,
+          "solve_time_seconds": null,
+          "passed_count": 2,
+          "total_count": 2,
+          "created_at": "2026-06-24T03:06:53.356227+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_mixed_lengths",
+                "order": 1
+              },
+              "status": "accepted",
+              "stdout": "29",
+              "stderr": "",
+              "expected_output": "29",
+              "execution_time_ms": 175
+            },
+            {
+              "test_case": {
+                "name": "sample_three_ropes",
+                "order": 2
+              },
+              "status": "accepted",
+              "stdout": "9",
+              "stderr": "",
+              "expected_output": "9",
+              "execution_time_ms": 169
+            }
+          ]
+        },
+        {
+          "kind": "submit",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Solution {\n    public int solve(int[] ropes) {\n        // Write your code here\n        PriorityQueue<Integer> minHeap = new PriorityQueue<>();\n\n        for(int rope: ropes) {\n            minHeap.offer(rope);\n        }\n\n        int total = 0;\n        while(minHeap.size() > 1) {\n            int first = minHeap.poll();\n            int second = minHeap.poll();\n            int cost = first + second;\n            total += cost;\n            minHeap.offer(cost);\n        }\n\n        return total;\n    }\n}",
+          "status": "wrong_answer",
+          "stdout": "29\n9\n0\n13\n40\n25\n54\n12\n108\n40\n72\n120000",
+          "stderr": "",
+          "execution_time_ms": 4201,
+          "solve_time_seconds": null,
+          "passed_count": 10,
+          "total_count": 12,
+          "created_at": "2026-06-24T03:07:00.347682+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_mixed_lengths",
+                "order": 1
+              },
+              "status": "accepted",
+              "stdout": "29",
+              "stderr": "",
+              "expected_output": "29",
+              "execution_time_ms": 162
+            },
+            {
+              "test_case": {
+                "name": "sample_three_ropes",
+                "order": 2
+              },
+              "status": "accepted",
+              "stdout": "9",
+              "stderr": "",
+              "expected_output": "9",
+              "execution_time_ms": 151
+            },
+            {
+              "test_case": {
+                "name": "single_rope",
+                "order": 3
+              },
+              "status": "accepted",
+              "stdout": "0",
+              "stderr": "",
+              "expected_output": "0",
+              "execution_time_ms": 149
+            },
+            {
+              "test_case": {
+                "name": "two_ropes",
+                "order": 4
+              },
+              "status": "accepted",
+              "stdout": "13",
+              "stderr": "",
+              "expected_output": "13",
+              "execution_time_ms": 158
+            },
+            {
+              "test_case": {
+                "name": "all_equal_ropes",
+                "order": 5
+              },
+              "status": "accepted",
+              "stdout": "40",
+              "stderr": "",
+              "expected_output": "40",
+              "execution_time_ms": 150
+            },
+            {
+              "test_case": {
+                "name": "already_sorted",
+                "order": 6
+              },
+              "status": "accepted",
+              "stdout": "25",
+              "stderr": "",
+              "expected_output": "25",
+              "execution_time_ms": 178
+            },
+            {
+              "test_case": {
+                "name": "reverse_sorted",
+                "order": 7
+              },
+              "status": "wrong_answer",
+              "stdout": "54",
+              "stderr": "",
+              "expected_output": "55",
+              "execution_time_ms": 157
+            },
+            {
+              "test_case": {
+                "name": "many_small_duplicates",
+                "order": 8
+              },
+              "status": "accepted",
+              "stdout": "12",
+              "stderr": "",
+              "expected_output": "12",
+              "execution_time_ms": 157
+            },
+            {
+              "test_case": {
+                "name": "one_large_many_small",
+                "order": 9
+              },
+              "status": "accepted",
+              "stdout": "108",
+              "stderr": "",
+              "expected_output": "108",
+              "execution_time_ms": 145
+            },
+            {
+              "test_case": {
+                "name": "varied_lengths",
+                "order": 10
+              },
+              "status": "accepted",
+              "stdout": "40",
+              "stderr": "",
+              "expected_output": "40",
+              "execution_time_ms": 148
+            },
+            {
+              "test_case": {
+                "name": "larger_case",
+                "order": 11
+              },
+              "status": "wrong_answer",
+              "stdout": "72",
+              "stderr": "",
+              "expected_output": "75",
+              "execution_time_ms": 155
+            },
+            {
+              "test_case": {
+                "name": "maximumish_values",
+                "order": 12
+              },
+              "status": "accepted",
+              "stdout": "120000",
+              "stderr": "",
+              "expected_output": "120000",
+              "execution_time_ms": 152
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Downstream Circuit Breaker",
+      "slug": "downstream-circuit-breaker",
+      "description": "A web client sends requests to two downstream services, B and C. Each service has its own circuit breaker. Your task is to simulate the circuit breaker behavior and return the result of each request.\n\nFunction signature:\nJava: public List<String> solve(int[] timestamps, String[] services, String[] results)\nPython: def solve(timestamps, services, results)\n\nArguments:\n- timestamps[i] is the timestamp in seconds for the i-th request.\n- services[i] is the downstream service for the i-th request. It will be either \"B\" or \"C\".\n- results[i] is the actual downstream result if the request is allowed. It will be either \"OK\" or \"FAIL\".\n\nReturn value:\nReturn a list of strings with one entry per request: \"OK\", \"FAIL\", or \"BLOCKED\".\n\nCircuit breaker rules:\n- Each service has an independent circuit breaker.\n- Every circuit starts in CLOSED state.\n- In CLOSED state, all requests are allowed.\n- When an allowed request fails in CLOSED state, record its timestamp.\n- If a service has 3 or more failures within the last 600 seconds, including the current failure, its circuit moves to OPEN.\n- A failure at time t is inside the sliding window if its timestamp is greater than or equal to t - 600.\n- In OPEN state, requests are blocked.\n- An OPEN circuit becomes HALF_OPEN when at least 300 seconds have passed since it moved to OPEN.\n- In HALF_OPEN state, exactly one request is allowed.\n- If the HALF_OPEN request succeeds, return \"OK\", move to CLOSED, and clear previous failure history for that service.\n- If the HALF_OPEN request fails, return \"FAIL\", move back to OPEN, and reset the open timestamp to the current timestamp.\n\nConstraints:\n- 1 <= timestamps.length <= 100000\n- timestamps.length == services.length == results.length\n- 0 <= timestamps[i] <= 1000000000\n- timestamps are non-decreasing\n- services[i] is either \"B\" or \"C\"\n- results[i] is either \"OK\" or \"FAIL\"\n\nExample 1:\nInput: timestamps = [0,100,200,250,499,500], services = [\"B\",\"B\",\"B\",\"B\",\"B\",\"B\"], results = [\"FAIL\",\"FAIL\",\"FAIL\",\"OK\",\"OK\",\"OK\"]\nOutput: [\"FAIL\",\"FAIL\",\"FAIL\",\"BLOCKED\",\"BLOCKED\",\"OK\"]\nExplanation: Service B opens at time 200 after 3 failures. Requests at 250 and 499 are blocked. At time 500, the circuit becomes HALF_OPEN and succeeds.\n\nExample 2:\nInput: timestamps = [0,10,20,30,40,41,42], services = [\"B\",\"C\",\"B\",\"C\",\"B\",\"C\",\"C\"], results = [\"FAIL\",\"FAIL\",\"FAIL\",\"OK\",\"FAIL\",\"FAIL\",\"FAIL\"]\nOutput: [\"FAIL\",\"FAIL\",\"FAIL\",\"OK\",\"FAIL\",\"FAIL\",\"FAIL\"]\nExplanation: Services B and C are tracked independently.",
+      "difficulty": "medium",
+      "starter_code": "import java.util.*;\n\nclass Solution {\n    public List<String> solve(int[] timestamps, String[] services, String[] results) {\n        return new ArrayList<>();\n    }\n}",
+      "java_starter_code": "import java.util.*;\n\nclass Solution {\n    public List<String> solve(int[] timestamps, String[] services, String[] results) {\n        return new ArrayList<>();\n    }\n}",
+      "python_starter_code": "def solve(timestamps, services, results):\n    pass",
+      "execution_mode": "function",
+      "function_name": "solve",
+      "is_active": true,
+      "created_at": "2026-06-23T07:40:17.641494+00:00",
+      "updated_at": "2026-06-23T07:40:17.641586+00:00",
+      "test_cases": [
+        {
+          "name": "sample_opens_and_blocks",
+          "stdin": "",
+          "function_args": [
+            [
+              0,
+              100,
+              200,
+              250,
+              499,
+              500
+            ],
+            [
+              "B",
+              "B",
+              "B",
+              "B",
+              "B",
+              "B"
+            ],
+            [
+              "FAIL",
+              "FAIL",
+              "FAIL",
+              "OK",
+              "OK",
+              "OK"
+            ]
+          ],
+          "expected_value": [
+            "FAIL",
+            "FAIL",
+            "FAIL",
+            "BLOCKED",
+            "BLOCKED",
+            "OK"
+          ],
+          "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"BLOCKED\",\"BLOCKED\",\"OK\"]",
+          "is_sample": true,
+          "is_hidden": false,
+          "order": 1,
+          "created_at": "2026-06-23T07:40:17.644628+00:00"
+        },
+        {
+          "name": "sample_independent_services",
+          "stdin": "",
+          "function_args": [
+            [
+              0,
+              10,
+              20,
+              30,
+              40,
+              41,
+              42
+            ],
+            [
+              "B",
+              "C",
+              "B",
+              "C",
+              "B",
+              "C",
+              "C"
+            ],
+            [
+              "FAIL",
+              "FAIL",
+              "FAIL",
+              "OK",
+              "FAIL",
+              "FAIL",
+              "FAIL"
+            ]
+          ],
+          "expected_value": [
+            "FAIL",
+            "FAIL",
+            "FAIL",
+            "OK",
+            "FAIL",
+            "FAIL",
+            "FAIL"
+          ],
+          "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"OK\",\"FAIL\",\"FAIL\",\"FAIL\"]",
+          "is_sample": true,
+          "is_hidden": false,
+          "order": 2,
+          "created_at": "2026-06-23T07:40:17.651528+00:00"
+        }
+      ],
+      "submissions": [
+        {
+          "kind": "run",
+          "language": "python",
+          "code": "from collections import deque\n\nWINDOW = 600\nMAX_REQUESTS = 3\nHALF_OPEN_WINDOW = 300\n\ndef solve(timestamps, services, results):\n\n    breakers = {\n        'B': {\n            'state': 'closed',\n            'failures': deque(),\n            'open_time': None,\n        },\n        'C': {\n            'state': 'closed',\n            'failures':  deque(),\n            'open_time': None\n        }\n    }\n    \n    answers = []\n\n    for i, timestamp in enumerate(timestamps):\n        timestamp = int(timestamp)\n        service = services[i]\n        result  = result[i]\n        \n        breaker = breakers[service]\n\n        if breaker['state'] == \"open\" and timestamp - breaker['open_time'] >= HALF_OPEN_WINDOW:\n            breaker['state'] = \"half_open\"\n        \n        if breaker['state'] == \"open\":\n            answers.append(\"BLOCKED\")\n            continue\n\n        if breaker['state'] == \"half_open\":\n            if result == \"OK\":\n                breaker[\"state\"] = \"closed\"\n                breaker[\"failures\"].clear()\n                answers.append(\"OK\")\n            else:\n                breaker['state'] = \"open\"\n                breaker['open_time'] = timestamp\n                answers.append(\"FAIL\")\n            continue\n\n        if result == \"OK\":\n            answers.append(\"OK\")\n        else:\n            failures = breaker['failures']\n\n            while failures and failures[0] < timestamp - WINDOW:\n                failures.popleft()\n            \n            failures.append(timestamp)\n\n            if len(failures) >= 3:\n                breaker[\"state\"] = \"open\"\n                breaker[\"open_time\"] = timestamp\n\n            answers.append(\"FAIL\")\n    \n    print(\"\\n\".join(answers))\n",
+          "status": "runtime_error",
+          "stdout": "",
+          "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 79, in <module>\n  File \"<string>\", line 76, in __ci_main\n  File \"<string>\", line 30, in solve\nUnboundLocalError: cannot access local variable 'result' where it is not associated with a value\n\nTraceback (most recent call last):\n  File \"<string>\", line 79, in <module>\n  File \"<string>\", line 76, in __ci_main\n  File \"<string>\", line 30, in solve\nUnboundLocalError: cannot access local variable 'result' where it is not associated with a value\n",
+          "execution_time_ms": 257,
+          "solve_time_seconds": null,
+          "passed_count": 0,
+          "total_count": 2,
+          "created_at": "2026-06-23T10:53:16.684375+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_opens_and_blocks",
+                "order": 1
+              },
+              "status": "runtime_error",
+              "stdout": "",
+              "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 79, in <module>\n  File \"<string>\", line 76, in __ci_main\n  File \"<string>\", line 30, in solve\nUnboundLocalError: cannot access local variable 'result' where it is not associated with a value\n",
+              "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"BLOCKED\",\"BLOCKED\",\"OK\"]",
+              "execution_time_ms": 136
+            },
+            {
+              "test_case": {
+                "name": "sample_independent_services",
+                "order": 2
+              },
+              "status": "runtime_error",
+              "stdout": "",
+              "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 79, in <module>\n  File \"<string>\", line 76, in __ci_main\n  File \"<string>\", line 30, in solve\nUnboundLocalError: cannot access local variable 'result' where it is not associated with a value\n",
+              "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"OK\",\"FAIL\",\"FAIL\",\"FAIL\"]",
+              "execution_time_ms": 112
+            }
+          ]
+        },
+        {
+          "kind": "run",
+          "language": "python",
+          "code": "from collections import deque\n\nWINDOW = 600\nMAX_REQUESTS = 3\nHALF_OPEN_WINDOW = 300\n\ndef solve(timestamps, services, results):\n\n    breakers = {\n        'B': {\n            'state': 'closed',\n            'failures': deque(),\n            'open_time': None,\n        },\n        'C': {\n            'state': 'closed',\n            'failures':  deque(),\n            'open_time': None\n        }\n    }\n    \n    answers = []\n\n    for i, timestamp in enumerate(timestamps):\n        timestamp = int(timestamp)\n        service = services[i]\n        result  = results[i]\n        \n        breaker = breakers[service]\n\n        if breaker['state'] == \"open\" and timestamp - breaker['open_time'] >= HALF_OPEN_WINDOW:\n            breaker['state'] = \"half_open\"\n        \n        if breaker['state'] == \"open\":\n            answers.append(\"BLOCKED\")\n            continue\n\n        if breaker['state'] == \"half_open\":\n            if result == \"OK\":\n                breaker[\"state\"] = \"closed\"\n                breaker[\"failures\"].clear()\n                answers.append(\"OK\")\n            else:\n                breaker['state'] = \"open\"\n                breaker['open_time'] = timestamp\n                answers.append(\"FAIL\")\n            continue\n\n        if result == \"OK\":\n            answers.append(\"OK\")\n        else:\n            failures = breaker['failures']\n\n            while failures and failures[0] < timestamp - WINDOW:\n                failures.popleft()\n            \n            failures.append(timestamp)\n\n            if len(failures) >= 3:\n                breaker[\"state\"] = \"open\"\n                breaker[\"open_time\"] = timestamp\n\n            answers.append(\"FAIL\")\n    \n    print(\"\\n\".join(answers))\n",
+          "status": "wrong_answer",
+          "stdout": "FAIL\nFAIL\nFAIL\nBLOCKED\nBLOCKED\nOK\nnull\n\nFAIL\nFAIL\nFAIL\nOK\nFAIL\nFAIL\nFAIL\nnull\n",
+          "stderr": "",
+          "execution_time_ms": 187,
+          "solve_time_seconds": null,
+          "passed_count": 0,
+          "total_count": 2,
+          "created_at": "2026-06-23T10:53:27.465115+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_opens_and_blocks",
+                "order": 1
+              },
+              "status": "wrong_answer",
+              "stdout": "FAIL\nFAIL\nFAIL\nBLOCKED\nBLOCKED\nOK\nnull\n",
+              "stderr": "",
+              "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"BLOCKED\",\"BLOCKED\",\"OK\"]",
+              "execution_time_ms": 96
+            },
+            {
+              "test_case": {
+                "name": "sample_independent_services",
+                "order": 2
+              },
+              "status": "wrong_answer",
+              "stdout": "FAIL\nFAIL\nFAIL\nOK\nFAIL\nFAIL\nFAIL\nnull\n",
+              "stderr": "",
+              "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"OK\",\"FAIL\",\"FAIL\",\"FAIL\"]",
+              "execution_time_ms": 81
+            }
+          ]
+        },
+        {
+          "kind": "run",
+          "language": "python",
+          "code": "from collections import deque\n\nWINDOW = 600\nMAX_REQUESTS = 3\nHALF_OPEN_WINDOW = 300\n\ndef solve(timestamps, services, results):\n\n    breakers = {\n        'B': {\n            'state': 'closed',\n            'failures': deque(),\n            'open_time': None,\n        },\n        'C': {\n            'state': 'closed',\n            'failures':  deque(),\n            'open_time': None\n        }\n    }\n    \n    answers = []\n\n    for i, timestamp in enumerate(timestamps):\n        timestamp = int(timestamp)\n        service = services[i]\n        result  = results[i]\n        \n        breaker = breakers[service]\n\n        if breaker['state'] == \"open\" and timestamp - breaker['open_time'] >= HALF_OPEN_WINDOW:\n            breaker['state'] = \"half_open\"\n        \n        if breaker['state'] == \"open\":\n            answers.append(\"BLOCKED\")\n            continue\n\n        if breaker['state'] == \"half_open\":\n            if result == \"OK\":\n                breaker[\"state\"] = \"closed\"\n                breaker[\"failures\"].clear()\n                answers.append(\"OK\")\n            else:\n                breaker['state'] = \"open\"\n                breaker['open_time'] = timestamp\n                answers.append(\"FAIL\")\n            continue\n\n        if result == \"OK\":\n            answers.append(\"OK\")\n        else:\n            failures = breaker['failures']\n\n            while failures and failures[0] < timestamp - WINDOW:\n                failures.popleft()\n            \n            failures.append(timestamp)\n\n            if len(failures) >= 3:\n                breaker[\"state\"] = \"open\"\n                breaker[\"open_time\"] = timestamp\n\n            answers.append(\"FAIL\")\n    \n    return answers\n",
+          "status": "accepted",
+          "stdout": "[\"FAIL\",\"FAIL\",\"FAIL\",\"BLOCKED\",\"BLOCKED\",\"OK\"]\n\n[\"FAIL\",\"FAIL\",\"FAIL\",\"OK\",\"FAIL\",\"FAIL\",\"FAIL\"]\n",
+          "stderr": "",
+          "execution_time_ms": 210,
+          "solve_time_seconds": null,
+          "passed_count": 2,
+          "total_count": 2,
+          "created_at": "2026-06-23T10:53:40.662983+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_opens_and_blocks",
+                "order": 1
+              },
+              "status": "accepted",
+              "stdout": "[\"FAIL\",\"FAIL\",\"FAIL\",\"BLOCKED\",\"BLOCKED\",\"OK\"]\n",
+              "stderr": "",
+              "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"BLOCKED\",\"BLOCKED\",\"OK\"]",
+              "execution_time_ms": 125
+            },
+            {
+              "test_case": {
+                "name": "sample_independent_services",
+                "order": 2
+              },
+              "status": "accepted",
+              "stdout": "[\"FAIL\",\"FAIL\",\"FAIL\",\"OK\",\"FAIL\",\"FAIL\",\"FAIL\"]\n",
+              "stderr": "",
+              "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"OK\",\"FAIL\",\"FAIL\",\"FAIL\"]",
+              "execution_time_ms": 77
+            }
+          ]
+        },
+        {
+          "kind": "submit",
+          "language": "python",
+          "code": "from collections import deque\n\nWINDOW = 600\nMAX_REQUESTS = 3\nHALF_OPEN_WINDOW = 300\n\ndef solve(timestamps, services, results):\n\n    breakers = {\n        'B': {\n            'state': 'closed',\n            'failures': deque(),\n            'open_time': None,\n        },\n        'C': {\n            'state': 'closed',\n            'failures':  deque(),\n            'open_time': None\n        }\n    }\n    \n    answers = []\n\n    for i, timestamp in enumerate(timestamps):\n        timestamp = int(timestamp)\n        service = services[i]\n        result  = results[i]\n        \n        breaker = breakers[service]\n\n        if breaker['state'] == \"open\" and timestamp - breaker['open_time'] >= HALF_OPEN_WINDOW:\n            breaker['state'] = \"half_open\"\n        \n        if breaker['state'] == \"open\":\n            answers.append(\"BLOCKED\")\n            continue\n\n        if breaker['state'] == \"half_open\":\n            if result == \"OK\":\n                breaker[\"state\"] = \"closed\"\n                breaker[\"failures\"].clear()\n                answers.append(\"OK\")\n            else:\n                breaker['state'] = \"open\"\n                breaker['open_time'] = timestamp\n                answers.append(\"FAIL\")\n            continue\n\n        if result == \"OK\":\n            answers.append(\"OK\")\n        else:\n            failures = breaker['failures']\n\n            while failures and failures[0] < timestamp - WINDOW:\n                failures.popleft()\n            \n            failures.append(timestamp)\n\n            if len(failures) >= 3:\n                breaker[\"state\"] = \"open\"\n                breaker[\"open_time\"] = timestamp\n\n            answers.append(\"FAIL\")\n    \n    return answers\n",
+          "status": "accepted",
+          "stdout": "[\"FAIL\",\"FAIL\",\"FAIL\",\"BLOCKED\",\"BLOCKED\",\"OK\"]\n\n[\"FAIL\",\"FAIL\",\"FAIL\",\"OK\",\"FAIL\",\"FAIL\",\"FAIL\"]\n",
+          "stderr": "",
+          "execution_time_ms": 168,
+          "solve_time_seconds": null,
+          "passed_count": 2,
+          "total_count": 2,
+          "created_at": "2026-06-23T10:53:47.268339+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_opens_and_blocks",
+                "order": 1
+              },
+              "status": "accepted",
+              "stdout": "[\"FAIL\",\"FAIL\",\"FAIL\",\"BLOCKED\",\"BLOCKED\",\"OK\"]\n",
+              "stderr": "",
+              "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"BLOCKED\",\"BLOCKED\",\"OK\"]",
+              "execution_time_ms": 78
+            },
+            {
+              "test_case": {
+                "name": "sample_independent_services",
+                "order": 2
+              },
+              "status": "accepted",
+              "stdout": "[\"FAIL\",\"FAIL\",\"FAIL\",\"OK\",\"FAIL\",\"FAIL\",\"FAIL\"]\n",
+              "stderr": "",
+              "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"OK\",\"FAIL\",\"FAIL\",\"FAIL\"]",
+              "execution_time_ms": 80
+            }
+          ]
+        },
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Breaker  {\n    String state = \"CLOSED\";\n    List<Integer> failures = new ArrayList<>();\n    int openedAt = 0;\n}\n\nclass Solution {\n    public List<String> solve(int[] timestamps, String[] services, String[] results) {\n        Map<String, Breaker> breaker = new HashMap<>();\n        breaker.put(\"B\", new Breaker());\n        breaker.put(\"C\", new Breaker());\n\n        List<String> answers = new ArrayList<>();\n\n        for(int i=0; i<timestamps.length; i++) {\n            int timestamp = timestamps[i];\n            String service = services[i];\n            String result = results[i];\n\n            Breaker b =  breaker.get(service);\n\n            if(b.state ==  \"OPEN\" && timestamp - breaker.openedAt >= 300 )  {\n                b.state = \"HALF_OPEN\";\n            }\n        }\n\n        return answers;\n    }\n}",
+          "status": "runtime_error",
+          "stdout": "",
+          "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmp51x6dkug/Solution.java:24: error: cannot find symbol\n            if(b.state ==  \"OPEN\" && timestamp - breaker.openedAt >= 300 )  {\n                                                        ^\n  symbol:   variable openedAt\n  location: variable breaker of type Map<String,Breaker>\n1 error\n",
+          "execution_time_ms": 2292,
+          "solve_time_seconds": null,
+          "passed_count": 0,
+          "total_count": 2,
+          "created_at": "2026-06-23T11:01:07.767578+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_opens_and_blocks",
+                "order": 1
+              },
+              "status": "runtime_error",
+              "stdout": "",
+              "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmp51x6dkug/Solution.java:24: error: cannot find symbol\n            if(b.state ==  \"OPEN\" && timestamp - breaker.openedAt >= 300 )  {\n                                                        ^\n  symbol:   variable openedAt\n  location: variable breaker of type Map<String,Breaker>\n1 error\n",
+              "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"BLOCKED\",\"BLOCKED\",\"OK\"]",
+              "execution_time_ms": 2278
+            },
+            {
+              "test_case": {
+                "name": "sample_independent_services",
+                "order": 2
+              },
+              "status": "runtime_error",
+              "stdout": "",
+              "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmp51x6dkug/Solution.java:24: error: cannot find symbol\n            if(b.state ==  \"OPEN\" && timestamp - breaker.openedAt >= 300 )  {\n                                                        ^\n  symbol:   variable openedAt\n  location: variable breaker of type Map<String,Breaker>\n1 error\n",
+              "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"OK\",\"FAIL\",\"FAIL\",\"FAIL\"]",
+              "execution_time_ms": 2278
+            }
+          ]
+        },
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Breaker  {\n    String state = \"CLOSED\";\n    List<Integer> failures = new ArrayList<>();\n    int openedAt = 0;\n}\n\nclass Solution {\n    public List<String> solve(int[] timestamps, String[] services, String[] results) {\n        Map<String, Breaker> breaker = new HashMap<>();\n        breaker.put(\"B\", new Breaker());\n        breaker.put(\"C\", new Breaker());\n\n        List<String> answers = new ArrayList<>();\n\n        for(int i=0; i<timestamps.length; i++) {\n            int timestamp = timestamps[i];\n            String service = services[i];\n            String result = results[i];\n\n            Breaker b =  breaker.get(service);\n\n            if(b.state ==  \"OPEN\" && timestamp - b.openedAt >= 300 )  {\n                b.state = \"HALF_OPEN\";\n            }\n        }\n\n        return answers;\n    }\n}",
+          "status": "wrong_answer",
+          "stdout": "[]\n[]",
+          "stderr": "",
+          "execution_time_ms": 2140,
+          "solve_time_seconds": null,
+          "passed_count": 0,
+          "total_count": 2,
+          "created_at": "2026-06-23T11:01:30.702600+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_opens_and_blocks",
+                "order": 1
+              },
+              "status": "wrong_answer",
+              "stdout": "[]",
+              "stderr": "",
+              "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"BLOCKED\",\"BLOCKED\",\"OK\"]",
+              "execution_time_ms": 193
+            },
+            {
+              "test_case": {
+                "name": "sample_independent_services",
+                "order": 2
+              },
+              "status": "wrong_answer",
+              "stdout": "[]",
+              "stderr": "",
+              "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"OK\",\"FAIL\",\"FAIL\",\"FAIL\"]",
+              "execution_time_ms": 184
+            }
+          ]
+        },
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Breaker  {\n    String state = \"CLOSED\";\n    Deque<Integer> failures = new ArrayDeque<>();\n    int openedAt = 0;\n}\n\nclass Solution {\n    public List<String> solve(int[] timestamps, String[] services, String[] results) {\n        Map<String, Breaker> breaker = new HashMap<>();\n        breaker.put(\"B\", new Breaker());\n        breaker.put(\"C\", new Breaker());\n\n        List<String> answers = new ArrayList<>();\n\n        for(int i=0; i<timestamps.length; i++) {\n            int timestamp = timestamps[i];\n            String service = services[i];\n            String result = results[i];\n\n            Breaker b =  breaker.get(service);\n\n            if(b.state ==  \"OPEN\" && timestamp - b.openedAt >= 300 )  {\n                b.state = \"HALF_OPEN\";\n            }\n\n            if(b.state == \"OPEN\") {\n                answers.add(\"BLOCKED\");\n                continue;\n            }\n\n            if(b.state == \"HALF_OPEN\") {\n                if(result ==  \"OK\") {\n                    answers.add(\"OK\");\n                    b.state = \"CLOSED\";\n                    b.failures.clear();\n                }  else  {\n                    answers.add(\"FAIL\");\n                    b.state = \"OPEN\";\n                    b.openedAt  = timestamp;\n                }\n                continue;\n            }\n\n            if(result  == \"OK\") {\n                answers.add(\"OK\")\n            }  else  {\n                while(!b.failures.isEmpty() && b.failures.pollFirst() + 600  < WINDOW) {\n                    b.failures.removeFirst();\n                }\n                b.failures.addLast(timestamp)\n                \n                if(b.failures.size() >= 3) {\n                    b.state = \"CLOSED\";\n                    b.openedAt = timestamp;\n                }\n\n                answers.add(\"FAIL\");\n            }\n        }\n\n        return answers;\n    }\n}",
+          "status": "runtime_error",
+          "stdout": "",
+          "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmp26i62lwy/Solution.java:47: error: ';' expected\n                answers.add(\"OK\")\n                                 ^\n/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmp26i62lwy/Solution.java:52: error: ';' expected\n                b.failures.addLast(timestamp)\n                                             ^\n2 errors\n",
+          "execution_time_ms": 1571,
+          "solve_time_seconds": null,
+          "passed_count": 0,
+          "total_count": 2,
+          "created_at": "2026-06-23T11:09:50.450248+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_opens_and_blocks",
+                "order": 1
+              },
+              "status": "runtime_error",
+              "stdout": "",
+              "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmp26i62lwy/Solution.java:47: error: ';' expected\n                answers.add(\"OK\")\n                                 ^\n/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmp26i62lwy/Solution.java:52: error: ';' expected\n                b.failures.addLast(timestamp)\n                                             ^\n2 errors\n",
+              "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"BLOCKED\",\"BLOCKED\",\"OK\"]",
+              "execution_time_ms": 1558
+            },
+            {
+              "test_case": {
+                "name": "sample_independent_services",
+                "order": 2
+              },
+              "status": "runtime_error",
+              "stdout": "",
+              "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmp26i62lwy/Solution.java:47: error: ';' expected\n                answers.add(\"OK\")\n                                 ^\n/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmp26i62lwy/Solution.java:52: error: ';' expected\n                b.failures.addLast(timestamp)\n                                             ^\n2 errors\n",
+              "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"OK\",\"FAIL\",\"FAIL\",\"FAIL\"]",
+              "execution_time_ms": 1558
+            }
+          ]
+        },
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Breaker  {\n    String state = \"CLOSED\";\n    Deque<Integer> failures = new ArrayDeque<>();\n    int openedAt = 0;\n}\n\nclass Solution {\n    public List<String> solve(int[] timestamps, String[] services, String[] results) {\n        Map<String, Breaker> breaker = new HashMap<>();\n        breaker.put(\"B\", new Breaker());\n        breaker.put(\"C\", new Breaker());\n\n        List<String> answers = new ArrayList<>();\n\n        for(int i=0; i<timestamps.length; i++) {\n            int timestamp = timestamps[i];\n            String service = services[i];\n            String result = results[i];\n\n            Breaker b =  breaker.get(service);\n\n            if(b.state ==  \"OPEN\" && timestamp - b.openedAt >= 300 )  {\n                b.state = \"HALF_OPEN\";\n            }\n\n            if(b.state == \"OPEN\") {\n                answers.add(\"BLOCKED\");\n                continue;\n            }\n\n            if(b.state == \"HALF_OPEN\") {\n                if(result ==  \"OK\") {\n                    answers.add(\"OK\");\n                    b.state = \"CLOSED\";\n                    b.failures.clear();\n                }  else  {\n                    answers.add(\"FAIL\");\n                    b.state = \"OPEN\";\n                    b.openedAt  = timestamp;\n                }\n                continue;\n            }\n\n            if(result  == \"OK\") {\n                answers.add(\"OK\");\n            }  else  {\n                while(!b.failures.isEmpty() && b.failures.pollFirst() + 600  < WINDOW) {\n                    b.failures.removeFirst();\n                }\n                b.failures.addLast(timestamp);\n                \n                if(b.failures.size() >= 3) {\n                    b.state = \"CLOSED\";\n                    b.openedAt = timestamp;\n                }\n\n                answers.add(\"FAIL\");\n            }\n        }\n\n        return answers;\n    }\n}",
+          "status": "runtime_error",
+          "stdout": "",
+          "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmp9fb7t6we/Solution.java:49: error: cannot find symbol\n                while(!b.failures.isEmpty() && b.failures.pollFirst() + 600  < WINDOW) {\n                                                                               ^\n  symbol:   variable WINDOW\n  location: class Solution\n1 error\n",
+          "execution_time_ms": 2244,
+          "solve_time_seconds": null,
+          "passed_count": 0,
+          "total_count": 2,
+          "created_at": "2026-06-23T11:10:13.363245+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_opens_and_blocks",
+                "order": 1
+              },
+              "status": "runtime_error",
+              "stdout": "",
+              "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmp9fb7t6we/Solution.java:49: error: cannot find symbol\n                while(!b.failures.isEmpty() && b.failures.pollFirst() + 600  < WINDOW) {\n                                                                               ^\n  symbol:   variable WINDOW\n  location: class Solution\n1 error\n",
+              "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"BLOCKED\",\"BLOCKED\",\"OK\"]",
+              "execution_time_ms": 2233
+            },
+            {
+              "test_case": {
+                "name": "sample_independent_services",
+                "order": 2
+              },
+              "status": "runtime_error",
+              "stdout": "",
+              "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmp9fb7t6we/Solution.java:49: error: cannot find symbol\n                while(!b.failures.isEmpty() && b.failures.pollFirst() + 600  < WINDOW) {\n                                                                               ^\n  symbol:   variable WINDOW\n  location: class Solution\n1 error\n",
+              "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"OK\",\"FAIL\",\"FAIL\",\"FAIL\"]",
+              "execution_time_ms": 2233
+            }
+          ]
+        },
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Breaker  {\n    String state = \"CLOSED\";\n    Deque<Integer> failures = new ArrayDeque<>();\n    int openedAt = 0;\n}\n\nclass Solution {\n    public List<String> solve(int[] timestamps, String[] services, String[] results) {\n        Map<String, Breaker> breaker = new HashMap<>();\n        breaker.put(\"B\", new Breaker());\n        breaker.put(\"C\", new Breaker());\n\n        List<String> answers = new ArrayList<>();\n\n        for(int i=0; i<timestamps.length; i++) {\n            int timestamp = timestamps[i];\n            String service = services[i];\n            String result = results[i];\n\n            Breaker b =  breaker.get(service);\n\n            if(b.state ==  \"OPEN\" && timestamp - b.openedAt >= 300 )  {\n                b.state = \"HALF_OPEN\";\n            }\n\n            if(b.state == \"OPEN\") {\n                answers.add(\"BLOCKED\");\n                continue;\n            }\n\n            if(b.state == \"HALF_OPEN\") {\n                if(result ==  \"OK\") {\n                    answers.add(\"OK\");\n                    b.state = \"CLOSED\";\n                    b.failures.clear();\n                }  else  {\n                    answers.add(\"FAIL\");\n                    b.state = \"OPEN\";\n                    b.openedAt  = timestamp;\n                }\n                continue;\n            }\n\n            if(result  == \"OK\") {\n                answers.add(\"OK\");\n            }  else  {\n                while(!b.failures.isEmpty() && b.failures.pollFirst() + 600  < timestamp) {\n                    b.failures.removeFirst();\n                }\n                b.failures.addLast(timestamp);\n                \n                if(b.failures.size() >= 3) {\n                    b.state = \"CLOSED\";\n                    b.openedAt = timestamp;\n                }\n\n                answers.add(\"FAIL\");\n            }\n        }\n\n        return answers;\n    }\n}",
+          "status": "wrong_answer",
+          "stdout": "[\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\"]\n[\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\"]",
+          "stderr": "",
+          "execution_time_ms": 2114,
+          "solve_time_seconds": null,
+          "passed_count": 0,
+          "total_count": 2,
+          "created_at": "2026-06-23T11:10:25.622083+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_opens_and_blocks",
+                "order": 1
+              },
+              "status": "wrong_answer",
+              "stdout": "[\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\"]",
+              "stderr": "",
+              "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"BLOCKED\",\"BLOCKED\",\"OK\"]",
+              "execution_time_ms": 181
+            },
+            {
+              "test_case": {
+                "name": "sample_independent_services",
+                "order": 2
+              },
+              "status": "wrong_answer",
+              "stdout": "[\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\"]",
+              "stderr": "",
+              "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"OK\",\"FAIL\",\"FAIL\",\"FAIL\"]",
+              "execution_time_ms": 179
+            }
+          ]
+        },
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Breaker  {\n    String state = \"CLOSED\";\n    Deque<Integer> failures = new ArrayDeque<>();\n    int openedAt = 0;\n}\n\nclass Solution {\n    public List<String> solve(int[] timestamps, String[] services, String[] results) {\n        Map<String, Breaker> breaker = new HashMap<>();\n        breaker.put(\"B\", new Breaker());\n        breaker.put(\"C\", new Breaker());\n\n        List<String> answers = new ArrayList<>();\n\n        for(int i=0; i<timestamps.length; i++) {\n            int timestamp = timestamps[i];\n            String service = services[i];\n            String result = results[i];\n\n            Breaker b =  breaker.get(service);\n\n            if(b.state ==  \"OPEN\" && timestamp - b.openedAt >= 300 )  {\n                b.state = \"HALF_OPEN\";\n            }\n\n            if(b.state == \"OPEN\") {\n                answers.add(\"BLOCKED\");\n                continue;\n            }\n\n            if(b.state == \"HALF_OPEN\") {\n                if(result ==  \"OK\") {\n                    answers.add(\"OK\");\n                    b.state = \"CLOSED\";\n                    b.failures.clear();\n                }  else  {\n                    answers.add(\"FAIL\");\n                    b.state = \"OPEN\";\n                    b.openedAt  = timestamp;\n                }\n                continue;\n            }\n\n            if(result  == \"OK\") {\n                answers.add(\"OK\");\n            }  else  {\n                while(!b.failures.isEmpty() && b.failures.pollFirst() + 600  < timestamp) {\n                    b.failures.removeFirst();\n                }\n                b.failures.addLast(timestamp);\n                \n                if(b.failures.size() >= 3) {\n                    b.state = \"OPEN\";\n                    b.openedAt = timestamp;\n                }\n\n                answers.add(\"FAIL\");\n            }\n        }\n\n        return answers;\n    }\n}",
+          "status": "wrong_answer",
+          "stdout": "[\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\"]\n[\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\"]",
+          "stderr": "",
+          "execution_time_ms": 2975,
+          "solve_time_seconds": null,
+          "passed_count": 0,
+          "total_count": 2,
+          "created_at": "2026-06-23T11:11:30.222450+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_opens_and_blocks",
+                "order": 1
+              },
+              "status": "wrong_answer",
+              "stdout": "[\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\"]",
+              "stderr": "",
+              "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"BLOCKED\",\"BLOCKED\",\"OK\"]",
+              "execution_time_ms": 178
+            },
+            {
+              "test_case": {
+                "name": "sample_independent_services",
+                "order": 2
+              },
+              "status": "wrong_answer",
+              "stdout": "[\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\"]",
+              "stderr": "",
+              "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"OK\",\"FAIL\",\"FAIL\",\"FAIL\"]",
+              "execution_time_ms": 180
+            }
+          ]
+        },
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Breaker  {\n    String state = \"CLOSED\";\n    Deque<Integer> failures = new ArrayDeque<>();\n    int openedAt = 0;\n}\n\nclass Solution {\n    public List<String> solve(int[] timestamps, String[] services, String[] results) {\n        Map<String, Breaker> breaker = new HashMap<>();\n        breaker.put(\"B\", new Breaker());\n        breaker.put(\"C\", new Breaker());\n\n        List<String> answers = new ArrayList<>();\n\n        for(int i=0; i<timestamps.length; i++) {\n            int timestamp = timestamps[i];\n            String service = services[i];\n            String result = results[i];\n\n            Breaker b =  breaker.get(service);\n\n            if(b.state ==  \"OPEN\" && timestamp - b.openedAt >= 300 )  {\n                b.state = \"HALF_OPEN\";\n            }\n\n            if(b.state == \"OPEN\") {\n                answers.add(\"BLOCKED\");\n                continue;\n            }\n\n            if(b.state == \"HALF_OPEN\") {\n                if(result ==  \"OK\") {\n                    answers.add(\"OK\");\n                    b.state = \"CLOSED\";\n                    b.failures.clear();\n                }  else  {\n                    answers.add(\"FAIL\");\n                    b.state = \"OPEN\";\n                    b.openedAt  = timestamp;\n                }\n                breaker.put(service,  b);\n                continue;\n            }\n\n            if(result  == \"OK\") {\n                answers.add(\"OK\");\n            }  else  {\n                while(!b.failures.isEmpty() && b.failures.pollFirst() + 600  < timestamp) {\n                    b.failures.removeFirst();\n                }\n                b.failures.addLast(timestamp);\n                \n                if(b.failures.size() >= 3) {\n                    b.state = \"OPEN\";\n                    b.openedAt = timestamp;\n                }\n\n                answers.add(\"FAIL\");\n                breaker.put(service, b);\n            }\n        }\n\n        return answers;\n    }\n}",
+          "status": "wrong_answer",
+          "stdout": "[\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\"]\n[\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\"]",
+          "stderr": "",
+          "execution_time_ms": 2150,
+          "solve_time_seconds": null,
+          "passed_count": 0,
+          "total_count": 2,
+          "created_at": "2026-06-23T11:13:15.128193+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_opens_and_blocks",
+                "order": 1
+              },
+              "status": "wrong_answer",
+              "stdout": "[\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\"]",
+              "stderr": "",
+              "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"BLOCKED\",\"BLOCKED\",\"OK\"]",
+              "execution_time_ms": 203
+            },
+            {
+              "test_case": {
+                "name": "sample_independent_services",
+                "order": 2
+              },
+              "status": "wrong_answer",
+              "stdout": "[\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\"]",
+              "stderr": "",
+              "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"OK\",\"FAIL\",\"FAIL\",\"FAIL\"]",
+              "execution_time_ms": 231
+            }
+          ]
+        },
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Breaker  {\n    String state = \"CLOSED\";\n    Deque<Integer> failures = new ArrayDeque<>();\n    int openedAt = 0;\n}\n\nclass Solution {\n    public List<String> solve(int[] timestamps, String[] services, String[] results) {\n        Map<String, Breaker> breaker = new HashMap<>();\n        breaker.put(\"B\", new Breaker());\n        breaker.put(\"C\", new Breaker());\n\n        List<String> answers = new ArrayList<>();\n\n        for(int i=0; i<timestamps.length; i++) {\n            int timestamp = timestamps[i];\n            String service = services[i];\n            String result = results[i];\n\n            Breaker b =  breaker.get(service);\n\n            if(b.state ==  \"OPEN\" && timestamp - b.openedAt >= 300 )  {\n                b.state = \"HALF_OPEN\";\n            }\n\n            if(b.state == \"OPEN\") {\n                answers.add(\"BLOCKED\");\n                continue;\n            }\n\n            if(b.state == \"HALF_OPEN\") {\n                if(result ==  \"OK\") {\n                    answers.add(\"OK\");\n                    b.state = \"CLOSED\";\n                    b.failures.clear();\n                }  else  {\n                    answers.add(\"FAIL\");\n                    b.state = \"OPEN\";\n                    b.openedAt  = timestamp;\n                }\n                // breaker.put(service,  b);\n                continue;\n            }\n\n            if(result  == \"OK\") {\n                answers.add(\"OK\");\n            }  else  {\n                while(!b.failures.isEmpty() && b.failures.peekFirst() + 600  < timestamp) {\n                    b.failures.removeFirst();\n                }\n                b.failures.addLast(timestamp);\n                \n                if(b.failures.size() >= 3) {\n                    b.state = \"OPEN\";\n                    b.openedAt = timestamp;\n                }\n\n                answers.add(\"FAIL\");\n                //breaker.put(service, b);\n            }\n        }\n\n        return answers;\n    }\n}",
+          "status": "wrong_answer",
+          "stdout": "[\"FAIL\",\"FAIL\",\"FAIL\",\"BLOCKED\",\"BLOCKED\",\"FAIL\"]\n[\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"BLOCKED\"]",
+          "stderr": "",
+          "execution_time_ms": 2774,
+          "solve_time_seconds": null,
+          "passed_count": 0,
+          "total_count": 2,
+          "created_at": "2026-06-23T11:16:44.948430+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_opens_and_blocks",
+                "order": 1
+              },
+              "status": "wrong_answer",
+              "stdout": "[\"FAIL\",\"FAIL\",\"FAIL\",\"BLOCKED\",\"BLOCKED\",\"FAIL\"]",
+              "stderr": "",
+              "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"BLOCKED\",\"BLOCKED\",\"OK\"]",
+              "execution_time_ms": 194
+            },
+            {
+              "test_case": {
+                "name": "sample_independent_services",
+                "order": 2
+              },
+              "status": "wrong_answer",
+              "stdout": "[\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"FAIL\",\"BLOCKED\"]",
+              "stderr": "",
+              "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"OK\",\"FAIL\",\"FAIL\",\"FAIL\"]",
+              "execution_time_ms": 193
+            }
+          ]
+        },
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Breaker  {\n    String state = \"CLOSED\";\n    Deque<Integer> failures = new ArrayDeque<>();\n    int openedAt = 0;\n}\n\nclass Solution {\n    public List<String> solve(int[] timestamps, String[] services, String[] results) {\n        Map<String, Breaker> breaker = new HashMap<>();\n        breaker.put(\"B\", new Breaker());\n        breaker.put(\"C\", new Breaker());\n\n        List<String> answers = new ArrayList<>();\n\n        for(int i=0; i<timestamps.length; i++) {\n            int timestamp = timestamps[i];\n            String service = services[i];\n            String result = results[i];\n\n            Breaker b =  breaker.get(service);\n\n            if(b.state.equals(\"OPEN\") && timestamp - b.openedAt >= 300 )  {\n                b.state = \"HALF_OPEN\";\n            }\n\n            if(b.state.equals(\"OPEN\")) {\n                answers.add(\"BLOCKED\");\n                continue;\n            }\n\n            if(b.state == \"HALF_OPEN\") {\n                if(result.equals(\"OK\")) {\n                    answers.add(\"OK\");\n                    b.state = \"CLOSED\";\n                    b.failures.clear();\n                }  else  {\n                    answers.add(\"FAIL\");\n                    b.state = \"OPEN\";\n                    b.openedAt  = timestamp;\n                }\n                // breaker.put(service,  b);\n                continue;\n            }\n\n            if(result.equals(\"OK\")) {\n                answers.add(\"OK\");\n            }  else  {\n                while(!b.failures.isEmpty() && b.failures.peekFirst() + 600  < timestamp) {\n                    b.failures.pollFirst();\n                }\n                b.failures.addLast(timestamp);\n                \n                if(b.failures.size() >= 3) {\n                    b.state = \"OPEN\";\n                    b.openedAt = timestamp;\n                }\n\n                answers.add(\"FAIL\");\n                //breaker.put(service, b);\n            }\n        }\n\n        return answers;\n    }\n}",
+          "status": "accepted",
+          "stdout": "[\"FAIL\",\"FAIL\",\"FAIL\",\"BLOCKED\",\"BLOCKED\",\"OK\"]\n[\"FAIL\",\"FAIL\",\"FAIL\",\"OK\",\"FAIL\",\"FAIL\",\"FAIL\"]",
+          "stderr": "",
+          "execution_time_ms": 2915,
+          "solve_time_seconds": null,
+          "passed_count": 2,
+          "total_count": 2,
+          "created_at": "2026-06-23T11:18:14.319733+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_opens_and_blocks",
+                "order": 1
+              },
+              "status": "accepted",
+              "stdout": "[\"FAIL\",\"FAIL\",\"FAIL\",\"BLOCKED\",\"BLOCKED\",\"OK\"]",
+              "stderr": "",
+              "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"BLOCKED\",\"BLOCKED\",\"OK\"]",
+              "execution_time_ms": 195
+            },
+            {
+              "test_case": {
+                "name": "sample_independent_services",
+                "order": 2
+              },
+              "status": "accepted",
+              "stdout": "[\"FAIL\",\"FAIL\",\"FAIL\",\"OK\",\"FAIL\",\"FAIL\",\"FAIL\"]",
+              "stderr": "",
+              "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"OK\",\"FAIL\",\"FAIL\",\"FAIL\"]",
+              "execution_time_ms": 191
+            }
+          ]
+        },
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Breaker  {\n    String state = \"CLOSED\";\n    Deque<Integer> failures = new ArrayDeque<>();\n    int openedAt = 0;\n}\n\nclass Solution {\n    public List<String> solve(int[] timestamps, String[] services, String[] results) {\n        Map<String, Breaker> breaker = new HashMap<>();\n        breaker.put(\"B\", new Breaker());\n        breaker.put(\"C\", new Breaker());\n\n        List<String> answers = new ArrayList<>();\n\n        for(int i=0; i<timestamps.length; i++) {\n            int timestamp = timestamps[i];\n            String service = services[i];\n            String result = results[i];\n\n            Breaker b =  breaker.get(service);\n\n            if(b.state.equals(\"OPEN\") && timestamp - b.openedAt >= 300 )  {\n                b.state = \"HALF_OPEN\";\n            }\n\n            if(b.state.equals(\"OPEN\")) {\n                answers.add(\"BLOCKED\");\n                continue;\n            }\n\n            if(b.state.equals(\"HALF_OPEN\")) {\n                if(result.equals(\"OK\")) {\n                    answers.add(\"OK\");\n                    b.state = \"CLOSED\";\n                    b.failures.clear();\n                }  else  {\n                    answers.add(\"FAIL\");\n                    b.state = \"OPEN\";\n                    b.openedAt  = timestamp;\n                }\n                // breaker.put(service,  b);\n                continue;\n            }\n\n            if(result.equals(\"OK\")) {\n                answers.add(\"OK\");\n            }  else  {\n                while(!b.failures.isEmpty() && b.failures.peekFirst() + 600  < timestamp) {\n                    b.failures.pollFirst();\n                }\n                b.failures.addLast(timestamp);\n                \n                if(b.failures.size() >= 3) {\n                    b.state = \"OPEN\";\n                    b.openedAt = timestamp;\n                }\n\n                answers.add(\"FAIL\");\n                //breaker.put(service, b);\n            }\n        }\n\n        return answers;\n    }\n}",
+          "status": "accepted",
+          "stdout": "[\"FAIL\",\"FAIL\",\"FAIL\",\"BLOCKED\",\"BLOCKED\",\"OK\"]\n[\"FAIL\",\"FAIL\",\"FAIL\",\"OK\",\"FAIL\",\"FAIL\",\"FAIL\"]",
+          "stderr": "",
+          "execution_time_ms": 2072,
+          "solve_time_seconds": null,
+          "passed_count": 2,
+          "total_count": 2,
+          "created_at": "2026-06-23T11:18:34.357964+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_opens_and_blocks",
+                "order": 1
+              },
+              "status": "accepted",
+              "stdout": "[\"FAIL\",\"FAIL\",\"FAIL\",\"BLOCKED\",\"BLOCKED\",\"OK\"]",
+              "stderr": "",
+              "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"BLOCKED\",\"BLOCKED\",\"OK\"]",
+              "execution_time_ms": 232
+            },
+            {
+              "test_case": {
+                "name": "sample_independent_services",
+                "order": 2
+              },
+              "status": "accepted",
+              "stdout": "[\"FAIL\",\"FAIL\",\"FAIL\",\"OK\",\"FAIL\",\"FAIL\",\"FAIL\"]",
+              "stderr": "",
+              "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"OK\",\"FAIL\",\"FAIL\",\"FAIL\"]",
+              "execution_time_ms": 201
+            }
+          ]
+        },
+        {
+          "kind": "submit",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Breaker  {\n    String state = \"CLOSED\";\n    Deque<Integer> failures = new ArrayDeque<>();\n    int openedAt = 0;\n}\n\nclass Solution {\n    public List<String> solve(int[] timestamps, String[] services, String[] results) {\n        Map<String, Breaker> breaker = new HashMap<>();\n        breaker.put(\"B\", new Breaker());\n        breaker.put(\"C\", new Breaker());\n\n        List<String> answers = new ArrayList<>();\n\n        for(int i=0; i<timestamps.length; i++) {\n            int timestamp = timestamps[i];\n            String service = services[i];\n            String result = results[i];\n\n            Breaker b =  breaker.get(service);\n\n            if(b.state.equals(\"OPEN\") && timestamp - b.openedAt >= 300 )  {\n                b.state = \"HALF_OPEN\";\n            }\n\n            if(b.state.equals(\"OPEN\")) {\n                answers.add(\"BLOCKED\");\n                continue;\n            }\n\n            if(b.state.equals(\"HALF_OPEN\")) {\n                if(result.equals(\"OK\")) {\n                    answers.add(\"OK\");\n                    b.state = \"CLOSED\";\n                    b.failures.clear();\n                }  else  {\n                    answers.add(\"FAIL\");\n                    b.state = \"OPEN\";\n                    b.openedAt  = timestamp;\n                }\n                // breaker.put(service,  b);\n                continue;\n            }\n\n            if(result.equals(\"OK\")) {\n                answers.add(\"OK\");\n            }  else  {\n                while(!b.failures.isEmpty() && b.failures.peekFirst() + 600  < timestamp) {\n                    b.failures.pollFirst();\n                }\n                b.failures.addLast(timestamp);\n                \n                if(b.failures.size() >= 3) {\n                    b.state = \"OPEN\";\n                    b.openedAt = timestamp;\n                }\n\n                answers.add(\"FAIL\");\n                //breaker.put(service, b);\n            }\n        }\n\n        return answers;\n    }\n}",
+          "status": "accepted",
+          "stdout": "[\"FAIL\",\"FAIL\",\"FAIL\",\"BLOCKED\",\"BLOCKED\",\"OK\"]\n[\"FAIL\",\"FAIL\",\"FAIL\",\"OK\",\"FAIL\",\"FAIL\",\"FAIL\"]",
+          "stderr": "",
+          "execution_time_ms": 2901,
+          "solve_time_seconds": null,
+          "passed_count": 2,
+          "total_count": 2,
+          "created_at": "2026-06-23T11:19:25.875180+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_opens_and_blocks",
+                "order": 1
+              },
+              "status": "accepted",
+              "stdout": "[\"FAIL\",\"FAIL\",\"FAIL\",\"BLOCKED\",\"BLOCKED\",\"OK\"]",
+              "stderr": "",
+              "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"BLOCKED\",\"BLOCKED\",\"OK\"]",
+              "execution_time_ms": 193
+            },
+            {
+              "test_case": {
+                "name": "sample_independent_services",
+                "order": 2
+              },
+              "status": "accepted",
+              "stdout": "[\"FAIL\",\"FAIL\",\"FAIL\",\"OK\",\"FAIL\",\"FAIL\",\"FAIL\"]",
+              "stderr": "",
+              "expected_output": "[\"FAIL\",\"FAIL\",\"FAIL\",\"OK\",\"FAIL\",\"FAIL\",\"FAIL\"]",
+              "execution_time_ms": 187
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "First Repeating Number",
+      "slug": "first-repeating-number",
+      "description": "Given an integer array nums, return the first number that appears more than once while scanning from left to right.\r\n\r\nIf no number repeats, return -1.\r\n\r\nFunction signature:\r\nsolve(nums)\r\n\r\nArguments:\r\n\r\nnums: an array/list of integers\r\n\r\nReturn value:\r\n\r\nThe first repeated integer, or -1 if there is no repeated integer.\r\n\r\nConstraints:\r\n\r\n1 <= nums.length <= 1000\r\n-10^9 <= nums[i] <= 10^9\r\n\r\nExamples:\r\n\r\nsolve([2, 5, 1, 2, 3, 5]) returns 2\r\nsolve([1, 2, 3, 4]) returns -1",
+      "difficulty": "easy",
+      "starter_code": "import java.util.*;\r\n\r\nclass Solution {\r\n    public int solve(int[] nums) {\r\n        return -1;\r\n    }\r\n}",
+      "java_starter_code": "import java.util.*;\r\n\r\nclass Solution {\r\n    public int solve(int[] nums) {\r\n        return -1;\r\n    }\r\n}",
+      "python_starter_code": "def solve(nums):\r\n    return -1",
+      "execution_mode": "function",
+      "function_name": "solve",
+      "is_active": true,
+      "created_at": "2026-06-23T07:07:10.579266+00:00",
+      "updated_at": "2026-06-23T07:07:10.579294+00:00",
+      "test_cases": [
+        {
+          "name": "sample_basic_repeat",
+          "stdin": "",
+          "function_args": [
+            [
+              2,
+              5,
+              1,
+              2,
+              3,
+              5
+            ]
+          ],
+          "expected_value": 2,
+          "expected_output": "2",
+          "is_sample": true,
+          "is_hidden": false,
+          "order": 1,
+          "created_at": "2026-06-23T07:07:23.682357+00:00"
+        },
+        {
+          "name": "sample_no_repeat",
+          "stdin": "",
+          "function_args": [
+            [
+              1,
+              2,
+              3,
+              4
+            ]
+          ],
+          "expected_value": -1,
+          "expected_output": "-1",
+          "is_sample": true,
+          "is_hidden": false,
+          "order": 2,
+          "created_at": "2026-06-23T07:07:23.683522+00:00"
+        },
+        {
+          "name": "hidden_repeat_at_start",
+          "stdin": "",
+          "function_args": [
+            [
+              7,
+              7,
+              1,
+              2,
+              3
+            ]
+          ],
+          "expected_value": 7,
+          "expected_output": "7",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 3,
+          "created_at": "2026-06-23T07:07:23.684118+00:00"
+        },
+        {
+          "name": "hidden_repeat_later",
+          "stdin": "",
+          "function_args": [
+            [
+              4,
+              1,
+              6,
+              8,
+              1,
+              6
+            ]
+          ],
+          "expected_value": 1,
+          "expected_output": "1",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 4,
+          "created_at": "2026-06-23T07:07:23.684738+00:00"
+        },
+        {
+          "name": "hidden_single_element",
+          "stdin": "",
+          "function_args": [
+            [
+              10
+            ]
+          ],
+          "expected_value": -1,
+          "expected_output": "-1",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 5,
+          "created_at": "2026-06-23T07:07:23.685654+00:00"
+        },
+        {
+          "name": "hidden_negative_numbers",
+          "stdin": "",
+          "function_args": [
+            [
+              -1,
+              3,
+              -1,
+              4
+            ]
+          ],
+          "expected_value": -1,
+          "expected_output": "-1",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 6,
+          "created_at": "2026-06-23T07:07:23.686222+00:00"
+        },
+        {
+          "name": "hidden_zero_repeat",
+          "stdin": "",
+          "function_args": [
+            [
+              0,
+              1,
+              2,
+              0
+            ]
+          ],
+          "expected_value": 0,
+          "expected_output": "0",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 7,
+          "created_at": "2026-06-23T07:07:23.686716+00:00"
+        },
+        {
+          "name": "hidden_all_same",
+          "stdin": "",
+          "function_args": [
+            [
+              5,
+              5,
+              5,
+              5
+            ]
+          ],
+          "expected_value": 5,
+          "expected_output": "5",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 8,
+          "created_at": "2026-06-23T07:07:23.687419+00:00"
+        },
+        {
+          "name": "hidden_large_values",
+          "stdin": "",
+          "function_args": [
+            [
+              1000000000,
+              -1000000000,
+              3,
+              1000000000
+            ]
+          ],
+          "expected_value": 1000000000,
+          "expected_output": "1000000000",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 9,
+          "created_at": "2026-06-23T07:07:23.687956+00:00"
+        },
+        {
+          "name": "hidden_first_repeated_not_most_frequent",
+          "stdin": "",
+          "function_args": [
+            [
+              1,
+              2,
+              3,
+              2,
+              1,
+              1
+            ]
+          ],
+          "expected_value": 2,
+          "expected_output": "2",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 10,
+          "created_at": "2026-06-23T07:07:23.688455+00:00"
+        }
+      ],
+      "submissions": [
+        {
+          "kind": "submit",
+          "language": "java",
+          "code": "import java.util.*;\r\n\r\nclass Solution {\r\n    public int solve(int[] nums) {\r\n        Set<Integer> seen =  new HashSet<>();\r\n        for(int num: nums) {\r\n            if(seen.contains(num))\r\n                return num;\r\n            seen.add(num);\r\n        }\r\n        return -1;\r\n    }\r\n}",
+          "status": "accepted",
+          "stdout": "2\n-1\n7\n1\n-1\n-1\n0\n5\n1000000000\n2",
+          "stderr": "",
+          "execution_time_ms": 4019,
+          "solve_time_seconds": 2,
+          "passed_count": 10,
+          "total_count": 10,
+          "created_at": "2026-06-23T07:58:43.691296+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_basic_repeat",
+                "order": 1
+              },
+              "status": "accepted",
+              "stdout": "2",
+              "stderr": "",
+              "expected_output": "2",
+              "execution_time_ms": 150
+            },
+            {
+              "test_case": {
+                "name": "sample_no_repeat",
+                "order": 2
+              },
+              "status": "accepted",
+              "stdout": "-1",
+              "stderr": "",
+              "expected_output": "-1",
+              "execution_time_ms": 149
+            },
+            {
+              "test_case": {
+                "name": "hidden_repeat_at_start",
+                "order": 3
+              },
+              "status": "accepted",
+              "stdout": "7",
+              "stderr": "",
+              "expected_output": "7",
+              "execution_time_ms": 148
+            },
+            {
+              "test_case": {
+                "name": "hidden_repeat_later",
+                "order": 4
+              },
+              "status": "accepted",
+              "stdout": "1",
+              "stderr": "",
+              "expected_output": "1",
+              "execution_time_ms": 142
+            },
+            {
+              "test_case": {
+                "name": "hidden_single_element",
+                "order": 5
+              },
+              "status": "accepted",
+              "stdout": "-1",
+              "stderr": "",
+              "expected_output": "-1",
+              "execution_time_ms": 147
+            },
+            {
+              "test_case": {
+                "name": "hidden_negative_numbers",
+                "order": 6
+              },
+              "status": "accepted",
+              "stdout": "-1",
+              "stderr": "",
+              "expected_output": "-1",
+              "execution_time_ms": 152
+            },
+            {
+              "test_case": {
+                "name": "hidden_zero_repeat",
+                "order": 7
+              },
+              "status": "accepted",
+              "stdout": "0",
+              "stderr": "",
+              "expected_output": "0",
+              "execution_time_ms": 149
+            },
+            {
+              "test_case": {
+                "name": "hidden_all_same",
+                "order": 8
+              },
+              "status": "accepted",
+              "stdout": "5",
+              "stderr": "",
+              "expected_output": "5",
+              "execution_time_ms": 148
+            },
+            {
+              "test_case": {
+                "name": "hidden_large_values",
+                "order": 9
+              },
+              "status": "accepted",
+              "stdout": "1000000000",
+              "stderr": "",
+              "expected_output": "1000000000",
+              "execution_time_ms": 144
+            },
+            {
+              "test_case": {
+                "name": "hidden_first_repeated_not_most_frequent",
+                "order": 10
+              },
+              "status": "accepted",
+              "stdout": "2",
+              "stderr": "",
+              "expected_output": "2",
+              "execution_time_ms": 146
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "First Unique Number",
+      "slug": "first-unique-number",
+      "description": "You are given an array of integers nums. Return the first number that appears exactly once in the array, based on the original left-to-right order. If every number appears more than once, return -1.\n\nFunction signature:\nJava: public int solve(int[] nums)\nPython: def solve(nums: list[int]) -> int\n\nArguments:\n- nums: an array/list of integers.\n\nReturn value:\n- The first integer that appears exactly once in nums.\n- Return -1 if no such integer exists.\n\nConstraints:\n- 1 <= nums.length <= 1000\n- -100000 <= nums[i] <= 100000\n\nExample 1:\nInput: nums = [4,5,1,2,1,4,2]\nOutput: 5\nExplanation: The counts are 4 -> 2, 5 -> 1, 1 -> 2, and 2 -> 2. The first number with count 1 is 5.\n\nExample 2:\nInput: nums = [7,7,8,8]\nOutput: -1\nExplanation: Every number appears more than once, so there is no unique number.",
+      "difficulty": "easy",
+      "starter_code": "class Solution {\n    public int solve(int[] nums) {\n        // Write your code here\n        return -1;\n    }\n}",
+      "java_starter_code": "class Solution {\n    public int solve(int[] nums) {\n        // Write your code here\n        return -1;\n    }\n}",
+      "python_starter_code": "def solve(nums):\n    # Write your code here\n    return -1",
+      "execution_mode": "function",
+      "function_name": "solve",
+      "is_active": true,
+      "created_at": "2026-06-23T18:33:10.936939+00:00",
+      "updated_at": "2026-06-23T18:33:10.936966+00:00",
+      "test_cases": [
+        {
+          "name": "sample_first_unique_middle",
+          "stdin": "",
+          "function_args": [
+            [
+              4,
+              5,
+              1,
+              2,
+              1,
+              4,
+              2
+            ]
+          ],
+          "expected_value": 5,
+          "expected_output": "5",
+          "is_sample": true,
+          "is_hidden": false,
+          "order": 1,
+          "created_at": "2026-06-23T18:33:10.938252+00:00"
+        },
+        {
+          "name": "sample_no_unique",
+          "stdin": "",
+          "function_args": [
+            [
+              7,
+              7,
+              8,
+              8
+            ]
+          ],
+          "expected_value": -1,
+          "expected_output": "-1",
+          "is_sample": true,
+          "is_hidden": false,
+          "order": 2,
+          "created_at": "2026-06-23T18:33:10.939180+00:00"
+        },
+        {
+          "name": "single_element",
+          "stdin": "",
+          "function_args": [
+            [
+              42
+            ]
+          ],
+          "expected_value": 42,
+          "expected_output": "42",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 3,
+          "created_at": "2026-06-23T18:33:10.939692+00:00"
+        },
+        {
+          "name": "unique_at_start",
+          "stdin": "",
+          "function_args": [
+            [
+              9,
+              1,
+              1,
+              2,
+              2,
+              3,
+              3
+            ]
+          ],
+          "expected_value": 9,
+          "expected_output": "9",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 4,
+          "created_at": "2026-06-23T18:33:10.940089+00:00"
+        },
+        {
+          "name": "unique_at_end",
+          "stdin": "",
+          "function_args": [
+            [
+              5,
+              5,
+              6,
+              6,
+              7
+            ]
+          ],
+          "expected_value": 7,
+          "expected_output": "7",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 5,
+          "created_at": "2026-06-23T18:33:10.940526+00:00"
+        },
+        {
+          "name": "negative_numbers",
+          "stdin": "",
+          "function_args": [
+            [
+              -3,
+              -1,
+              -3,
+              -2,
+              -2
+            ]
+          ],
+          "expected_value": -1,
+          "expected_output": "-1",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 6,
+          "created_at": "2026-06-23T18:33:10.940935+00:00"
+        },
+        {
+          "name": "zero_and_duplicates",
+          "stdin": "",
+          "function_args": [
+            [
+              0,
+              1,
+              0,
+              2,
+              2,
+              3,
+              3
+            ]
+          ],
+          "expected_value": 1,
+          "expected_output": "1",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 7,
+          "created_at": "2026-06-23T18:33:10.941315+00:00"
+        },
+        {
+          "name": "multiple_unique_choose_first",
+          "stdin": "",
+          "function_args": [
+            [
+              10,
+              20,
+              10,
+              30,
+              40,
+              30
+            ]
+          ],
+          "expected_value": 20,
+          "expected_output": "20",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 8,
+          "created_at": "2026-06-23T18:33:10.941765+00:00"
+        },
+        {
+          "name": "large_values",
+          "stdin": "",
+          "function_args": [
+            [
+              100000,
+              -100000,
+              100000,
+              99999,
+              -100000
+            ]
+          ],
+          "expected_value": 99999,
+          "expected_output": "99999",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 9,
+          "created_at": "2026-06-23T18:33:10.942298+00:00"
+        },
+        {
+          "name": "maximumish_repeated_pattern",
+          "stdin": "",
+          "function_args": [
+            [
+              1,
+              2,
+              3,
+              4,
+              5,
+              1,
+              2,
+              3,
+              4,
+              6,
+              7,
+              6,
+              7
+            ]
+          ],
+          "expected_value": 5,
+          "expected_output": "5",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 10,
+          "created_at": "2026-06-23T18:33:10.942704+00:00"
+        }
+      ],
+      "submissions": [
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "class Solution {\n    public int solve(int[] nums) {\n        // Write your code here\n        HashMap<Integer, Integer> counts = new HashMap<>();\n        \n        for(int num: nums) {\n            counts.put(num, counts.getOrDefault(num, 0) + 1);\n        }\n\n        for(Map.Entry<Integer, Integer> count: counts.entrySet()) {\n            if(count.getValue() == 1)\n                return count.getKey();\n        }\n        \n        return -1;\n    }\n}",
+          "status": "runtime_error",
+          "stdout": "",
+          "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmp58ehcvyo/Solution.java:4: error: cannot find symbol\n        HashMap<Integer, Integer> counts = new HashMap<>();\n        ^\n  symbol:   class HashMap\n  location: class Solution\n/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmp58ehcvyo/Solution.java:4: error: cannot find symbol\n        HashMap<Integer, Integer> counts = new HashMap<>();\n                                               ^\n  symbol:   class HashMap\n  location: class Solution\n/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmp58ehcvyo/Solution.java:10: error: package Map does not exist\n        for(Map.Entry<Integer, Integer> count: counts.entrySet()) {\n               ^\n3 errors\n",
+          "execution_time_ms": 2109,
+          "solve_time_seconds": null,
+          "passed_count": 0,
+          "total_count": 2,
+          "created_at": "2026-06-23T18:36:19.057045+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_first_unique_middle",
+                "order": 1
+              },
+              "status": "runtime_error",
+              "stdout": "",
+              "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmp58ehcvyo/Solution.java:4: error: cannot find symbol\n        HashMap<Integer, Integer> counts = new HashMap<>();\n        ^\n  symbol:   class HashMap\n  location: class Solution\n/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmp58ehcvyo/Solution.java:4: error: cannot find symbol\n        HashMap<Integer, Integer> counts = new HashMap<>();\n                                               ^\n  symbol:   class HashMap\n  location: class Solution\n/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmp58ehcvyo/Solution.java:10: error: package Map does not exist\n        for(Map.Entry<Integer, Integer> count: counts.entrySet()) {\n               ^\n3 errors\n",
+              "expected_output": "5",
+              "execution_time_ms": 2098
+            },
+            {
+              "test_case": {
+                "name": "sample_no_unique",
+                "order": 2
+              },
+              "status": "runtime_error",
+              "stdout": "",
+              "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmp58ehcvyo/Solution.java:4: error: cannot find symbol\n        HashMap<Integer, Integer> counts = new HashMap<>();\n        ^\n  symbol:   class HashMap\n  location: class Solution\n/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmp58ehcvyo/Solution.java:4: error: cannot find symbol\n        HashMap<Integer, Integer> counts = new HashMap<>();\n                                               ^\n  symbol:   class HashMap\n  location: class Solution\n/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmp58ehcvyo/Solution.java:10: error: package Map does not exist\n        for(Map.Entry<Integer, Integer> count: counts.entrySet()) {\n               ^\n3 errors\n",
+              "expected_output": "-1",
+              "execution_time_ms": 2098
+            }
+          ]
+        },
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Solution {\n    public int solve(int[] nums) {\n        // Write your code here\n        HashMap<Integer, Integer> counts = new HashMap<>();\n        \n        for(int num: nums) {\n            counts.put(num, counts.getOrDefault(num, 0) + 1);\n        }\n\n        for(Map.Entry<Integer, Integer> count: counts.entrySet()) {\n            if(count.getValue() == 1)\n                return count.getKey();\n        }\n\n        return -1;\n    }\n}",
+          "status": "accepted",
+          "stdout": "5\n-1",
+          "stderr": "",
+          "execution_time_ms": 1916,
+          "solve_time_seconds": null,
+          "passed_count": 2,
+          "total_count": 2,
+          "created_at": "2026-06-23T18:36:36.724413+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_first_unique_middle",
+                "order": 1
+              },
+              "status": "accepted",
+              "stdout": "5",
+              "stderr": "",
+              "expected_output": "5",
+              "execution_time_ms": 152
+            },
+            {
+              "test_case": {
+                "name": "sample_no_unique",
+                "order": 2
+              },
+              "status": "accepted",
+              "stdout": "-1",
+              "stderr": "",
+              "expected_output": "-1",
+              "execution_time_ms": 142
+            }
+          ]
+        },
+        {
+          "kind": "submit",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Solution {\n    public int solve(int[] nums) {\n        // Write your code here\n        HashMap<Integer, Integer> counts = new HashMap<>();\n        \n        for(int num: nums) {\n            counts.put(num, counts.getOrDefault(num, 0) + 1);\n        }\n\n        for(Map.Entry<Integer, Integer> count: counts.entrySet()) {\n            if(count.getValue() == 1)\n                return count.getKey();\n        }\n\n        return -1;\n    }\n}",
+          "status": "accepted",
+          "stdout": "5\n-1\n42\n9\n7\n-1\n1\n20\n99999\n5",
+          "stderr": "",
+          "execution_time_ms": 3327,
+          "solve_time_seconds": 198,
+          "passed_count": 10,
+          "total_count": 10,
+          "created_at": "2026-06-23T18:36:41.130642+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_first_unique_middle",
+                "order": 1
+              },
+              "status": "accepted",
+              "stdout": "5",
+              "stderr": "",
+              "expected_output": "5",
+              "execution_time_ms": 163
+            },
+            {
+              "test_case": {
+                "name": "sample_no_unique",
+                "order": 2
+              },
+              "status": "accepted",
+              "stdout": "-1",
+              "stderr": "",
+              "expected_output": "-1",
+              "execution_time_ms": 144
+            },
+            {
+              "test_case": {
+                "name": "single_element",
+                "order": 3
+              },
+              "status": "accepted",
+              "stdout": "42",
+              "stderr": "",
+              "expected_output": "42",
+              "execution_time_ms": 154
+            },
+            {
+              "test_case": {
+                "name": "unique_at_start",
+                "order": 4
+              },
+              "status": "accepted",
+              "stdout": "9",
+              "stderr": "",
+              "expected_output": "9",
+              "execution_time_ms": 156
+            },
+            {
+              "test_case": {
+                "name": "unique_at_end",
+                "order": 5
+              },
+              "status": "accepted",
+              "stdout": "7",
+              "stderr": "",
+              "expected_output": "7",
+              "execution_time_ms": 154
+            },
+            {
+              "test_case": {
+                "name": "negative_numbers",
+                "order": 6
+              },
+              "status": "accepted",
+              "stdout": "-1",
+              "stderr": "",
+              "expected_output": "-1",
+              "execution_time_ms": 143
+            },
+            {
+              "test_case": {
+                "name": "zero_and_duplicates",
+                "order": 7
+              },
+              "status": "accepted",
+              "stdout": "1",
+              "stderr": "",
+              "expected_output": "1",
+              "execution_time_ms": 144
+            },
+            {
+              "test_case": {
+                "name": "multiple_unique_choose_first",
+                "order": 8
+              },
+              "status": "accepted",
+              "stdout": "20",
+              "stderr": "",
+              "expected_output": "20",
+              "execution_time_ms": 153
+            },
+            {
+              "test_case": {
+                "name": "large_values",
+                "order": 9
+              },
+              "status": "accepted",
+              "stdout": "99999",
+              "stderr": "",
+              "expected_output": "99999",
+              "execution_time_ms": 148
+            },
+            {
+              "test_case": {
+                "name": "maximumish_repeated_pattern",
+                "order": 10
+              },
+              "status": "accepted",
+              "stdout": "5",
+              "stderr": "",
+              "expected_output": "5",
+              "execution_time_ms": 150
+            }
+          ]
+        },
+        {
+          "kind": "submit",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Solution {\n    public int solve(int[] nums) {\n        // Write your code here\n        HashMap<Integer, Integer> counts = new HashMap<>();\n        \n        for(int num: nums) {\n            counts.put(num, counts.getOrDefault(num, 0) + 1);\n        }\n\n        for(Map.Entry<Integer, Integer> count: counts.entrySet()) {\n            if(count.getValue() == 1)\n                return count.getKey();\n        }\n\n        return -1;\n    }\n}",
+          "status": "accepted",
+          "stdout": "5\n-1\n42\n9\n7\n-1\n1\n20\n99999\n5",
+          "stderr": "",
+          "execution_time_ms": 3923,
+          "solve_time_seconds": 198,
+          "passed_count": 10,
+          "total_count": 10,
+          "created_at": "2026-06-23T18:39:13.117274+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_first_unique_middle",
+                "order": 1
+              },
+              "status": "accepted",
+              "stdout": "5",
+              "stderr": "",
+              "expected_output": "5",
+              "execution_time_ms": 148
+            },
+            {
+              "test_case": {
+                "name": "sample_no_unique",
+                "order": 2
+              },
+              "status": "accepted",
+              "stdout": "-1",
+              "stderr": "",
+              "expected_output": "-1",
+              "execution_time_ms": 148
+            },
+            {
+              "test_case": {
+                "name": "single_element",
+                "order": 3
+              },
+              "status": "accepted",
+              "stdout": "42",
+              "stderr": "",
+              "expected_output": "42",
+              "execution_time_ms": 142
+            },
+            {
+              "test_case": {
+                "name": "unique_at_start",
+                "order": 4
+              },
+              "status": "accepted",
+              "stdout": "9",
+              "stderr": "",
+              "expected_output": "9",
+              "execution_time_ms": 158
+            },
+            {
+              "test_case": {
+                "name": "unique_at_end",
+                "order": 5
+              },
+              "status": "accepted",
+              "stdout": "7",
+              "stderr": "",
+              "expected_output": "7",
+              "execution_time_ms": 146
+            },
+            {
+              "test_case": {
+                "name": "negative_numbers",
+                "order": 6
+              },
+              "status": "accepted",
+              "stdout": "-1",
+              "stderr": "",
+              "expected_output": "-1",
+              "execution_time_ms": 148
+            },
+            {
+              "test_case": {
+                "name": "zero_and_duplicates",
+                "order": 7
+              },
+              "status": "accepted",
+              "stdout": "1",
+              "stderr": "",
+              "expected_output": "1",
+              "execution_time_ms": 156
+            },
+            {
+              "test_case": {
+                "name": "multiple_unique_choose_first",
+                "order": 8
+              },
+              "status": "accepted",
+              "stdout": "20",
+              "stderr": "",
+              "expected_output": "20",
+              "execution_time_ms": 156
+            },
+            {
+              "test_case": {
+                "name": "large_values",
+                "order": 9
+              },
+              "status": "accepted",
+              "stdout": "99999",
+              "stderr": "",
+              "expected_output": "99999",
+              "execution_time_ms": 183
+            },
+            {
+              "test_case": {
+                "name": "maximumish_repeated_pattern",
+                "order": 10
+              },
+              "status": "accepted",
+              "stdout": "5",
+              "stderr": "",
+              "expected_output": "5",
+              "execution_time_ms": 161
+            }
+          ]
+        },
+        {
+          "kind": "submit",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Solution {\n    public int solve(int[] nums) {\n        // Write your code here\n        HashMap<Integer, Integer> counts = new HashMap<>();\n        \n        for(int num: nums) {\n            counts.put(num, counts.getOrDefault(num, 0) + 1);\n        }\n\n        for(Map.Entry<Integer, Integer> count: counts.entrySet()) {\n            if(count.getValue() == 1)\n                return count.getKey();\n        }\n\n        return -1;\n    }\n}",
+          "status": "accepted",
+          "stdout": "5\n-1\n42\n9\n7\n-1\n1\n20\n99999\n5",
+          "stderr": "",
+          "execution_time_ms": 4495,
+          "solve_time_seconds": null,
+          "passed_count": 10,
+          "total_count": 10,
+          "created_at": "2026-06-23T18:49:38.974845+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_first_unique_middle",
+                "order": 1
+              },
+              "status": "accepted",
+              "stdout": "5",
+              "stderr": "",
+              "expected_output": "5",
+              "execution_time_ms": 153
+            },
+            {
+              "test_case": {
+                "name": "sample_no_unique",
+                "order": 2
+              },
+              "status": "accepted",
+              "stdout": "-1",
+              "stderr": "",
+              "expected_output": "-1",
+              "execution_time_ms": 154
+            },
+            {
+              "test_case": {
+                "name": "single_element",
+                "order": 3
+              },
+              "status": "accepted",
+              "stdout": "42",
+              "stderr": "",
+              "expected_output": "42",
+              "execution_time_ms": 201
+            },
+            {
+              "test_case": {
+                "name": "unique_at_start",
+                "order": 4
+              },
+              "status": "accepted",
+              "stdout": "9",
+              "stderr": "",
+              "expected_output": "9",
+              "execution_time_ms": 148
+            },
+            {
+              "test_case": {
+                "name": "unique_at_end",
+                "order": 5
+              },
+              "status": "accepted",
+              "stdout": "7",
+              "stderr": "",
+              "expected_output": "7",
+              "execution_time_ms": 156
+            },
+            {
+              "test_case": {
+                "name": "negative_numbers",
+                "order": 6
+              },
+              "status": "accepted",
+              "stdout": "-1",
+              "stderr": "",
+              "expected_output": "-1",
+              "execution_time_ms": 152
+            },
+            {
+              "test_case": {
+                "name": "zero_and_duplicates",
+                "order": 7
+              },
+              "status": "accepted",
+              "stdout": "1",
+              "stderr": "",
+              "expected_output": "1",
+              "execution_time_ms": 157
+            },
+            {
+              "test_case": {
+                "name": "multiple_unique_choose_first",
+                "order": 8
+              },
+              "status": "accepted",
+              "stdout": "20",
+              "stderr": "",
+              "expected_output": "20",
+              "execution_time_ms": 157
+            },
+            {
+              "test_case": {
+                "name": "large_values",
+                "order": 9
+              },
+              "status": "accepted",
+              "stdout": "99999",
+              "stderr": "",
+              "expected_output": "99999",
+              "execution_time_ms": 167
+            },
+            {
+              "test_case": {
+                "name": "maximumish_repeated_pattern",
+                "order": 10
+              },
+              "status": "accepted",
+              "stdout": "5",
+              "stderr": "",
+              "expected_output": "5",
+              "execution_time_ms": 147
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Last Stone Weight",
+      "slug": "last-stone-weight",
+      "description": "You are given an array of positive integers called stones, where stones[i] represents the weight of the i-th stone. On each turn, choose the two heaviest stones and smash them together. If both stones have the same weight, both are destroyed. If they have different weights, the smaller stone is destroyed and the larger stone becomes a new stone with weight equal to the difference of the two weights. Continue until at most one stone remains. Return the weight of the final remaining stone, or 0 if no stones remain.\n\nFunction signature:\nJava: public int solve(int[] stones)\nPython: def solve(stones: list[int]) -> int\n\nArguments:\n- stones: an array/list of positive integers representing stone weights.\n\nReturn value:\n- An integer representing the final remaining stone weight, or 0 if all stones are destroyed.\n\nConstraints:\n- 1 <= stones.length <= 1000\n- 1 <= stones[i] <= 1000\n\nExample 1:\nInput: stones = [2,7,4,1,8,1]\nOutput: 1\nExplanation: Smash 8 and 7 to get 1. Stones become [2,4,1,1,1]. Smash 4 and 2 to get 2. Stones become [2,1,1,1]. Smash 2 and 1 to get 1. Stones become [1,1,1]. Smash 1 and 1, both disappear. One stone of weight 1 remains.\n\nExample 2:\nInput: stones = [5,5]\nOutput: 0\nExplanation: The two stones have equal weight, so both are destroyed.",
+      "difficulty": "easy",
+      "starter_code": "class Solution {\n    public int solve(int[] stones) {\n        // Write your code here\n        return 0;\n    }\n}",
+      "java_starter_code": "class Solution {\n    public int solve(int[] stones) {\n        // Write your code here\n        return 0;\n    }\n}",
+      "python_starter_code": "def solve(stones):\n    # Write your code here\n    return 0",
+      "execution_mode": "function",
+      "function_name": "solve",
+      "is_active": true,
+      "created_at": "2026-06-23T18:23:40.979826+00:00",
+      "updated_at": "2026-06-23T18:23:40.979856+00:00",
+      "test_cases": [
+        {
+          "name": "sample_mixed_stones",
+          "stdin": "",
+          "function_args": [
+            [
+              2,
+              7,
+              4,
+              1,
+              8,
+              1
+            ]
+          ],
+          "expected_value": 1,
+          "expected_output": "1",
+          "is_sample": true,
+          "is_hidden": false,
+          "order": 1,
+          "created_at": "2026-06-23T18:23:40.981031+00:00"
+        },
+        {
+          "name": "sample_equal_pair",
+          "stdin": "",
+          "function_args": [
+            [
+              5,
+              5
+            ]
+          ],
+          "expected_value": 0,
+          "expected_output": "0",
+          "is_sample": true,
+          "is_hidden": false,
+          "order": 2,
+          "created_at": "2026-06-23T18:23:40.981977+00:00"
+        },
+        {
+          "name": "single_stone",
+          "stdin": "",
+          "function_args": [
+            [
+              9
+            ]
+          ],
+          "expected_value": 9,
+          "expected_output": "9",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 3,
+          "created_at": "2026-06-23T18:23:40.982517+00:00"
+        },
+        {
+          "name": "all_equal_even_count",
+          "stdin": "",
+          "function_args": [
+            [
+              3,
+              3,
+              3,
+              3
+            ]
+          ],
+          "expected_value": 0,
+          "expected_output": "0",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 4,
+          "created_at": "2026-06-23T18:23:40.982990+00:00"
+        },
+        {
+          "name": "all_equal_odd_count",
+          "stdin": "",
+          "function_args": [
+            [
+              6,
+              6,
+              6
+            ]
+          ],
+          "expected_value": 6,
+          "expected_output": "6",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 5,
+          "created_at": "2026-06-23T18:23:40.983506+00:00"
+        },
+        {
+          "name": "already_sorted_increasing",
+          "stdin": "",
+          "function_args": [
+            [
+              1,
+              2,
+              3,
+              4,
+              5
+            ]
+          ],
+          "expected_value": 1,
+          "expected_output": "1",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 6,
+          "created_at": "2026-06-23T18:23:40.983911+00:00"
+        },
+        {
+          "name": "already_sorted_decreasing",
+          "stdin": "",
+          "function_args": [
+            [
+              10,
+              8,
+              6,
+              4,
+              2
+            ]
+          ],
+          "expected_value": 2,
+          "expected_output": "2",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 7,
+          "created_at": "2026-06-23T18:23:40.984302+00:00"
+        },
+        {
+          "name": "many_duplicates",
+          "stdin": "",
+          "function_args": [
+            [
+              4,
+              4,
+              4,
+              4,
+              7,
+              7,
+              9
+            ]
+          ],
+          "expected_value": 1,
+          "expected_output": "1",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 8,
+          "created_at": "2026-06-23T18:23:40.984868+00:00"
+        },
+        {
+          "name": "large_weights",
+          "stdin": "",
+          "function_args": [
+            [
+              1000,
+              999,
+              998,
+              997
+            ]
+          ],
+          "expected_value": 0,
+          "expected_output": "0",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 9,
+          "created_at": "2026-06-23T18:23:40.985474+00:00"
+        },
+        {
+          "name": "power_like_weights",
+          "stdin": "",
+          "function_args": [
+            [
+              1,
+              1,
+              2,
+              4,
+              8,
+              16
+            ]
+          ],
+          "expected_value": 2,
+          "expected_output": "2",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 10,
+          "created_at": "2026-06-23T18:23:40.985890+00:00"
+        }
+      ],
+      "submissions": [
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "import java.util.*;\nimport java.lang.*;\n\n\nclass Solution {\n    public int solve(int[] stones) {\n        // Write your code here\n        PriorityQueue<Integer> maxHeap =  new PriorityQueue<>(Collections.reverseOrder());\n\n        for(int stone: stones) {\n            maxHeap.offer(stone);\n        }\n\n        while(maxHeap.size() > 1) {\n            int first = maxHeap.poll();\n            int second = maxHeap.poll();\n\n            if(first != second) {\n                int newStone = Math.abs(first-second);\n                maxHeap.offer(newStone);\n            }\n        }\n\n        return 0 ? maxHeap.size() == 0 : maxHeap.poll();\n    }\n}",
+          "status": "runtime_error",
+          "stdout": "",
+          "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmpucld_z__/Solution.java:24: error: incompatible types: int cannot be converted to boolean\n        return 0 ? maxHeap.size() == 0 : maxHeap.poll();\n               ^\n/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmpucld_z__/Solution.java:24: error: incompatible types: INT#1 cannot be converted to int\n        return 0 ? maxHeap.size() == 0 : maxHeap.poll();\n                 ^\n  where INT#1,INT#2 are intersection types:\n    INT#1 extends Object,Serializable,Comparable<? extends INT#2>,Constable\n    INT#2 extends Object,Serializable,Comparable<?>,Constable\n2 errors\n",
+          "execution_time_ms": 2022,
+          "solve_time_seconds": null,
+          "passed_count": 0,
+          "total_count": 2,
+          "created_at": "2026-06-23T18:29:35.134646+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_mixed_stones",
+                "order": 1
+              },
+              "status": "runtime_error",
+              "stdout": "",
+              "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmpucld_z__/Solution.java:24: error: incompatible types: int cannot be converted to boolean\n        return 0 ? maxHeap.size() == 0 : maxHeap.poll();\n               ^\n/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmpucld_z__/Solution.java:24: error: incompatible types: INT#1 cannot be converted to int\n        return 0 ? maxHeap.size() == 0 : maxHeap.poll();\n                 ^\n  where INT#1,INT#2 are intersection types:\n    INT#1 extends Object,Serializable,Comparable<? extends INT#2>,Constable\n    INT#2 extends Object,Serializable,Comparable<?>,Constable\n2 errors\n",
+              "expected_output": "1",
+              "execution_time_ms": 2011
+            },
+            {
+              "test_case": {
+                "name": "sample_equal_pair",
+                "order": 2
+              },
+              "status": "runtime_error",
+              "stdout": "",
+              "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmpucld_z__/Solution.java:24: error: incompatible types: int cannot be converted to boolean\n        return 0 ? maxHeap.size() == 0 : maxHeap.poll();\n               ^\n/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmpucld_z__/Solution.java:24: error: incompatible types: INT#1 cannot be converted to int\n        return 0 ? maxHeap.size() == 0 : maxHeap.poll();\n                 ^\n  where INT#1,INT#2 are intersection types:\n    INT#1 extends Object,Serializable,Comparable<? extends INT#2>,Constable\n    INT#2 extends Object,Serializable,Comparable<?>,Constable\n2 errors\n",
+              "expected_output": "0",
+              "execution_time_ms": 2011
+            }
+          ]
+        },
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "import java.util.*;\nimport java.lang.*;\n\n\nclass Solution {\n    public int solve(int[] stones) {\n        // Write your code here\n        PriorityQueue<Integer> maxHeap =  new PriorityQueue<>(Collections.reverseOrder());\n\n        for(int stone: stones) {\n            maxHeap.offer(stone);\n        }\n\n        while(maxHeap.size() > 1) {\n            int first = maxHeap.poll();\n            int second = maxHeap.poll();\n\n            if(first != second) {\n                int newStone = Math.abs(first-second);\n                maxHeap.offer(newStone);\n            }\n        }\n\n        return maxHeap.size() == 0 ? 0 : maxHeap.poll();\n    }\n}",
+          "status": "accepted",
+          "stdout": "1\n0",
+          "stderr": "",
+          "execution_time_ms": 2295,
+          "solve_time_seconds": null,
+          "passed_count": 2,
+          "total_count": 2,
+          "created_at": "2026-06-23T18:30:00.531777+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_mixed_stones",
+                "order": 1
+              },
+              "status": "accepted",
+              "stdout": "1",
+              "stderr": "",
+              "expected_output": "1",
+              "execution_time_ms": 164
+            },
+            {
+              "test_case": {
+                "name": "sample_equal_pair",
+                "order": 2
+              },
+              "status": "accepted",
+              "stdout": "0",
+              "stderr": "",
+              "expected_output": "0",
+              "execution_time_ms": 144
+            }
+          ]
+        },
+        {
+          "kind": "submit",
+          "language": "java",
+          "code": "import java.util.*;\nimport java.lang.*;\n\n\nclass Solution {\n    public int solve(int[] stones) {\n        // Write your code here\n        PriorityQueue<Integer> maxHeap =  new PriorityQueue<>(Collections.reverseOrder());\n\n        for(int stone: stones) {\n            maxHeap.offer(stone);\n        }\n\n        while(maxHeap.size() > 1) {\n            int first = maxHeap.poll();\n            int second = maxHeap.poll();\n\n            if(first != second) {\n                int newStone = Math.abs(first-second);\n                maxHeap.offer(newStone);\n            }\n        }\n\n        return maxHeap.size() == 0 ? 0 : maxHeap.poll();\n    }\n}",
+          "status": "wrong_answer",
+          "stdout": "1\n0\n9\n0\n6\n1\n2\n1\n0\n0",
+          "stderr": "",
+          "execution_time_ms": 3133,
+          "solve_time_seconds": null,
+          "passed_count": 9,
+          "total_count": 10,
+          "created_at": "2026-06-23T18:30:13.004270+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_mixed_stones",
+                "order": 1
+              },
+              "status": "accepted",
+              "stdout": "1",
+              "stderr": "",
+              "expected_output": "1",
+              "execution_time_ms": 150
+            },
+            {
+              "test_case": {
+                "name": "sample_equal_pair",
+                "order": 2
+              },
+              "status": "accepted",
+              "stdout": "0",
+              "stderr": "",
+              "expected_output": "0",
+              "execution_time_ms": 148
+            },
+            {
+              "test_case": {
+                "name": "single_stone",
+                "order": 3
+              },
+              "status": "accepted",
+              "stdout": "9",
+              "stderr": "",
+              "expected_output": "9",
+              "execution_time_ms": 147
+            },
+            {
+              "test_case": {
+                "name": "all_equal_even_count",
+                "order": 4
+              },
+              "status": "accepted",
+              "stdout": "0",
+              "stderr": "",
+              "expected_output": "0",
+              "execution_time_ms": 148
+            },
+            {
+              "test_case": {
+                "name": "all_equal_odd_count",
+                "order": 5
+              },
+              "status": "accepted",
+              "stdout": "6",
+              "stderr": "",
+              "expected_output": "6",
+              "execution_time_ms": 147
+            },
+            {
+              "test_case": {
+                "name": "already_sorted_increasing",
+                "order": 6
+              },
+              "status": "accepted",
+              "stdout": "1",
+              "stderr": "",
+              "expected_output": "1",
+              "execution_time_ms": 145
+            },
+            {
+              "test_case": {
+                "name": "already_sorted_decreasing",
+                "order": 7
+              },
+              "status": "accepted",
+              "stdout": "2",
+              "stderr": "",
+              "expected_output": "2",
+              "execution_time_ms": 166
+            },
+            {
+              "test_case": {
+                "name": "many_duplicates",
+                "order": 8
+              },
+              "status": "accepted",
+              "stdout": "1",
+              "stderr": "",
+              "expected_output": "1",
+              "execution_time_ms": 160
+            },
+            {
+              "test_case": {
+                "name": "large_weights",
+                "order": 9
+              },
+              "status": "accepted",
+              "stdout": "0",
+              "stderr": "",
+              "expected_output": "0",
+              "execution_time_ms": 145
+            },
+            {
+              "test_case": {
+                "name": "power_like_weights",
+                "order": 10
+              },
+              "status": "wrong_answer",
+              "stdout": "0",
+              "stderr": "",
+              "expected_output": "2",
+              "execution_time_ms": 145
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Multi Service Rate Limiter",
+      "slug": "multi-service-rate-limiter",
+      "description": "You are given a stream of API requests made to multiple services. Each request has a timestamp in seconds and a service name. A request is allowed if, during the inclusive time window [timestamp - windowSeconds + 1, timestamp], that service has fewer than maxRequests previously allowed requests. Rejected requests do not count toward future limits.\n\nImplement the function:\n\nJava: public boolean[] solve(int[][] requests, int maxRequests, int windowSeconds)\nPython: def solve(requests, maxRequests, windowSeconds)\n\nArguments:\n- requests: a list of requests. Each request is [timestamp, serviceId], where timestamp is a non-negative integer and serviceId is a non-negative integer representing a service.\n- maxRequests: maximum allowed requests per service within the sliding window.\n- windowSeconds: size of the sliding window in seconds.\n\nReturn value:\n- Return a boolean array/list where true means the corresponding request is allowed and false means it is rate-limited.\n\nImportant rules:\n- Requests are processed in the given order.\n- Timestamps are non-decreasing.\n- Each service has an independent rate limit.\n- Only allowed requests count toward the limit.\n- The window is inclusive. For a request at time t, allowed requests with timestamp < t - windowSeconds + 1 are outside the window and should be removed.\n\nConstraints:\n- 1 <= requests.length <= 100000\n- 0 <= timestamp <= 1000000000\n- 0 <= serviceId <= 100000\n- 1 <= maxRequests <= 100000\n- 1 <= windowSeconds <= 1000000000\n\nExample 1:\nInput: requests = [[1,10],[2,10],[3,10],[4,10]], maxRequests = 2, windowSeconds = 3\nOutput: [true,true,false,true]\nExplanation: Service 10 allows requests at 1 and 2. At 3, the window [1,3] already has 2 allowed requests, so it is rejected. At 4, timestamp 1 is outside [2,4], so the request is allowed.\n\nExample 2:\nInput: requests = [[1,1],[1,2],[2,1],[2,2],[3,1]], maxRequests = 1, windowSeconds = 2\nOutput: [true,true,false,false,true]\nExplanation: Services 1 and 2 are limited independently. The final request for service 1 at time 3 is allowed because time 1 is outside the window [2,3].",
+      "difficulty": "medium",
+      "starter_code": "import java.util.*;\n\nclass Solution {\n    public boolean[] solve(int[][] requests, int maxRequests, int windowSeconds) {\n        // Write your code here\n        return new boolean[requests.length];\n    }\n}",
+      "java_starter_code": "import java.util.*;\n\nclass Solution {\n    public boolean[] solve(int[][] requests, int maxRequests, int windowSeconds) {\n        // Write your code here\n        return new boolean[requests.length];\n    }\n}",
+      "python_starter_code": "def solve(requests, maxRequests, windowSeconds):\n    # Write your code here\n    return []",
+      "execution_mode": "function",
+      "function_name": "solve",
+      "is_active": true,
+      "created_at": "2026-06-23T07:54:59.200436+00:00",
+      "updated_at": "2026-06-23T07:54:59.200514+00:00",
+      "test_cases": [
+        {
+          "name": "sample_basic_single_service",
+          "stdin": "",
+          "function_args": [
+            [
+              [
+                1,
+                10
+              ],
+              [
+                2,
+                10
+              ],
+              [
+                3,
+                10
+              ],
+              [
+                4,
+                10
+              ]
+            ],
+            2,
+            3
+          ],
+          "expected_value": [
+            true,
+            true,
+            false,
+            true
+          ],
+          "expected_output": "[true,true,false,true]",
+          "is_sample": true,
+          "is_hidden": false,
+          "order": 1,
+          "created_at": "2026-06-23T07:54:59.203939+00:00"
+        },
+        {
+          "name": "sample_independent_services",
+          "stdin": "",
+          "function_args": [
+            [
+              [
+                1,
+                1
+              ],
+              [
+                1,
+                2
+              ],
+              [
+                2,
+                1
+              ],
+              [
+                2,
+                2
+              ],
+              [
+                3,
+                1
+              ]
+            ],
+            1,
+            2
+          ],
+          "expected_value": [
+            true,
+            true,
+            false,
+            false,
+            true
+          ],
+          "expected_output": "[true,true,false,false,true]",
+          "is_sample": true,
+          "is_hidden": false,
+          "order": 2,
+          "created_at": "2026-06-23T07:54:59.206882+00:00"
+        },
+        {
+          "name": "minimum_single_request",
+          "stdin": "",
+          "function_args": [
+            [
+              [
+                0,
+                0
+              ]
+            ],
+            1,
+            1
+          ],
+          "expected_value": [
+            true
+          ],
+          "expected_output": "[true]",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 3,
+          "created_at": "2026-06-23T07:54:59.207818+00:00"
+        },
+        {
+          "name": "same_timestamp_burst",
+          "stdin": "",
+          "function_args": [
+            [
+              [
+                5,
+                7
+              ],
+              [
+                5,
+                7
+              ],
+              [
+                5,
+                7
+              ],
+              [
+                5,
+                7
+              ]
+            ],
+            3,
+            10
+          ],
+          "expected_value": [
+            true,
+            true,
+            true,
+            false
+          ],
+          "expected_output": "[true,true,true,false]",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 4,
+          "created_at": "2026-06-23T07:54:59.208630+00:00"
+        },
+        {
+          "name": "rejected_requests_do_not_count",
+          "stdin": "",
+          "function_args": [
+            [
+              [
+                1,
+                3
+              ],
+              [
+                2,
+                3
+              ],
+              [
+                2,
+                3
+              ],
+              [
+                3,
+                3
+              ],
+              [
+                4,
+                3
+              ]
+            ],
+            2,
+            3
+          ],
+          "expected_value": [
+            true,
+            true,
+            false,
+            false,
+            true
+          ],
+          "expected_output": "[true,true,false,false,true]",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 5,
+          "created_at": "2026-06-23T07:54:59.209401+00:00"
+        },
+        {
+          "name": "window_boundary_expires_old_request",
+          "stdin": "",
+          "function_args": [
+            [
+              [
+                10,
+                1
+              ],
+              [
+                14,
+                1
+              ],
+              [
+                15,
+                1
+              ]
+            ],
+            2,
+            5
+          ],
+          "expected_value": [
+            true,
+            true,
+            true
+          ],
+          "expected_output": "[true,true,true]",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 6,
+          "created_at": "2026-06-23T07:54:59.210265+00:00"
+        },
+        {
+          "name": "window_boundary_still_inside",
+          "stdin": "",
+          "function_args": [
+            [
+              [
+                10,
+                1
+              ],
+              [
+                11,
+                1
+              ],
+              [
+                14,
+                1
+              ]
+            ],
+            2,
+            5
+          ],
+          "expected_value": [
+            true,
+            true,
+            false
+          ],
+          "expected_output": "[true,true,false]",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 7,
+          "created_at": "2026-06-23T07:54:59.211227+00:00"
+        },
+        {
+          "name": "multiple_services_interleaved",
+          "stdin": "",
+          "function_args": [
+            [
+              [
+                1,
+                1
+              ],
+              [
+                1,
+                2
+              ],
+              [
+                2,
+                1
+              ],
+              [
+                2,
+                2
+              ],
+              [
+                3,
+                1
+              ],
+              [
+                3,
+                2
+              ],
+              [
+                4,
+                1
+              ],
+              [
+                4,
+                2
+              ]
+            ],
+            2,
+            3
+          ],
+          "expected_value": [
+            true,
+            true,
+            true,
+            true,
+            false,
+            false,
+            true,
+            true
+          ],
+          "expected_output": "[true,true,true,true,false,false,true,true]",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 8,
+          "created_at": "2026-06-23T07:54:59.212029+00:00"
+        },
+        {
+          "name": "large_time_gap_clears_window",
+          "stdin": "",
+          "function_args": [
+            [
+              [
+                1,
+                5
+              ],
+              [
+                2,
+                5
+              ],
+              [
+                100,
+                5
+              ],
+              [
+                101,
+                5
+              ],
+              [
+                102,
+                5
+              ]
+            ],
+            2,
+            10
+          ],
+          "expected_value": [
+            true,
+            true,
+            true,
+            true,
+            false
+          ],
+          "expected_output": "[true,true,true,true,false]",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 9,
+          "created_at": "2026-06-23T07:54:59.212767+00:00"
+        },
+        {
+          "name": "limit_one_window_one",
+          "stdin": "",
+          "function_args": [
+            [
+              [
+                0,
+                9
+              ],
+              [
+                0,
+                9
+              ],
+              [
+                1,
+                9
+              ],
+              [
+                1,
+                9
+              ],
+              [
+                2,
+                9
+              ]
+            ],
+            1,
+            1
+          ],
+          "expected_value": [
+            true,
+            false,
+            true,
+            false,
+            true
+          ],
+          "expected_output": "[true,false,true,false,true]",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 10,
+          "created_at": "2026-06-23T07:54:59.213470+00:00"
+        },
+        {
+          "name": "high_limit_all_allowed",
+          "stdin": "",
+          "function_args": [
+            [
+              [
+                1,
+                4
+              ],
+              [
+                1,
+                4
+              ],
+              [
+                2,
+                4
+              ],
+              [
+                2,
+                4
+              ],
+              [
+                3,
+                4
+              ]
+            ],
+            10,
+            2
+          ],
+          "expected_value": [
+            true,
+            true,
+            true,
+            true,
+            true
+          ],
+          "expected_output": "[true,true,true,true,true]",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 11,
+          "created_at": "2026-06-23T07:54:59.214212+00:00"
+        },
+        {
+          "name": "many_duplicates_across_services",
+          "stdin": "",
+          "function_args": [
+            [
+              [
+                1,
+                8
+              ],
+              [
+                1,
+                8
+              ],
+              [
+                1,
+                9
+              ],
+              [
+                2,
+                8
+              ],
+              [
+                2,
+                9
+              ],
+              [
+                3,
+                8
+              ],
+              [
+                3,
+                9
+              ],
+              [
+                4,
+                8
+              ],
+              [
+                4,
+                9
+              ]
+            ],
+            2,
+            3
+          ],
+          "expected_value": [
+            true,
+            true,
+            true,
+            false,
+            true,
+            false,
+            false,
+            true,
+            true
+          ],
+          "expected_output": "[true,true,true,false,true,false,false,true,true]",
+          "is_sample": false,
+          "is_hidden": true,
+          "order": 12,
+          "created_at": "2026-06-23T07:54:59.214930+00:00"
+        }
+      ],
+      "submissions": [
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Solution {\n\n    class Service {\n        Deque<Integer> allowedRequests = new ArrayDeque<>();\n    }\n\n    public boolean[] solve(int[][] requests, int maxRequests, int windowSeconds) {\n        // Write your code here\n        boolean[] answers = new boolean[requests.length];\n        HashMap<Integer, Service>  serviceMap = new HashMap<>();\n\n        for(int[] request: requests)  {\n            int timestamp = request[0];\n            int serviceId = request[1];\n\n            Service service = serviceMap.getOrDefault(serviceId,  new Service());\n\n            while(!service.allowedRequests.isEmpty() && timestamp < service.allowedRequests.peekFirst() - windowSeconds +  1) {\n                service.allowedRequests.removeFirst();\n            }\n\n            if(service.allowedRequests.size() > maxRequests) {\n                answers.add(false);\n            } else {\n                service.allowedRequests.add(timestamp);\n                answers.add(true);\n            }\n\n            serviceMap.put(serviceId, service);\n        }\n        return answers;\n    }\n}",
+          "status": "runtime_error",
+          "stdout": "",
+          "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmpcx8m7wxb/Solution.java:25: error: cannot find symbol\n                answers.add(false);\n                       ^\n  symbol:   method add(boolean)\n  location: variable answers of type boolean[]\n/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmpcx8m7wxb/Solution.java:28: error: cannot find symbol\n                answers.add(true);\n                       ^\n  symbol:   method add(boolean)\n  location: variable answers of type boolean[]\n2 errors\n",
+          "execution_time_ms": 2333,
+          "solve_time_seconds": null,
+          "passed_count": 0,
+          "total_count": 2,
+          "created_at": "2026-06-23T11:44:04.754193+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_basic_single_service",
+                "order": 1
+              },
+              "status": "runtime_error",
+              "stdout": "",
+              "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmpcx8m7wxb/Solution.java:25: error: cannot find symbol\n                answers.add(false);\n                       ^\n  symbol:   method add(boolean)\n  location: variable answers of type boolean[]\n/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmpcx8m7wxb/Solution.java:28: error: cannot find symbol\n                answers.add(true);\n                       ^\n  symbol:   method add(boolean)\n  location: variable answers of type boolean[]\n2 errors\n",
+              "expected_output": "[true,true,false,true]",
+              "execution_time_ms": 2318
+            },
+            {
+              "test_case": {
+                "name": "sample_independent_services",
+                "order": 2
+              },
+              "status": "runtime_error",
+              "stdout": "",
+              "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmpcx8m7wxb/Solution.java:25: error: cannot find symbol\n                answers.add(false);\n                       ^\n  symbol:   method add(boolean)\n  location: variable answers of type boolean[]\n/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmpcx8m7wxb/Solution.java:28: error: cannot find symbol\n                answers.add(true);\n                       ^\n  symbol:   method add(boolean)\n  location: variable answers of type boolean[]\n2 errors\n",
+              "expected_output": "[true,true,false,false,true]",
+              "execution_time_ms": 2318
+            }
+          ]
+        },
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Solution {\n\n    class Service {\n        Deque<Integer> allowedRequests = new ArrayDeque<>();\n    }\n\n    public boolean[] solve(int[][] requests, int maxRequests, int windowSeconds) {\n        // Write your code here\n        boolean[] answers = new boolean[requests.length];\n        HashMap<Integer, Service>  serviceMap = new HashMap<>();\n\n        for(int[] request: requests)  {\n            int timestamp = request[0];\n            int serviceId = request[1];\n\n            Service service = serviceMap.getOrDefault(serviceId,  new Service());\n\n            while(!service.allowedRequests.isEmpty() && timestamp < service.allowedRequests.peekFirst() - windowSeconds +  1) {\n                service.allowedRequests.removeFirst();\n            }\n\n            if(service.allowedRequests.size() > maxRequests) {\n                answers.add(false);\n            } else {\n                service.allowedRequests.add(timestamp);\n                answers.addLast(true);\n            }\n\n            serviceMap.put(serviceId, service);\n        }\n        return answers;\n    }\n}",
+          "status": "runtime_error",
+          "stdout": "",
+          "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmpngthg15o/Solution.java:25: error: cannot find symbol\n                answers.add(false);\n                       ^\n  symbol:   method add(boolean)\n  location: variable answers of type boolean[]\n/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmpngthg15o/Solution.java:28: error: cannot find symbol\n                answers.addLast(true);\n                       ^\n  symbol:   method addLast(boolean)\n  location: variable answers of type boolean[]\n2 errors\n",
+          "execution_time_ms": 1929,
+          "solve_time_seconds": null,
+          "passed_count": 0,
+          "total_count": 2,
+          "created_at": "2026-06-23T11:44:24.819530+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_basic_single_service",
+                "order": 1
+              },
+              "status": "runtime_error",
+              "stdout": "",
+              "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmpngthg15o/Solution.java:25: error: cannot find symbol\n                answers.add(false);\n                       ^\n  symbol:   method add(boolean)\n  location: variable answers of type boolean[]\n/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmpngthg15o/Solution.java:28: error: cannot find symbol\n                answers.addLast(true);\n                       ^\n  symbol:   method addLast(boolean)\n  location: variable answers of type boolean[]\n2 errors\n",
+              "expected_output": "[true,true,false,true]",
+              "execution_time_ms": 1917
+            },
+            {
+              "test_case": {
+                "name": "sample_independent_services",
+                "order": 2
+              },
+              "status": "runtime_error",
+              "stdout": "",
+              "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmpngthg15o/Solution.java:25: error: cannot find symbol\n                answers.add(false);\n                       ^\n  symbol:   method add(boolean)\n  location: variable answers of type boolean[]\n/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmpngthg15o/Solution.java:28: error: cannot find symbol\n                answers.addLast(true);\n                       ^\n  symbol:   method addLast(boolean)\n  location: variable answers of type boolean[]\n2 errors\n",
+              "expected_output": "[true,true,false,false,true]",
+              "execution_time_ms": 1917
+            }
+          ]
+        },
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Solution {\n\n    class Service {\n        Deque<Integer> allowedRequests = new ArrayDeque<>();\n    }\n\n    public boolean[] solve(int[][] requests, int maxRequests, int windowSeconds) {\n        // Write your code here\n        boolean[] answers = new boolean[requests.length];\n        HashMap<Integer, Service>  serviceMap = new HashMap<>();\n\n        for(int[] request: requests)  {\n            int timestamp = request[0];\n            int serviceId = request[1];\n\n            Service service = serviceMap.getOrDefault(serviceId,  new Service());\n\n            while(!service.allowedRequests.isEmpty() && timestamp < service.allowedRequests.peekFirst() - windowSeconds +  1) {\n                service.allowedRequests.removeFirst();\n            }\n\n            if(service.allowedRequests.size() > maxRequests) {\n                answers[i] = false;\n            } else {\n                service.allowedRequests.add(timestamp);\n                answers[i] = true;\n            }\n\n            serviceMap.put(serviceId, service);\n        }\n        return answers;\n    }\n}",
+          "status": "runtime_error",
+          "stdout": "",
+          "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmppeova8zg/Solution.java:25: error: cannot find symbol\n                answers[i] = false;\n                        ^\n  symbol:   variable i\n  location: class Solution\n/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmppeova8zg/Solution.java:28: error: cannot find symbol\n                answers[i] = true;\n                        ^\n  symbol:   variable i\n  location: class Solution\n2 errors\n",
+          "execution_time_ms": 2548,
+          "solve_time_seconds": null,
+          "passed_count": 0,
+          "total_count": 2,
+          "created_at": "2026-06-23T11:45:00.394055+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_basic_single_service",
+                "order": 1
+              },
+              "status": "runtime_error",
+              "stdout": "",
+              "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmppeova8zg/Solution.java:25: error: cannot find symbol\n                answers[i] = false;\n                        ^\n  symbol:   variable i\n  location: class Solution\n/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmppeova8zg/Solution.java:28: error: cannot find symbol\n                answers[i] = true;\n                        ^\n  symbol:   variable i\n  location: class Solution\n2 errors\n",
+              "expected_output": "[true,true,false,true]",
+              "execution_time_ms": 2531
+            },
+            {
+              "test_case": {
+                "name": "sample_independent_services",
+                "order": 2
+              },
+              "status": "runtime_error",
+              "stdout": "",
+              "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmppeova8zg/Solution.java:25: error: cannot find symbol\n                answers[i] = false;\n                        ^\n  symbol:   variable i\n  location: class Solution\n/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmppeova8zg/Solution.java:28: error: cannot find symbol\n                answers[i] = true;\n                        ^\n  symbol:   variable i\n  location: class Solution\n2 errors\n",
+              "expected_output": "[true,true,false,false,true]",
+              "execution_time_ms": 2531
+            }
+          ]
+        },
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Solution {\n\n    class Service {\n        Deque<Integer> allowedRequests = new ArrayDeque<>();\n    }\n\n    public boolean[] solve(int[][] requests, int maxRequests, int windowSeconds) {\n        // Write your code here\n        boolean[] answers = new boolean[requests.length];\n        HashMap<Integer, Service>  serviceMap = new HashMap<>();\n\n        for(int i=0; i<requests.size(); i++)  {\n            int timestamp = requests[i][0];\n            int serviceId = request[i][1];\n\n            Service service = serviceMap.getOrDefault(serviceId,  new Service());\n\n            while(!service.allowedRequests.isEmpty() && timestamp < service.allowedRequests.peekFirst() - windowSeconds +  1) {\n                service.allowedRequests.removeFirst();\n            }\n\n            if(service.allowedRequests.size() > maxRequests) {\n                answers[i] = false;\n            } else {\n                service.allowedRequests.add(timestamp);\n                answers[i] = true;\n            }\n\n            serviceMap.put(serviceId, service);\n        }\n        return answers;\n    }\n}",
+          "status": "runtime_error",
+          "stdout": "",
+          "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmppog6vvs3/Solution.java:14: error: cannot find symbol\n        for(int i=0; i<requests.size(); i++)  {\n                               ^\n  symbol:   method size()\n  location: variable requests of type int[][]\n/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmppog6vvs3/Solution.java:16: error: cannot find symbol\n            int serviceId = request[i][1];\n                            ^\n  symbol:   variable request\n  location: class Solution\n2 errors\n",
+          "execution_time_ms": 1638,
+          "solve_time_seconds": null,
+          "passed_count": 0,
+          "total_count": 2,
+          "created_at": "2026-06-23T11:46:15.030061+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_basic_single_service",
+                "order": 1
+              },
+              "status": "runtime_error",
+              "stdout": "",
+              "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmppog6vvs3/Solution.java:14: error: cannot find symbol\n        for(int i=0; i<requests.size(); i++)  {\n                               ^\n  symbol:   method size()\n  location: variable requests of type int[][]\n/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmppog6vvs3/Solution.java:16: error: cannot find symbol\n            int serviceId = request[i][1];\n                            ^\n  symbol:   variable request\n  location: class Solution\n2 errors\n",
+              "expected_output": "[true,true,false,true]",
+              "execution_time_ms": 1624
+            },
+            {
+              "test_case": {
+                "name": "sample_independent_services",
+                "order": 2
+              },
+              "status": "runtime_error",
+              "stdout": "",
+              "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmppog6vvs3/Solution.java:14: error: cannot find symbol\n        for(int i=0; i<requests.size(); i++)  {\n                               ^\n  symbol:   method size()\n  location: variable requests of type int[][]\n/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmppog6vvs3/Solution.java:16: error: cannot find symbol\n            int serviceId = request[i][1];\n                            ^\n  symbol:   variable request\n  location: class Solution\n2 errors\n",
+              "expected_output": "[true,true,false,false,true]",
+              "execution_time_ms": 1624
+            }
+          ]
+        },
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Solution {\n\n    class Service {\n        Deque<Integer> allowedRequests = new ArrayDeque<>();\n    }\n\n    public boolean[] solve(int[][] requests, int maxRequests, int windowSeconds) {\n        // Write your code here\n        boolean[] answers = new boolean[requests.length];\n        HashMap<Integer, Service>  serviceMap = new HashMap<>();\n\n        for(int i=0; i<requests.length; i++)  {\n            int timestamp = requests[i][0];\n            int serviceId = request[i][1];\n\n            Service service = serviceMap.getOrDefault(serviceId,  new Service());\n\n            while(!service.allowedRequests.isEmpty() && timestamp < service.allowedRequests.peekFirst() - windowSeconds +  1) {\n                service.allowedRequests.removeFirst();\n            }\n\n            if(service.allowedRequests.size() > maxRequests) {\n                answers[i] = false;\n            } else {\n                service.allowedRequests.add(timestamp);\n                answers[i] = true;\n            }\n\n            serviceMap.put(serviceId, service);\n        }\n        return answers;\n    }\n}",
+          "status": "runtime_error",
+          "stdout": "",
+          "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmp0vq67sdv/Solution.java:16: error: cannot find symbol\n            int serviceId = request[i][1];\n                            ^\n  symbol:   variable request\n  location: class Solution\n1 error\n",
+          "execution_time_ms": 2700,
+          "solve_time_seconds": null,
+          "passed_count": 0,
+          "total_count": 2,
+          "created_at": "2026-06-23T11:47:01.404102+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_basic_single_service",
+                "order": 1
+              },
+              "status": "runtime_error",
+              "stdout": "",
+              "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmp0vq67sdv/Solution.java:16: error: cannot find symbol\n            int serviceId = request[i][1];\n                            ^\n  symbol:   variable request\n  location: class Solution\n1 error\n",
+              "expected_output": "[true,true,false,true]",
+              "execution_time_ms": 2689
+            },
+            {
+              "test_case": {
+                "name": "sample_independent_services",
+                "order": 2
+              },
+              "status": "runtime_error",
+              "stdout": "",
+              "stderr": "/var/folders/r9/2p_mv84107bcr3wc1svhjpvr0000gn/T/tmp0vq67sdv/Solution.java:16: error: cannot find symbol\n            int serviceId = request[i][1];\n                            ^\n  symbol:   variable request\n  location: class Solution\n1 error\n",
+              "expected_output": "[true,true,false,false,true]",
+              "execution_time_ms": 2689
+            }
+          ]
+        },
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Solution {\n\n    class Service {\n        Deque<Integer> allowedRequests = new ArrayDeque<>();\n    }\n\n    public boolean[] solve(int[][] requests, int maxRequests, int windowSeconds) {\n        // Write your code here\n        boolean[] answers = new boolean[requests.length];\n        HashMap<Integer, Service>  serviceMap = new HashMap<>();\n\n        for(int i=0; i<requests.length; i++)  {\n            int timestamp = requests[i][0];\n            int serviceId = requests[i][1];\n\n            Service service = serviceMap.getOrDefault(serviceId,  new Service());\n\n            while(!service.allowedRequests.isEmpty() && timestamp < service.allowedRequests.peekFirst() - windowSeconds +  1) {\n                service.allowedRequests.removeFirst();\n            }\n\n            if(service.allowedRequests.size() > maxRequests) {\n                answers[i] = false;\n            } else {\n                service.allowedRequests.add(timestamp);\n                answers[i] = true;\n            }\n\n            serviceMap.put(serviceId, service);\n        }\n        return answers;\n    }\n}",
+          "status": "wrong_answer",
+          "stdout": "[true,true,true,false]\n[true,true,true,true,false]",
+          "stderr": "",
+          "execution_time_ms": 2437,
+          "solve_time_seconds": null,
+          "passed_count": 0,
+          "total_count": 2,
+          "created_at": "2026-06-23T11:47:14.946622+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_basic_single_service",
+                "order": 1
+              },
+              "status": "wrong_answer",
+              "stdout": "[true,true,true,false]",
+              "stderr": "",
+              "expected_output": "[true,true,false,true]",
+              "execution_time_ms": 224
+            },
+            {
+              "test_case": {
+                "name": "sample_independent_services",
+                "order": 2
+              },
+              "status": "wrong_answer",
+              "stdout": "[true,true,true,true,false]",
+              "stderr": "",
+              "expected_output": "[true,true,false,false,true]",
+              "execution_time_ms": 187
+            }
+          ]
+        },
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Solution {\n\n    class Service {\n        Deque<Integer> allowedRequests = new ArrayDeque<>();\n    }\n\n    public boolean[] solve(int[][] requests, int maxRequests, int windowSeconds) {\n        // Write your code here\n        boolean[] answers = new boolean[requests.length];\n        HashMap<Integer, Service>  serviceMap = new HashMap<>();\n\n        for(int i=0; i<requests.length; i++)  {\n            int timestamp = requests[i][0];\n            int serviceId = requests[i][1];\n\n            Service service = serviceMap.getOrDefault(serviceId, new Service());\n\n            while(!service.allowedRequests.isEmpty() && timestamp < service.allowedRequests.peekFirst() - windowSeconds +  1) {\n                service.allowedRequests.removeFirst();\n            }\n\n            if(service.allowedRequests.size() >= maxRequests) {\n                answers[i] = false;\n            } else {\n                service.allowedRequests.add(timestamp);\n                answers[i] = true;\n            }\n\n            serviceMap.put(serviceId, service);\n        }\n        return answers;\n    }\n}",
+          "status": "wrong_answer",
+          "stdout": "[true,true,false,false]\n[true,true,false,false,false]",
+          "stderr": "",
+          "execution_time_ms": 2663,
+          "solve_time_seconds": null,
+          "passed_count": 0,
+          "total_count": 2,
+          "created_at": "2026-06-23T11:49:14.234096+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_basic_single_service",
+                "order": 1
+              },
+              "status": "wrong_answer",
+              "stdout": "[true,true,false,false]",
+              "stderr": "",
+              "expected_output": "[true,true,false,true]",
+              "execution_time_ms": 196
+            },
+            {
+              "test_case": {
+                "name": "sample_independent_services",
+                "order": 2
+              },
+              "status": "wrong_answer",
+              "stdout": "[true,true,false,false,false]",
+              "stderr": "",
+              "expected_output": "[true,true,false,false,true]",
+              "execution_time_ms": 186
+            }
+          ]
+        },
+        {
+          "kind": "run",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Solution {\n\n    class Service {\n        Deque<Integer> allowedRequests = new ArrayDeque<>();\n    }\n\n    public boolean[] solve(int[][] requests, int maxRequests, int windowSeconds) {\n        // Write your code here\n        boolean[] answers = new boolean[requests.length];\n        HashMap<Integer, Service>  serviceMap = new HashMap<>();\n\n        for(int i=0; i<requests.length; i++)  {\n            int timestamp = requests[i][0];\n            int serviceId = requests[i][1];\n\n            Service service = serviceMap.getOrDefault(serviceId, new Service());\n\n            while(!service.allowedRequests.isEmpty() && service.allowedRequests.peekFirst() < timestamp - windowSeconds +  1) {\n                service.allowedRequests.removeFirst();\n            }\n\n            if(service.allowedRequests.size() >= maxRequests) {\n                answers[i] = false;\n            } else {\n                service.allowedRequests.add(timestamp);\n                answers[i] = true;\n            }\n\n            serviceMap.put(serviceId, service);\n        }\n        return answers;\n    }\n}",
+          "status": "accepted",
+          "stdout": "[true,true,false,true]\n[true,true,false,false,true]",
+          "stderr": "",
+          "execution_time_ms": 2715,
+          "solve_time_seconds": null,
+          "passed_count": 2,
+          "total_count": 2,
+          "created_at": "2026-06-23T11:50:30.757940+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_basic_single_service",
+                "order": 1
+              },
+              "status": "accepted",
+              "stdout": "[true,true,false,true]",
+              "stderr": "",
+              "expected_output": "[true,true,false,true]",
+              "execution_time_ms": 192
+            },
+            {
+              "test_case": {
+                "name": "sample_independent_services",
+                "order": 2
+              },
+              "status": "accepted",
+              "stdout": "[true,true,false,false,true]",
+              "stderr": "",
+              "expected_output": "[true,true,false,false,true]",
+              "execution_time_ms": 186
+            }
+          ]
+        },
+        {
+          "kind": "submit",
+          "language": "java",
+          "code": "import java.util.*;\n\nclass Solution {\n\n    class Service {\n        Deque<Integer> allowedRequests = new ArrayDeque<>();\n    }\n\n    public boolean[] solve(int[][] requests, int maxRequests, int windowSeconds) {\n        // Write your code here\n        boolean[] answers = new boolean[requests.length];\n        HashMap<Integer, Service>  serviceMap = new HashMap<>();\n\n        for(int i=0; i<requests.length; i++)  {\n            int timestamp = requests[i][0];\n            int serviceId = requests[i][1];\n\n            Service service = serviceMap.getOrDefault(serviceId, new Service());\n\n            while(!service.allowedRequests.isEmpty() && service.allowedRequests.peekFirst() < timestamp - windowSeconds +  1) {\n                service.allowedRequests.removeFirst();\n            }\n\n            if(service.allowedRequests.size() >= maxRequests) {\n                answers[i] = false;\n            } else {\n                service.allowedRequests.add(timestamp);\n                answers[i] = true;\n            }\n\n            serviceMap.put(serviceId, service);\n        }\n        return answers;\n    }\n}",
+          "status": "accepted",
+          "stdout": "[true,true,false,true]\n[true,true,false,false,true]\n[true]\n[true,true,true,false]\n[true,true,false,false,true]\n[true,true,true]\n[true,true,false]\n[true,true,true,true,false,false,true,true]\n[true,true,true,true,false]\n[true,false,true,false,true]\n[true,true,true,true,true]\n[true,true,true,false,true,false,false,true,true]",
+          "stderr": "",
+          "execution_time_ms": 4083,
+          "solve_time_seconds": 948,
+          "passed_count": 12,
+          "total_count": 12,
+          "created_at": "2026-06-23T11:50:45.225667+00:00",
+          "results": [
+            {
+              "test_case": {
+                "name": "sample_basic_single_service",
+                "order": 1
+              },
+              "status": "accepted",
+              "stdout": "[true,true,false,true]",
+              "stderr": "",
+              "expected_output": "[true,true,false,true]",
+              "execution_time_ms": 183
+            },
+            {
+              "test_case": {
+                "name": "sample_independent_services",
+                "order": 2
+              },
+              "status": "accepted",
+              "stdout": "[true,true,false,false,true]",
+              "stderr": "",
+              "expected_output": "[true,true,false,false,true]",
+              "execution_time_ms": 193
+            },
+            {
+              "test_case": {
+                "name": "minimum_single_request",
+                "order": 3
+              },
+              "status": "accepted",
+              "stdout": "[true]",
+              "stderr": "",
+              "expected_output": "[true]",
+              "execution_time_ms": 196
+            },
+            {
+              "test_case": {
+                "name": "same_timestamp_burst",
+                "order": 4
+              },
+              "status": "accepted",
+              "stdout": "[true,true,true,false]",
+              "stderr": "",
+              "expected_output": "[true,true,true,false]",
+              "execution_time_ms": 174
+            },
+            {
+              "test_case": {
+                "name": "rejected_requests_do_not_count",
+                "order": 5
+              },
+              "status": "accepted",
+              "stdout": "[true,true,false,false,true]",
+              "stderr": "",
+              "expected_output": "[true,true,false,false,true]",
+              "execution_time_ms": 175
+            },
+            {
+              "test_case": {
+                "name": "window_boundary_expires_old_request",
+                "order": 6
+              },
+              "status": "accepted",
+              "stdout": "[true,true,true]",
+              "stderr": "",
+              "expected_output": "[true,true,true]",
+              "execution_time_ms": 185
+            },
+            {
+              "test_case": {
+                "name": "window_boundary_still_inside",
+                "order": 7
+              },
+              "status": "accepted",
+              "stdout": "[true,true,false]",
+              "stderr": "",
+              "expected_output": "[true,true,false]",
+              "execution_time_ms": 211
+            },
+            {
+              "test_case": {
+                "name": "multiple_services_interleaved",
+                "order": 8
+              },
+              "status": "accepted",
+              "stdout": "[true,true,true,true,false,false,true,true]",
+              "stderr": "",
+              "expected_output": "[true,true,true,true,false,false,true,true]",
+              "execution_time_ms": 210
+            },
+            {
+              "test_case": {
+                "name": "large_time_gap_clears_window",
+                "order": 9
+              },
+              "status": "accepted",
+              "stdout": "[true,true,true,true,false]",
+              "stderr": "",
+              "expected_output": "[true,true,true,true,false]",
+              "execution_time_ms": 184
+            },
+            {
+              "test_case": {
+                "name": "limit_one_window_one",
+                "order": 10
+              },
+              "status": "accepted",
+              "stdout": "[true,false,true,false,true]",
+              "stderr": "",
+              "expected_output": "[true,false,true,false,true]",
+              "execution_time_ms": 186
+            },
+            {
+              "test_case": {
+                "name": "high_limit_all_allowed",
+                "order": 11
+              },
+              "status": "accepted",
+              "stdout": "[true,true,true,true,true]",
+              "stderr": "",
+              "expected_output": "[true,true,true,true,true]",
+              "execution_time_ms": 193
+            },
+            {
+              "test_case": {
+                "name": "many_duplicates_across_services",
+                "order": 12
+              },
+              "status": "accepted",
+              "stdout": "[true,true,true,false,true,false,false,true,true]",
+              "stderr": "",
+              "expected_output": "[true,true,true,false,true,false,false,true,true]",
+              "execution_time_ms": 183
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
