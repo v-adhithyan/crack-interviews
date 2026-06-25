@@ -40,6 +40,7 @@ export type TestCaseResult = {
   stderr: string;
   expected_output: string;
   execution_time_ms: number;
+  memory_kb: number;
 };
 
 export type SubmissionStatus = "pending" | "accepted" | "wrong_answer" | "runtime_error" | "time_limit_exceeded";
@@ -57,6 +58,7 @@ export type Submission = {
   stdout: string;
   stderr: string;
   execution_time_ms: number;
+  memory_kb: number;
   solve_time_seconds: number | null;
   passed_count: number;
   total_count: number;

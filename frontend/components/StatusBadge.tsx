@@ -18,7 +18,7 @@ const labels: Record<SubmissionStatus, string> = {
 
 export function StatusBadge({ status }: { status: SubmissionStatus }) {
   return (
-    <span className={`inline-flex h-7 items-center rounded-[7px] px-2 text-xs font-bold ${statusStyles[status]}`}>
+    <span className={`inline-flex h-7 w-fit max-w-full items-center justify-self-start rounded-[7px] px-2 text-xs font-bold ${statusStyles[status]}`}>
       {labels[status]}
     </span>
   );

@@ -61,11 +61,12 @@ function ProblemSubmissionsContent({ slug }: { slug: string }) {
             <div className="px-4 py-10 text-center text-muted">No submissions yet.</div>
           ) : (
             <>
-              <div className="grid grid-cols-[110px_1fr_150px_140px_130px_180px] items-center border-b border-line bg-[#fffaf0] px-4 py-3 text-xs font-bold uppercase tracking-normal text-muted">
+              <div className="grid grid-cols-[80px_130px_minmax(130px,1fr)_110px_110px_110px_170px] items-center gap-4 border-b border-line bg-[#fffaf0] px-4 py-3 text-xs font-bold uppercase tracking-normal text-muted">
                 <span>Submission</span>
                 <span>Status</span>
                 <span>Passed</span>
                 <span>Runtime</span>
+                <span>Memory</span>
                 <span>Solve time</span>
                 <span>Submitted</span>
               </div>
@@ -73,14 +74,15 @@ function ProblemSubmissionsContent({ slug }: { slug: string }) {
                 <Link
                   href={`/submissions/${submission.id}`}
                   key={submission.id}
-                  className="grid grid-cols-[110px_1fr_150px_140px_130px_180px] items-center border-b border-line px-4 py-4 last:border-0 hover:bg-[#fffaf0]"
+                  className="grid grid-cols-[80px_130px_minmax(130px,1fr)_110px_110px_110px_170px] items-center gap-4 border-b border-line px-4 py-4 last:border-0 hover:bg-[#fffaf0]"
                 >
                   <span className="text-sm font-[850]">#{submission.submission_number ?? "-"}</span>
                   <StatusBadge status={submission.status} />
                   <span className="text-sm font-bold">
                     {submission.passed_count}/{submission.total_count} passed
                   </span>
-                  <span className="text-sm text-muted">{submission.execution_time_ms}ms</span>
+                  <span className="text-sm font-bold text-muted">{formatRuntime(submission.execution_time_ms)}</span>
+                  <span className="text-sm font-bold text-muted">{formatMemory(submission.memory_kb)}</span>
                   <span className="text-sm text-muted">
                     {submission.solve_time_seconds !== null ? formatDuration(submission.solve_time_seconds) : "-"}
                   </span>
@@ -93,6 +95,20 @@ function ProblemSubmissionsContent({ slug }: { slug: string }) {
       </section>
     </main>
   );
+}
+
+function formatRuntime(milliseconds: number) {
+  return `${milliseconds} ms`;
+}
+
+function formatMemory(memoryKb: number) {
+  if (!memoryKb) {
+    return "-";
+  }
+  if (memoryKb >= 1024) {
+    return `${(memoryKb / 1024).toFixed(1)} MB`;
+  }
+  return `${memoryKb} KB`;
 }
 
 function formatDuration(totalSeconds: number) {

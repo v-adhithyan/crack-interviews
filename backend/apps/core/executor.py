@@ -1,6 +1,8 @@
 import json
 import re
+import shutil
 import subprocess
+import sys
 import tempfile
 import time
 from pathlib import Path
@@ -12,6 +14,8 @@ from .models import Submission, TestCaseResult
 
 CLASS_PATTERN = re.compile(r"(?:public\s+)?class\s+([A-Za-z_][A-Za-z0-9_]*)")
 PUBLIC_CLASS_PATTERN = re.compile(r"public\s+class\s+([A-Za-z_][A-Za-z0-9_]*)")
+MEMORY_MARKER = "__HACKERLEAP_MEMORY_KB__:"
+MACOS_MEMORY_PATTERN = re.compile(r"^\s*(\d+)\s+maximum resident set size", re.MULTILINE)
 JAVA_FUNCTION_HARNESS = r"""
 import java.io.*;
 import java.lang.reflect.*;
@@ -287,6 +291,55 @@ def javac_command(source_paths):
     return [settings.JAVAC_EXECUTABLE, "--release", str(settings.JAVA_RELEASE), *source_paths]
 
 
+def measured_command(command, output_path):
+    time_executable = shutil.which("time") or "/usr/bin/time"
+    if not Path(time_executable).exists():
+        return command, None
+    if sys.platform == "darwin":
+        return [time_executable, "-l", "-o", output_path, *command], "darwin"
+    return [time_executable, "-f", f"{MEMORY_MARKER}%M", "-o", output_path, *command], "linux"
+
+
+def parse_memory_output(output_path, mode):
+    if mode is None:
+        return 0
+
+    try:
+        output = Path(output_path).read_text(encoding="utf-8")
+    except OSError:
+        return 0
+
+    if mode == "linux":
+        for line in output.splitlines():
+            if line.startswith(MEMORY_MARKER):
+                try:
+                    return int(line.removeprefix(MEMORY_MARKER).strip())
+                except ValueError:
+                    pass
+        return 0
+
+    if mode == "darwin":
+        match = MACOS_MEMORY_PATTERN.search(output)
+        return int(match.group(1)) // 1024 if match else 0
+
+    return 0
+
+
+def run_measured_process(command, input_value):
+    with tempfile.NamedTemporaryFile(prefix="hackerleap-memory-", delete=True) as memory_file:
+        wrapped_command, measurement_mode = measured_command(command, memory_file.name)
+        completed = subprocess.run(
+            wrapped_command,
+            input=input_value,
+            text=True,
+            capture_output=True,
+            timeout=settings.CODE_TIMEOUT_SECONDS,
+            check=False,
+        )
+        memory_kb = parse_memory_output(memory_file.name, measurement_mode)
+        return completed, memory_kb
+
+
 def compile_java(code):
     temp_dir = tempfile.TemporaryDirectory()
     class_name = class_name_for_java(code)
@@ -370,14 +423,7 @@ def run_process_for_test(submission, test_case, java_context=None):
     else:
         command = [settings.PYTHON_EXECUTABLE, "-c", submission.code]
 
-    return subprocess.run(
-        command,
-        input=test_case.stdin,
-        text=True,
-        capture_output=True,
-        timeout=settings.CODE_TIMEOUT_SECONDS,
-        check=False,
-    )
+    return run_measured_process(command, test_case.stdin)
 
 
 def run_function_process_for_test(submission, test_case, function_name, java_context=None):
@@ -388,14 +434,7 @@ def run_function_process_for_test(submission, test_case, function_name, java_con
     else:
         command = [settings.PYTHON_EXECUTABLE, "-c", python_function_wrapper(submission.code, function_name)]
 
-    return subprocess.run(
-        command,
-        input=encoded_args,
-        text=True,
-        capture_output=True,
-        timeout=settings.CODE_TIMEOUT_SECONDS,
-        check=False,
-    )
+    return run_measured_process(command, encoded_args)
 
 
 def mark_compile_error(submission, test_cases, compile_error, compile_ms, total_start):
@@ -409,11 +448,13 @@ def mark_compile_error(submission, test_cases, compile_error, compile_ms, total_
             stderr=compile_error,
             expected_output=display_expected_output(test_case),
             execution_time_ms=compile_ms,
+            memory_kb=0,
         )
     submission.status = final_status
     submission.stdout = ""
     submission.stderr = compile_error
     submission.execution_time_ms = int((time.perf_counter() - total_start) * 1000)
+    submission.memory_kb = 0
     submission.passed_count = 0
     submission.total_count = len(test_cases)
     submission.save(update_fields=[
@@ -421,6 +462,7 @@ def mark_compile_error(submission, test_cases, compile_error, compile_ms, total_
         "stdout",
         "stderr",
         "execution_time_ms",
+        "memory_kb",
         "passed_count",
         "total_count",
     ])
@@ -436,6 +478,7 @@ def display_expected_output(test_case):
 def run_submission(submission, test_cases):
     total_start = time.perf_counter()
     passed_count = 0
+    peak_memory_kb = 0
     final_status = Submission.Status.ACCEPTED
     combined_stdout = []
     combined_stderr = []
@@ -457,16 +500,17 @@ def run_submission(submission, test_cases):
     try:
         for test_case in test_cases:
             started = time.perf_counter()
+            memory_kb = 0
             try:
                 if is_function_mode:
-                    completed = run_function_process_for_test(
+                    completed, memory_kb = run_function_process_for_test(
                         submission,
                         test_case,
                         function_name,
                         java_context=java_temp_dir if submission.language == Submission.Language.JAVA else None,
                     )
                 else:
-                    completed = run_process_for_test(
+                    completed, memory_kb = run_process_for_test(
                         submission,
                         test_case,
                         java_context=(java_temp_dir, java_class_name) if java_temp_dir else None,
@@ -502,6 +546,7 @@ def run_submission(submission, test_cases):
                 stderr = str(exc)
                 status = Submission.Status.RUNTIME_ERROR
 
+            peak_memory_kb = max(peak_memory_kb, memory_kb)
             TestCaseResult.objects.create(
                 submission=submission,
                 test_case=test_case,
@@ -510,6 +555,7 @@ def run_submission(submission, test_cases):
                 stderr=stderr,
                 expected_output=display_expected_output(test_case),
                 execution_time_ms=elapsed_ms,
+                memory_kb=memory_kb,
             )
             combined_stdout.append(stdout)
             combined_stderr.append(stderr)
@@ -524,6 +570,7 @@ def run_submission(submission, test_cases):
     submission.stdout = "\n".join(part for part in combined_stdout if part)
     submission.stderr = "\n".join(part for part in combined_stderr if part)
     submission.execution_time_ms = int((time.perf_counter() - total_start) * 1000)
+    submission.memory_kb = peak_memory_kb
     submission.passed_count = passed_count
     submission.total_count = len(test_cases)
     submission.save(update_fields=[
@@ -531,6 +578,7 @@ def run_submission(submission, test_cases):
         "stdout",
         "stderr",
         "execution_time_ms",
+        "memory_kb",
         "passed_count",
         "total_count",
     ])

@@ -50,7 +50,7 @@ class TestCaseResultSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TestCaseResult
-        fields = ["id", "name", "is_sample", "is_hidden", "status", "stdout", "stderr", "expected_output", "execution_time_ms"]
+        fields = ["id", "name", "is_sample", "is_hidden", "status", "stdout", "stderr", "expected_output", "execution_time_ms", "memory_kb"]
 
 
 class SubmissionSerializer(serializers.ModelSerializer):
@@ -93,6 +93,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
             "stdout",
             "stderr",
             "execution_time_ms",
+            "memory_kb",
             "solve_time_seconds",
             "passed_count",
             "total_count",
@@ -132,6 +133,7 @@ class SubmissionListSerializer(serializers.ModelSerializer):
             "language",
             "status",
             "execution_time_ms",
+            "memory_kb",
             "solve_time_seconds",
             "passed_count",
             "total_count",

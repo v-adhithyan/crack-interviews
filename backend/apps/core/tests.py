@@ -108,6 +108,8 @@ class FunctionModeSubmissionTests(TestCase):
         self.assertEqual(response.data["status"], Submission.Status.ACCEPTED)
         self.assertEqual(response.data["passed_count"], 2)
         self.assertEqual(response.data["total_count"], 2)
+        self.assertIn("memory_kb", response.data)
+        self.assertIn("memory_kb", response.data["results"][0])
         self.assertEqual(response.data["results"][0]["stdout"].strip(), "3")
         self.assertEqual(response.data["results"][0]["expected_output"], "3")
 

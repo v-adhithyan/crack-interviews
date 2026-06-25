@@ -124,6 +124,7 @@ class Submission(models.Model):
     stdout = models.TextField(blank=True)
     stderr = models.TextField(blank=True)
     execution_time_ms = models.PositiveIntegerField(default=0)
+    memory_kb = models.PositiveIntegerField(default=0)
     solve_time_seconds = models.PositiveIntegerField(null=True, blank=True)
     passed_count = models.PositiveIntegerField(default=0)
     total_count = models.PositiveIntegerField(default=0)
@@ -157,6 +158,7 @@ class TestCaseResult(models.Model):
     stderr = models.TextField(blank=True)
     expected_output = models.TextField(blank=True)
     execution_time_ms = models.PositiveIntegerField(default=0)
+    memory_kb = models.PositiveIntegerField(default=0)
 
     class Meta:
         ordering = ["test_case__order", "id"]

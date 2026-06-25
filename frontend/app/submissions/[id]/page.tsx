@@ -58,8 +58,9 @@ function SubmissionDetailContent({ id }: { id: string }) {
         <div className="min-w-0 rounded-lg border border-[rgba(15,23,42,0.08)] bg-white/90 p-4 shadow-product">
           <h2 className="mb-3 text-sm font-bold uppercase tracking-normal text-muted">Results</h2>
           <p className="mb-4 text-sm font-bold">
-            Passed {submission.passed_count} of {submission.total_count} tests in {submission.execution_time_ms}ms
+            Passed {submission.passed_count} of {submission.total_count} tests in {formatRuntime(submission.execution_time_ms)}
           </p>
+          <p className="mb-4 text-sm font-bold text-muted">Memory: {formatMemory(submission.memory_kb)}</p>
           {submission.solve_time_seconds !== null ? (
             <p className="mb-4 text-sm font-bold text-muted">Solve time: {formatDuration(submission.solve_time_seconds)}</p>
           ) : null}
@@ -92,6 +93,20 @@ function SubmissionDetailContent({ id }: { id: string }) {
       </section>
     </main>
   );
+}
+
+function formatRuntime(milliseconds: number) {
+  return `${milliseconds} ms`;
+}
+
+function formatMemory(memoryKb: number) {
+  if (!memoryKb) {
+    return "-";
+  }
+  if (memoryKb >= 1024) {
+    return `${(memoryKb / 1024).toFixed(1)} MB`;
+  }
+  return `${memoryKb} KB`;
 }
 
 function formatDuration(totalSeconds: number) {
