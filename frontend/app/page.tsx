@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { AuthGate } from "@/components/AuthGate";
 import { BrandMark } from "@/components/BrandMark";
 import { getQuestions, type QuestionListItem } from "@/lib/api";
+import { usePageTitle } from "@/lib/usePageTitle";
 
 const difficultyStyles = {
   easy: "bg-mint text-emerald-800",
@@ -25,6 +26,7 @@ function QuestionListPage() {
   const [questions, setQuestions] = useState<QuestionListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  usePageTitle("Questions");
 
   useEffect(() => {
     async function loadQuestions() {

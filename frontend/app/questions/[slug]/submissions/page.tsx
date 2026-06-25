@@ -7,6 +7,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { AuthGate } from "@/components/AuthGate";
 import { StatusBadge } from "@/components/StatusBadge";
 import { getQuestion, getSubmissions, type QuestionDetail, type SubmissionListItem } from "@/lib/api";
+import { usePageTitle } from "@/lib/usePageTitle";
 
 export default function ProblemSubmissionsPage({ params }: { params: { slug: string } }) {
   return (
@@ -21,6 +22,7 @@ function ProblemSubmissionsContent({ slug }: { slug: string }) {
   const [submissions, setSubmissions] = useState<SubmissionListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  usePageTitle(question ? `${question.title} submissions` : isLoading ? "Loading submissions" : "Submissions");
 
   useEffect(() => {
     async function loadSubmissions() {

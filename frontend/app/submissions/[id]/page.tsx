@@ -8,6 +8,7 @@ import { AuthGate } from "@/components/AuthGate";
 import { StatusBadge } from "@/components/StatusBadge";
 import { SubmittedCodeViewer } from "@/components/SubmittedCodeViewer";
 import { getSubmission, type Submission } from "@/lib/api";
+import { usePageTitle } from "@/lib/usePageTitle";
 
 export default function SubmissionDetailPage({ params }: { params: { id: string } }) {
   return (
@@ -21,6 +22,13 @@ function SubmissionDetailContent({ id }: { id: string }) {
   const [submission, setSubmission] = useState<Submission | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  usePageTitle(
+    submission
+      ? `Submission #${submission.submission_number ?? submission.id} - ${submission.question_title}`
+      : isLoading
+        ? "Loading submission"
+        : "Submission",
+  );
 
   useEffect(() => {
     async function loadSubmission() {

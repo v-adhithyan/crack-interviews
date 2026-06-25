@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AuthGate } from "@/components/AuthGate";
 import { CodeWorkspace } from "@/components/CodeWorkspace";
 import { getQuestion, getSubmission, getSubmissions, type Language, type QuestionDetail, type SubmissionListItem } from "@/lib/api";
+import { usePageTitle } from "@/lib/usePageTitle";
 
 export default function QuestionPage({ params }: { params: { slug: string } }) {
   return (
@@ -19,6 +20,7 @@ function QuestionWorkspaceLoader({ slug }: { slug: string }) {
   const [latestSubmittedCode, setLatestSubmittedCode] = useState<Partial<Record<Language, { code: string; submittedAt: string }>>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  usePageTitle(question ? question.title : isLoading ? "Loading question" : "Question");
 
   useEffect(() => {
     let isMounted = true;

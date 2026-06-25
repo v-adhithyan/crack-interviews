@@ -7,6 +7,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { AuthGate } from "@/components/AuthGate";
 import { SubmittedCodeViewer } from "@/components/SubmittedCodeViewer";
 import { getQuestionReferenceSolution, type Language, type QuestionReferenceSolution } from "@/lib/api";
+import { usePageTitle } from "@/lib/usePageTitle";
 
 export default function ReferenceSolutionPage({ params }: { params: { slug: string } }) {
   return (
@@ -21,6 +22,7 @@ function ReferenceSolutionContent({ slug, isStaff }: { slug: string; isStaff: bo
   const [language, setLanguage] = useState<Language>("java");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  usePageTitle(solution ? `${solution.title} reference solution` : isLoading ? "Loading reference solution" : "Reference solution");
 
   useEffect(() => {
     async function loadSolution() {
