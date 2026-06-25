@@ -35,7 +35,15 @@ type SavedTimer = {
   updatedAt: string;
 };
 
+type CustomTestCase = {
+  id: number;
+  input: string;
+  args: string[];
+  expectedOutput: string;
+};
+
 const TIMER_FROZEN_MESSAGE = "Timer is frozen after the first submission for this problem.";
+const MAX_CUSTOM_TEST_CASES = 5;
 const MIN_PROBLEM_PANE_PERCENT = 28;
 const MAX_PROBLEM_PANE_PERCENT = 62;
 const DEFAULT_PROBLEM_PANE_PERCENT = 45;
@@ -54,9 +62,8 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
   const [activeMode, setActiveMode] = useState<"run" | "submit" | "custom" | null>(null);
   const [result, setResult] = useState<Submission | null>(null);
   const [error, setError] = useState("");
-  const [customInput, setCustomInput] = useState("");
-  const [customArgValues, setCustomArgValues] = useState<string[]>([]);
-  const [customExpectedOutput, setCustomExpectedOutput] = useState("");
+  const [customCases, setCustomCases] = useState<CustomTestCase[]>(() => [createCustomTestCase()]);
+  const [activeCustomCaseId, setActiveCustomCaseId] = useState(1);
   const [showCustomTest, setShowCustomTest] = useState(false);
   const [timerStarted, setTimerStarted] = useState(restoredTimer.started);
   const [timerRunning, setTimerRunning] = useState(restoredTimer.running);
@@ -155,7 +162,12 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
       return;
     }
 
-    setCustomArgValues((current) => functionParameters.map((_, index) => current[index] ?? ""));
+    setCustomCases((current) =>
+      current.map((customCase) => ({
+        ...customCase,
+        args: functionParameters.map((_, index) => customCase.args[index] ?? ""),
+      })),
+    );
   }, [functionParameters, question.execution_mode]);
 
   function toggleTimer() {
@@ -230,21 +242,25 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
 
   async function executeCustom() {
     setError("");
-    let customInputPayload = customInput;
-    if (question.execution_mode === "function") {
-      try {
-        customInputPayload = JSON.stringify(parseCustomArgumentValues(customArgValues, functionParameters));
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Custom argument values are invalid.");
-        return;
-      }
+    let testCases;
+    try {
+      testCases = customCases.map((customCase) => ({
+        input:
+          question.execution_mode === "function"
+            ? JSON.stringify(parseCustomArgumentValues(customCase.args, functionParameters))
+            : customCase.input,
+        expected_output: customCase.expectedOutput,
+      }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Custom argument values are invalid.");
+      return;
     }
 
     setIsRunning(true);
     setActiveMode("custom");
     const minimumFeedback = new Promise((resolve) => setTimeout(resolve, 450));
     try {
-      const response = await runCustomCode(question.slug, code, language, customInputPayload, customExpectedOutput);
+      const response = await runCustomCode(question.slug, code, language, testCases);
       await minimumFeedback;
       setResult(response);
       window.setTimeout(() => {
@@ -282,18 +298,60 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
     activeMode === "submit"
       ? "Submitting against all tests..."
       : activeMode === "custom"
-        ? "Running custom test..."
+        ? "Running custom tests..."
         : "Running sample tests...";
   const editorLanguage = language === "java" ? "java" : "python";
   const languageLabel = language === "java" ? "Java 17" : "Python 3";
   const executionLabel = question.execution_mode === "function" ? `Function: ${question.function_name || "solve"}` : "Standard input";
   const isOutputOnlyCustomResult = result?.kind === "custom" && !result.results.some((item) => item.expected_output.trim());
+  const activeCustomCase = customCases.find((customCase) => customCase.id === activeCustomCaseId) ?? customCases[0];
 
   function selectLanguage(nextLanguage: Language) {
     setLanguage(nextLanguage);
     setResult(null);
     setError("");
     setCode(codeForLanguage(nextLanguage, question, latestSubmittedCode));
+  }
+
+  function updateCustomCase(caseId: number, updates: Partial<CustomTestCase>) {
+    setCustomCases((current) => current.map((customCase) => (customCase.id === caseId ? { ...customCase, ...updates } : customCase)));
+  }
+
+  function updateCustomArg(caseId: number, argIndex: number, value: string) {
+    setCustomCases((current) =>
+      current.map((customCase) => {
+        if (customCase.id !== caseId) {
+          return customCase;
+        }
+        const nextArgs = [...customCase.args];
+        nextArgs[argIndex] = value;
+        return { ...customCase, args: nextArgs };
+      }),
+    );
+  }
+
+  function addCustomCase() {
+    setCustomCases((current) => {
+      if (current.length >= MAX_CUSTOM_TEST_CASES) {
+        return current;
+      }
+      const nextCase = createCustomTestCase(Math.max(...current.map((customCase) => customCase.id)) + 1, functionParameters.length);
+      setActiveCustomCaseId(nextCase.id);
+      return [...current, nextCase];
+    });
+  }
+
+  function removeCustomCase(caseId: number) {
+    setCustomCases((current) => {
+      if (current.length === 1) {
+        return current;
+      }
+      const nextCases = current.filter((customCase) => customCase.id !== caseId);
+      if (activeCustomCaseId === caseId) {
+        setActiveCustomCaseId(nextCases[0].id);
+      }
+      return nextCases;
+    });
   }
 
   function startPaneResize(event: ReactPointerEvent<HTMLButtonElement>) {
@@ -494,7 +552,7 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
           <div className="w-full max-w-sm rounded-lg border border-line bg-white p-5 shadow-product">
             <div className="mb-4">
               <h2 id="submission-progress-title" className="text-base font-bold text-ink">
-                {activeMode === "submit" ? "Submitting solution" : activeMode === "custom" ? "Running custom test" : "Running code"}
+                {activeMode === "submit" ? "Submitting solution" : activeMode === "custom" ? "Running" : "Running code"}
               </h2>
               <p className="mt-1 text-sm text-muted">{busyMessage}</p>
             </div>
@@ -603,7 +661,7 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
               <h2 className="text-sm font-bold">Result</h2>
               {result && !isOutputOnlyCustomResult ? <StatusBadge status={result.status} /> : null}
             </div>
-            {!result ? <p className="mb-4 text-sm text-muted">Run sample tests, run a custom test case, or submit against all tests.</p> : null}
+            {!result ? <p className="mb-4 text-sm text-muted">Run sample tests, or run custom test cases, or submit against all tests.</p> : null}
             {!showCustomTest ? (
               <button
                 type="button"
@@ -617,7 +675,7 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
             {showCustomTest ? (
             <div className="mb-4 rounded-[7px] border border-line bg-white p-3">
               <div className="mb-3 flex items-center justify-between gap-3">
-                <h3 className="text-sm font-bold">Custom test</h3>
+                <h3 className="text-sm font-bold">Custom test cases</h3>
                 <button
                   type="button"
                   onClick={executeCustom}
@@ -627,7 +685,31 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
                   className="inline-flex h-8 shrink-0 items-center gap-2 rounded-[7px] border border-line bg-white px-3 text-xs font-bold hover:bg-[#fffaf0] disabled:opacity-50"
                 >
                   <TestTube2 size={14} className={activeMode === "custom" ? "animate-pulse" : ""} />
-                  Run custom
+                  Run custom test
+                </button>
+              </div>
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                {customCases.map((customCase, index) => (
+                  <button
+                    key={customCase.id}
+                    type="button"
+                    onClick={() => setActiveCustomCaseId(customCase.id)}
+                    className={`inline-flex h-8 items-center rounded-[7px] px-3 text-xs font-bold ${
+                      customCase.id === activeCustomCaseId ? "bg-soft text-ink" : "border border-line bg-white text-muted hover:bg-[#fffaf0]"
+                    }`}
+                  >
+                    Case {index + 1}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={addCustomCase}
+                  disabled={customCases.length >= MAX_CUSTOM_TEST_CASES}
+                  className="inline-flex h-8 items-center rounded-[7px] border border-line bg-white px-3 text-xs font-bold text-muted hover:bg-[#fffaf0] disabled:opacity-50"
+                  aria-label="Add custom test case"
+                  title="Add custom test case"
+                >
+                  + Add test case
                 </button>
               </div>
               {question.execution_mode === "function" ? (
@@ -636,14 +718,8 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
                     <label key={`${parameter}-${index}`} className="grid gap-1 text-xs font-bold text-muted">
                       {parameter} =
                       <textarea
-                        value={customArgValues[index] ?? ""}
-                        onChange={(event) =>
-                          setCustomArgValues((current) => {
-                            const next = [...current];
-                            next[index] = event.target.value;
-                            return next;
-                          })
-                        }
+                        value={activeCustomCase?.args[index] ?? ""}
+                        onChange={(event) => updateCustomArg(activeCustomCase.id, index, event.target.value)}
                         className="min-h-12 resize-y rounded-[7px] border border-line bg-[#fffaf0] p-2 font-mono text-xs text-ink outline-none focus:border-gold focus:ring-4 focus:ring-[rgba(247,184,1,0.18)]"
                         placeholder="Enter testcase"
                         spellCheck={false}
@@ -653,8 +729,8 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
                   <label className="grid gap-1 text-xs font-bold text-muted">
                     expected output =
                     <textarea
-                      value={customExpectedOutput}
-                      onChange={(event) => setCustomExpectedOutput(event.target.value)}
+                      value={activeCustomCase?.expectedOutput ?? ""}
+                      onChange={(event) => updateCustomCase(activeCustomCase.id, { expectedOutput: event.target.value })}
                       className="min-h-12 resize-y rounded-[7px] border border-line bg-[#fffaf0] p-2 font-mono text-xs text-ink outline-none focus:border-gold focus:ring-4 focus:ring-[rgba(247,184,1,0.18)]"
                       placeholder="Optional"
                       spellCheck={false}
@@ -666,8 +742,8 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
                   <label className="grid gap-1 text-xs font-bold text-muted">
                     input =
                     <textarea
-                      value={customInput}
-                      onChange={(event) => setCustomInput(event.target.value)}
+                      value={activeCustomCase?.input ?? ""}
+                      onChange={(event) => updateCustomCase(activeCustomCase.id, { input: event.target.value })}
                       className="min-h-20 resize-y rounded-[7px] border border-line bg-[#fffaf0] p-2 font-mono text-xs text-ink outline-none focus:border-gold focus:ring-4 focus:ring-[rgba(247,184,1,0.18)]"
                       placeholder="stdin for your program"
                       spellCheck={false}
@@ -676,8 +752,8 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
                   <label className="grid gap-1 text-xs font-bold text-muted">
                     expected output =
                     <textarea
-                      value={customExpectedOutput}
-                      onChange={(event) => setCustomExpectedOutput(event.target.value)}
+                      value={activeCustomCase?.expectedOutput ?? ""}
+                      onChange={(event) => updateCustomCase(activeCustomCase.id, { expectedOutput: event.target.value })}
                       className="min-h-20 resize-y rounded-[7px] border border-line bg-[#fffaf0] p-2 font-mono text-xs text-ink outline-none focus:border-gold focus:ring-4 focus:ring-[rgba(247,184,1,0.18)]"
                       placeholder="optional expected stdout"
                       spellCheck={false}
@@ -685,6 +761,15 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
                   </label>
                 </div>
               )}
+              {customCases.length > 1 ? (
+                <button
+                  type="button"
+                  onClick={() => removeCustomCase(activeCustomCase.id)}
+                  className="mt-3 text-xs font-bold text-orange-700 hover:underline"
+                >
+                  Remove current case
+                </button>
+              ) : null}
             </div>
             ) : null}
             {isRunning ? (
@@ -967,6 +1052,15 @@ function parseCustomArgumentValues(values: string[], parameterNames: string[]) {
       throw new Error(`${parameterName} must be valid JSON.`);
     }
   });
+}
+
+function createCustomTestCase(id = 1, argumentCount = 0): CustomTestCase {
+  return {
+    id,
+    input: "",
+    args: Array.from({ length: argumentCount }, () => ""),
+    expectedOutput: "",
+  };
 }
 
 const PYTHON_STARTER = `def solve():

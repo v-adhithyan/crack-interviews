@@ -150,7 +150,7 @@ def create_and_run_submission(question, code, language, sample_only, kind, user,
     return run_submission(submission, test_cases)
 
 
-def custom_test_case_for_question(question, raw_input, expected_output):
+def custom_test_case_for_question(question, raw_input, expected_output, index=1):
     expected_output = expected_output.strip()
     custom_input = raw_input
     has_expected_output = bool(expected_output)
@@ -167,8 +167,8 @@ def custom_test_case_for_question(question, raw_input, expected_output):
                 expected_value = expected_output
         return SimpleNamespace(
             pk=None,
-            name="Custom test",
-            custom_name="Custom test",
+            name=f"Custom test {index}",
+            custom_name=f"Custom test {index}",
             custom_input=custom_input,
             stdin="",
             function_args=function_args,
@@ -182,8 +182,8 @@ def custom_test_case_for_question(question, raw_input, expected_output):
 
     return SimpleNamespace(
         pk=None,
-        name="Custom test",
-        custom_name="Custom test",
+        name=f"Custom test {index}",
+        custom_name=f"Custom test {index}",
         custom_input=custom_input,
         stdin=raw_input,
         function_args=None,
@@ -196,7 +196,7 @@ def custom_test_case_for_question(question, raw_input, expected_output):
     )
 
 
-def create_and_run_custom_submission(question, code, language, raw_input, expected_output, user):
+def create_and_run_custom_submission(question, code, language, custom_cases, user):
     submission = Submission.objects.create(
         user=user,
         question=question,
@@ -204,7 +204,39 @@ def create_and_run_custom_submission(question, code, language, raw_input, expect
         language=language,
         kind=Submission.Kind.CUSTOM,
     )
-    return run_submission(submission, [custom_test_case_for_question(question, raw_input, expected_output)])
+    test_cases = [
+        custom_test_case_for_question(question, str(case.get("input", "")), str(case.get("expected_output", "")), index=index)
+        for index, case in enumerate(custom_cases, start=1)
+    ]
+    return run_submission(submission, test_cases)
+
+
+def custom_cases_from_request(request):
+    raw_cases = request.data.get("test_cases")
+    if raw_cases is None:
+        return [
+            {
+                "input": request.data.get("input", ""),
+                "expected_output": request.data.get("expected_output", ""),
+            }
+        ]
+    if not isinstance(raw_cases, list):
+        raise ValueError("test_cases must be a list.")
+    if not raw_cases:
+        raise ValueError("Add at least one custom test case.")
+    if len(raw_cases) > 5:
+        raise ValueError("You can run up to 5 custom test cases at a time.")
+    custom_cases = []
+    for case in raw_cases:
+        if not isinstance(case, dict):
+            raise ValueError("Each custom test case must include input and optional expected_output.")
+        custom_cases.append(
+            {
+                "input": case.get("input", ""),
+                "expected_output": case.get("expected_output", ""),
+            }
+        )
+    return custom_cases
 
 
 @api_view(["POST"])
@@ -234,15 +266,13 @@ def run_custom_code(request, slug):
     language = normalized_language(request.data.get("language"))
     if language is None:
         return Response({"detail": "Supported languages are java and python."}, status=status.HTTP_400_BAD_REQUEST)
-    expected_output = request.data.get("expected_output", "")
-
     try:
+        custom_cases = custom_cases_from_request(request)
         submission = create_and_run_custom_submission(
             question,
             code,
             language,
-            str(request.data.get("input", "")),
-            str(expected_output),
+            custom_cases,
             request.admin_api_user,
         )
     except ValueError as exc:

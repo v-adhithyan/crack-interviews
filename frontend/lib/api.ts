@@ -69,6 +69,11 @@ export type Submission = {
   results: TestCaseResult[];
 };
 
+export type CustomTestCasePayload = {
+  input: string;
+  expected_output?: string;
+};
+
 export type SubmissionListItem = Omit<Submission, "code" | "stdout" | "stderr" | "results" | "question">;
 
 export type RevisionSubmission = {
@@ -210,10 +215,10 @@ export function runCode(slug: string, code: string, language: Language) {
   });
 }
 
-export function runCustomCode(slug: string, code: string, language: Language, input: string, expectedOutput: string) {
+export function runCustomCode(slug: string, code: string, language: Language, testCases: CustomTestCasePayload[]) {
   return request<Submission>(`/questions/${slug}/custom-run/`, {
     method: "POST",
-    body: JSON.stringify({ code, language, input, expected_output: expectedOutput }),
+    body: JSON.stringify({ code, language, test_cases: testCases }),
   });
 }
 

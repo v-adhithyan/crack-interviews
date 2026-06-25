@@ -149,7 +149,7 @@ class FunctionModeSubmissionTests(TestCase):
         self.assertEqual(response.data["status"], Submission.Status.ACCEPTED)
         self.assertEqual(response.data["passed_count"], 1)
         self.assertEqual(response.data["total_count"], 1)
-        self.assertEqual(response.data["results"][0]["name"], "Custom test")
+        self.assertEqual(response.data["results"][0]["name"], "Custom test 1")
         self.assertEqual(response.data["results"][0]["custom_input"], "[7, 8]")
         self.assertEqual(response.data["results"][0]["stdout"].strip(), "15")
 
@@ -173,6 +173,45 @@ class FunctionModeSubmissionTests(TestCase):
         self.assertEqual(response.data["total_count"], 1)
         self.assertEqual(response.data["results"][0]["expected_output"], "")
         self.assertEqual(response.data["results"][0]["stdout"].strip(), "15")
+
+    def test_custom_run_accepts_multiple_test_cases(self):
+        question = self.create_function_question()
+
+        response = self.api_post(
+            "run-custom-code",
+            {
+                "language": Submission.Language.PYTHON,
+                "code": "def solve(a, b):\n    return a + b\n",
+                "test_cases": [
+                    {"input": "[1, 2]", "expected_output": "3"},
+                    {"input": "[7, 8]"},
+                ],
+            },
+            kwargs={"slug": question.slug},
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["total_count"], 2)
+        self.assertEqual([item["name"] for item in response.data["results"]], ["Custom test 1", "Custom test 2"])
+        self.assertEqual(response.data["passed_count"], 1)
+        self.assertEqual(response.data["results"][1]["expected_output"], "")
+        self.assertEqual(response.data["results"][1]["stdout"].strip(), "15")
+
+    def test_custom_run_allows_up_to_five_test_cases(self):
+        question = self.create_function_question()
+
+        response = self.api_post(
+            "run-custom-code",
+            {
+                "language": Submission.Language.PYTHON,
+                "code": "def solve(a, b):\n    return a + b\n",
+                "test_cases": [{"input": "[1, 2]"} for _ in range(6)],
+            },
+            kwargs={"slug": question.slug},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("up to 5", response.data["detail"])
 
     def test_custom_function_run_requires_json_input(self):
         question = self.create_function_question()
