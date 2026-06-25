@@ -103,7 +103,7 @@ export function AuthGate({ children }: Props) {
 
   return (
     <>
-      <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-[7px] border border-line bg-white px-3 py-2 text-xs font-bold text-muted shadow-product">
+      <div className="fixed bottom-4 left-4 z-50 flex items-center gap-2 rounded-[7px] border border-line bg-white px-3 py-2 text-xs font-bold text-muted shadow-product">
         <span>{user.email || user.username}</span>
         <button className="grid size-7 place-items-center rounded-[6px] hover:bg-[#fffaf0]" type="button" onClick={handleLogout} aria-label="Log out" title="Log out">
           <LogOut size={14} />
