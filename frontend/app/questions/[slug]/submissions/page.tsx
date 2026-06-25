@@ -49,8 +49,8 @@ function ProblemSubmissionsContent({ slug }: { slug: string }) {
 
   return (
     <main className="min-h-screen bg-paper text-ink">
-      <AppHeader maxWidthClassName="max-w-5xl" />
-      <section className="mx-auto max-w-5xl px-6 py-8">
+      <AppHeader />
+      <section className="mx-auto max-w-6xl px-6 py-8">
         <div className="mb-5">
           <Link href={`/questions/${question.slug}`} className="mb-2 inline-flex items-center gap-2 text-sm font-bold text-muted hover:text-[#d08a00]">
             <ArrowLeft size={16} />

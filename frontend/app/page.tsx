@@ -3,8 +3,8 @@
 import { CheckCircle2, Circle } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { AppHeader } from "@/components/AppHeader";
 import { AuthGate } from "@/components/AuthGate";
-import { BrandMark } from "@/components/BrandMark";
 import { getQuestions, type QuestionListItem } from "@/lib/api";
 import { usePageTitle } from "@/lib/usePageTitle";
 
@@ -43,22 +43,19 @@ function QuestionListPage() {
 
   return (
     <main className="min-h-screen bg-paper text-ink">
-      <header className="border-b border-line bg-white/75">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-          <div className="flex items-center gap-3">
-            <BrandMark />
-            <div>
-              <h1 className="text-xl font-[850]">HackerLeap</h1>
-              <p className="text-sm text-muted">Let's crack the coding interview.</p>
-            </div>
-          </div>
+      <AppHeader
+        rightSlot={
           <div className="rounded border border-[rgba(247,184,1,0.45)] bg-white px-3 py-2 text-sm font-[850] text-muted">
             {questions.filter((question) => question.solved).length}/{questions.length} solved
           </div>
-        </div>
-      </header>
+        }
+      />
 
       <section className="mx-auto max-w-6xl px-6 py-8">
+        <div className="mb-5">
+          <p className="text-sm font-bold text-muted">Let's crack the coding interview.</p>
+          <h1 className="text-2xl font-[850]">Questions</h1>
+        </div>
         <div className="overflow-hidden rounded-lg border border-[rgba(15,23,42,0.08)] bg-white/90 shadow-product">
           <div className="grid grid-cols-[1fr_120px_110px_120px] border-b border-line bg-[#fffaf0] px-4 py-3 text-xs font-bold uppercase tracking-normal text-muted">
             <span>Question</span>

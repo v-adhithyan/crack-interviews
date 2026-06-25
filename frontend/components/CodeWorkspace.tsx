@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { BrandMark } from "@/components/BrandMark";
+import { AppHeader } from "@/components/AppHeader";
 import { runCode, submitCode, type Language, type QuestionDetail, type Submission } from "@/lib/api";
 import { StatusBadge } from "@/components/StatusBadge";
 
@@ -182,32 +182,31 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
 
   return (
     <main className="min-h-screen bg-paper text-ink lg:h-screen lg:overflow-hidden">
-      <header className="grid min-h-16 grid-cols-[1fr_auto_1fr] items-center border-b border-line bg-white/75 px-4">
-        <Link href="/" className="inline-flex items-center gap-3 font-[850] text-ink">
-          <BrandMark size="sm" />
-          <span>HackerLeap</span>
-        </Link>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => execute("run")}
-            disabled={isRunning}
-            className="inline-flex h-10 items-center gap-2 rounded-[7px] border border-line bg-white px-4 text-sm font-[850] text-ink disabled:opacity-60"
-          >
-            <Play size={16} className={activeMode === "run" ? "animate-pulse" : ""} />
-            {activeMode === "run" ? "Running" : "Run"}
-          </button>
-          <button
-            type="button"
-            onClick={() => execute("submit")}
-            disabled={isRunning}
-            className="inline-flex h-10 items-center gap-2 rounded-[7px] border border-[rgba(247,184,1,0.72)] bg-gradient-to-br from-[#ffd400] to-gold px-4 text-sm font-[850] text-black disabled:opacity-60"
-          >
-            <Send size={16} className={activeMode === "submit" ? "animate-pulse" : ""} />
-            {activeMode === "submit" ? "Submitting" : "Submit"}
-          </button>
-        </div>
-        <div className="flex justify-end gap-2">
+      <AppHeader
+        centerSlot={
+          <>
+            <button
+              type="button"
+              onClick={() => execute("run")}
+              disabled={isRunning}
+              className="inline-flex h-10 items-center gap-2 rounded-[7px] border border-line bg-white px-4 text-sm font-[850] text-ink disabled:opacity-60"
+            >
+              <Play size={16} className={activeMode === "run" ? "animate-pulse" : ""} />
+              {activeMode === "run" ? "Running" : "Run"}
+            </button>
+            <button
+              type="button"
+              onClick={() => execute("submit")}
+              disabled={isRunning}
+              className="inline-flex h-10 items-center gap-2 rounded-[7px] border border-[rgba(247,184,1,0.72)] bg-gradient-to-br from-[#ffd400] to-gold px-4 text-sm font-[850] text-black disabled:opacity-60"
+            >
+              <Send size={16} className={activeMode === "submit" ? "animate-pulse" : ""} />
+              {activeMode === "submit" ? "Submitting" : "Submit"}
+            </button>
+          </>
+        }
+        rightSlot={
+          <>
           <div className="relative inline-flex h-10 items-center rounded-[7px] border border-line bg-white text-sm font-bold">
             {showTimerTooltip ? (
               <div role="tooltip" className="absolute right-0 top-12 z-40 w-64 rounded-[7px] border border-line bg-ink px-3 py-2 text-xs font-bold leading-5 text-white shadow-lg">
@@ -257,8 +256,9 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
               Reference
             </Link>
           ) : null}
-        </div>
-      </header>
+          </>
+        }
+      />
 
       {isRunning ? (
         <div

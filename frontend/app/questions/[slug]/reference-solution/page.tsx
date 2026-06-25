@@ -78,16 +78,17 @@ function ReferenceSolutionContent({ slug, isStaff }: { slug: string; isStaff: bo
             ))}
           </div>
         }
-      >
-        <Link href={`/questions/${solution.slug}`} className="mb-2 inline-flex items-center gap-2 text-sm font-bold text-muted hover:text-[#d08a00]">
-          <ArrowLeft size={16} />
-          Back to question
-        </Link>
-        <p className="text-sm font-bold text-muted">Admin reference solution</p>
-        <h1 className="text-2xl font-[850]">{solution.title}</h1>
-      </AppHeader>
+      />
 
       <section className="mx-auto max-w-6xl px-6 py-8">
+        <div className="mb-5">
+          <Link href={`/questions/${solution.slug}`} className="mb-2 inline-flex items-center gap-2 text-sm font-bold text-muted hover:text-[#d08a00]">
+            <ArrowLeft size={16} />
+            Back to question
+          </Link>
+          <p className="text-sm font-bold text-muted">Admin reference solution</p>
+          <h1 className="text-2xl font-[850]">{solution.title}</h1>
+        </div>
         <div className="rounded-lg border border-[rgba(15,23,42,0.08)] bg-white/90 p-4 shadow-product">
           <h2 className="mb-3 text-sm font-bold uppercase tracking-normal text-muted">
             {language === "java" ? "Java 17" : "Python 3"} reference solution
