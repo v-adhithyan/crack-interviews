@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Circle } from "lucide-react";
+import { BookOpen, CheckCircle2, Circle } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
@@ -46,8 +46,13 @@ function QuestionListPage() {
       <AppHeader
         rightSlot={
           <>
-            <Link href="/revise" className="inline-flex h-10 items-center rounded-[7px] border border-line bg-white px-3 text-sm font-bold hover:bg-[#fffaf0]">
-              Revise
+            <Link
+              href="/revise"
+              aria-label="Revise"
+              title="Revise"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-[7px] border border-line bg-white text-sm font-bold hover:bg-[#fffaf0]"
+            >
+              <BookOpen size={16} />
             </Link>
             <div className="rounded border border-[rgba(247,184,1,0.45)] bg-white px-3 py-2 text-sm font-[850] text-muted">
               {questions.filter((question) => question.solved).length}/{questions.length} solved
@@ -81,7 +86,7 @@ function QuestionListPage() {
                 href={`/questions/${question.slug}`}
                 className="grid grid-cols-[1fr_120px_110px_120px] items-center border-b border-line px-4 py-4 transition last:border-0 hover:bg-[#fffaf0]"
               >
-                <span className="font-[850]">{question.title}</span>
+                <span className="text-[15px] font-semibold text-ink">{question.title}</span>
                 <span>
                   <span className={`inline-flex h-7 items-center rounded-[7px] px-2 text-xs font-bold ${difficultyStyles[question.difficulty]}`}>
                     {question.difficulty}

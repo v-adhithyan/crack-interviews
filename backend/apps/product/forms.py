@@ -9,7 +9,6 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.core.exceptions import ValidationError
 
 from .models import Resume
-from .models import QuickRefreshNote
 from .pdf import extract_pdf_text
 from .services import parse_analysis_json
 
@@ -188,20 +187,3 @@ class AnalysisResultForm(forms.Form):
         raw_json = self.cleaned_data["analysis_json"]
         self.parsed_json = parse_analysis_json(raw_json)
         return raw_json
-
-
-class QuickRefreshNoteForm(forms.ModelForm):
-    class Meta:
-        model = QuickRefreshNote
-        fields = ("content", "language")
-        widgets = {
-            "content": forms.Textarea(
-                attrs={
-                    "autocomplete": "off",
-                    "autocapitalize": "off",
-                    "spellcheck": "false",
-                    "placeholder": "Paste quick reference notes, snippets, JSON, SQL, or commands here...",
-                }
-            ),
-            "language": forms.Select(),
-        }

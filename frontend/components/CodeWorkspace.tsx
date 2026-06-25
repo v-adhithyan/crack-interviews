@@ -324,6 +324,8 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
               type="button"
               onClick={() => execute("run")}
               disabled={isRunning}
+              aria-label={activeMode === "run" ? "Running code" : "Run code"}
+              title={activeMode === "run" ? "Running code" : "Run code"}
               className="inline-flex h-10 shrink-0 items-center gap-2 rounded-[7px] border border-line bg-white px-3 text-sm font-[850] text-ink disabled:opacity-60"
             >
               <Play size={16} className={activeMode === "run" ? "animate-pulse" : ""} />
@@ -333,6 +335,8 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
               type="button"
               onClick={() => execute("submit")}
               disabled={isRunning}
+              aria-label={activeMode === "submit" ? "Submitting solution" : "Submit solution"}
+              title={activeMode === "submit" ? "Submitting solution" : "Submit solution"}
               className="inline-flex h-10 shrink-0 items-center gap-2 rounded-[7px] border border-[rgba(247,184,1,0.72)] bg-gradient-to-br from-[#ffd400] to-gold px-4 text-sm font-[850] text-black disabled:opacity-60"
             >
               <Send size={16} className={activeMode === "submit" ? "animate-pulse" : ""} />
@@ -348,7 +352,7 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
                 {TIMER_FROZEN_MESSAGE}
               </div>
             ) : null}
-            <span className="inline-flex h-full min-w-[92px] items-center justify-center gap-2 border-r border-line px-3 tabular-nums">
+            <span className="inline-flex h-full min-w-[92px] items-center justify-center gap-2 border-r border-line px-3 tabular-nums" title="Elapsed time">
               <Timer size={16} />
               {formattedElapsed}
             </span>
@@ -388,6 +392,8 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
                 type="button"
                 onClick={toggleRevisionMark}
                 disabled={isUpdatingRevision}
+                aria-label={revisionMarked ? "Remove from revision" : "Mark for revision"}
+                title={revisionMarked ? "Remove from revision" : "Mark for revision"}
                 className={`inline-flex h-10 shrink-0 items-center gap-2 rounded-[7px] border px-3 text-sm font-bold disabled:opacity-60 ${
                   revisionMarked
                     ? "border-[rgba(247,184,1,0.72)] bg-soft text-ink"
