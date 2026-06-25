@@ -4,6 +4,7 @@ import Editor from "@monaco-editor/react";
 import { CheckCircle2, ExternalLink, History, Pause, Play, RotateCcw, Send, Timer } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -29,6 +30,12 @@ type SavedDraft = {
 };
 
 const TIMER_FROZEN_MESSAGE = "Timer is frozen after the first submission for this problem.";
+const MIN_PROBLEM_PANE_PERCENT = 28;
+const MAX_PROBLEM_PANE_PERCENT = 62;
+const DEFAULT_PROBLEM_PANE_PERCENT = 45;
+const MIN_RESULT_PANEL_HEIGHT = 160;
+const MAX_RESULT_PANEL_HEIGHT = 520;
+const DEFAULT_RESULT_PANEL_HEIGHT = 220;
 
 export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmissionSolveTimeSeconds = null, hasSubmitted = false }: Props) {
   const router = useRouter();
@@ -47,6 +54,10 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
   const [hasAnySubmission, setHasAnySubmission] = useState(hasSubmitted);
   const [showTimerTooltip, setShowTimerTooltip] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
+  const [problemPanePercent, setProblemPanePercent] = useState(DEFAULT_PROBLEM_PANE_PERCENT);
+  const [resultPanelHeight, setResultPanelHeight] = useState(DEFAULT_RESULT_PANEL_HEIGHT);
+  const splitContainerRef = useRef<HTMLElement>(null);
+  const editorColumnRef = useRef<HTMLElement>(null);
   const resultPanelRef = useRef<HTMLElement>(null);
   const hasLoadedSavedCode = useRef(false);
 
@@ -180,6 +191,79 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
     setCode(codeForLanguage(nextLanguage, question, latestSubmittedCode));
   }
 
+  function startPaneResize(event: ReactPointerEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    const container = splitContainerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const bounds = container.getBoundingClientRect();
+
+    function updatePaneWidth(pointerX: number) {
+      const rawPercent = ((pointerX - bounds.left) / bounds.width) * 100;
+      setProblemPanePercent(clamp(rawPercent, MIN_PROBLEM_PANE_PERCENT, MAX_PROBLEM_PANE_PERCENT));
+    }
+
+    function handlePointerMove(pointerEvent: PointerEvent) {
+      updatePaneWidth(pointerEvent.clientX);
+    }
+
+    function stopPaneResize() {
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", stopPaneResize);
+    }
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    updatePaneWidth(event.clientX);
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", stopPaneResize, { once: true });
+  }
+
+  function startEditorResize(event: ReactPointerEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    const column = editorColumnRef.current;
+    if (!column) {
+      return;
+    }
+
+    const bounds = column.getBoundingClientRect();
+    const maxHeight = Math.min(MAX_RESULT_PANEL_HEIGHT, Math.max(MIN_RESULT_PANEL_HEIGHT, bounds.height - 180));
+
+    function updateResultHeight(pointerY: number) {
+      const nextHeight = bounds.bottom - pointerY;
+      setResultPanelHeight(clamp(nextHeight, MIN_RESULT_PANEL_HEIGHT, maxHeight));
+    }
+
+    function handlePointerMove(pointerEvent: PointerEvent) {
+      updateResultHeight(pointerEvent.clientY);
+    }
+
+    function stopEditorResize() {
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", stopEditorResize);
+    }
+
+    document.body.style.cursor = "row-resize";
+    document.body.style.userSelect = "none";
+    updateResultHeight(event.clientY);
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", stopEditorResize, { once: true });
+  }
+
+  const splitLayoutStyle = {
+    "--problem-pane-width": `${problemPanePercent}%`,
+  } as CSSProperties;
+
+  const resultPanelStyle = {
+    "--result-panel-height": `${resultPanelHeight}px`,
+  } as CSSProperties;
+
   return (
     <main className="min-h-screen bg-paper text-ink lg:h-screen lg:overflow-hidden">
       <AppHeader
@@ -288,7 +372,11 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
         </div>
       ) : null}
 
-      <section className="grid min-h-[calc(100vh-4rem)] grid-cols-1 lg:h-[calc(100vh-4rem)] lg:min-h-0 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:overflow-hidden">
+      <section
+        ref={splitContainerRef}
+        className="grid min-h-[calc(100vh-4rem)] grid-cols-1 lg:h-[calc(100vh-4rem)] lg:min-h-0 lg:grid-cols-[minmax(320px,var(--problem-pane-width))_6px_minmax(0,1fr)] lg:overflow-hidden"
+        style={splitLayoutStyle}
+      >
         <article className="min-h-0 overflow-y-auto border-r border-line bg-white/45 p-6">
           <div className="mb-5 flex items-center justify-between gap-3">
             <div>
@@ -307,7 +395,17 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
           </div>
         </article>
 
-        <aside className="flex min-h-[620px] flex-col bg-white/80 lg:min-h-0">
+        <button
+          type="button"
+          className="group hidden cursor-col-resize border-x border-line bg-[#fffaf0] transition hover:bg-soft lg:block"
+          onPointerDown={startPaneResize}
+          aria-label="Resize problem and code panels"
+          title="Drag to resize"
+        >
+          <span className="mx-auto block h-full w-px bg-[rgba(247,184,1,0.55)] opacity-0 transition group-hover:opacity-100" />
+        </button>
+
+        <aside ref={editorColumnRef} className="flex min-h-[620px] flex-col bg-white/80 lg:min-h-0">
           <div className="flex items-center justify-between gap-3 border-b border-line bg-white/75 px-4 py-3 text-sm font-bold text-ink">
             <div className="flex min-w-0 items-center gap-3">
               <span>{languageLabel}</span>
@@ -346,10 +444,20 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
               }}
             />
           </div>
+          <button
+            type="button"
+            className="group hidden h-2 shrink-0 cursor-row-resize border-y border-line bg-[#fffaf0] transition hover:bg-soft lg:block"
+            onPointerDown={startEditorResize}
+            aria-label="Resize code editor and result panel"
+            title="Drag to resize editor"
+          >
+            <span className="mx-auto block h-px w-12 bg-[rgba(247,184,1,0.75)] opacity-0 transition group-hover:opacity-100" />
+          </button>
           <section
             ref={resultPanelRef}
             tabIndex={-1}
-            className="max-h-[40vh] min-h-48 shrink-0 overflow-y-auto overscroll-contain border-t border-line bg-white p-4 outline-none lg:max-h-[42vh]"
+            className="max-h-[40vh] min-h-48 shrink-0 overflow-y-auto overscroll-contain border-t border-line bg-white p-4 outline-none lg:h-[var(--result-panel-height)] lg:max-h-none lg:min-h-0"
+            style={resultPanelStyle}
           >
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-sm font-bold">Result</h2>
@@ -506,4 +614,8 @@ function formatDuration(totalSeconds: number) {
   }
 
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
 }
