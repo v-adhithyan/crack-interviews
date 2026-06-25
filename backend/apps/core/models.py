@@ -107,6 +107,7 @@ class Submission(models.Model):
     class Kind(models.TextChoices):
         RUN = "run", "Run"
         SUBMIT = "submit", "Submit"
+        CUSTOM = "custom", "Custom"
 
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
@@ -153,7 +154,9 @@ class AdminApiToken(models.Model):
 
 class TestCaseResult(models.Model):
     submission = models.ForeignKey(Submission, related_name="results", on_delete=models.CASCADE)
-    test_case = models.ForeignKey(TestCase, on_delete=models.CASCADE)
+    test_case = models.ForeignKey(TestCase, on_delete=models.CASCADE, blank=True, null=True)
+    custom_name = models.CharField(max_length=200, blank=True)
+    custom_input = models.TextField(blank=True)
     status = models.CharField(max_length=30, choices=Submission.Status.choices)
     stdout = models.TextField(blank=True)
     stderr = models.TextField(blank=True)

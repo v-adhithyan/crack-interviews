@@ -1,3 +1,6 @@
+import json
+from types import SimpleNamespace
+
 from django.contrib.auth import authenticate, get_user_model
 from django.db.models import Count, Exists, OuterRef
 from django.shortcuts import get_object_or_404
@@ -147,6 +150,63 @@ def create_and_run_submission(question, code, language, sample_only, kind, user,
     return run_submission(submission, test_cases)
 
 
+def custom_test_case_for_question(question, raw_input, expected_output):
+    expected_output = expected_output.strip()
+    custom_input = raw_input
+    has_expected_output = bool(expected_output)
+    if question.execution_mode == Question.ExecutionMode.FUNCTION:
+        try:
+            function_args = json.loads(raw_input) if raw_input.strip() else []
+        except json.JSONDecodeError:
+            raise ValueError("Custom input must be valid JSON arguments for function questions.")
+        expected_value = None
+        if has_expected_output:
+            try:
+                expected_value = json.loads(expected_output)
+            except json.JSONDecodeError:
+                expected_value = expected_output
+        return SimpleNamespace(
+            pk=None,
+            name="Custom test",
+            custom_name="Custom test",
+            custom_input=custom_input,
+            stdin="",
+            function_args=function_args,
+            expected_value=expected_value,
+            expected_output=expected_output,
+            has_expected_output=has_expected_output,
+            is_sample=False,
+            is_hidden=False,
+            order=0,
+        )
+
+    return SimpleNamespace(
+        pk=None,
+        name="Custom test",
+        custom_name="Custom test",
+        custom_input=custom_input,
+        stdin=raw_input,
+        function_args=None,
+        expected_value=None,
+        expected_output=expected_output,
+        has_expected_output=has_expected_output,
+        is_sample=False,
+        is_hidden=False,
+        order=0,
+    )
+
+
+def create_and_run_custom_submission(question, code, language, raw_input, expected_output, user):
+    submission = Submission.objects.create(
+        user=user,
+        question=question,
+        code=code,
+        language=language,
+        kind=Submission.Kind.CUSTOM,
+    )
+    return run_submission(submission, [custom_test_case_for_question(question, raw_input, expected_output)])
+
+
 @api_view(["POST"])
 @admin_api_required
 def run_code(request, slug):
@@ -161,6 +221,32 @@ def run_code(request, slug):
     submission = create_and_run_submission(question, code, language, sample_only=True, kind=Submission.Kind.RUN, user=request.admin_api_user)
     if submission is None:
         return Response({"detail": "This question has no sample test cases."}, status=status.HTTP_400_BAD_REQUEST)
+    return Response(SubmissionSerializer(submission).data, status=status.HTTP_201_CREATED)
+
+
+@api_view(["POST"])
+@admin_api_required
+def run_custom_code(request, slug):
+    question = get_object_or_404(Question, slug=slug, is_active=True)
+    code = request.data.get("code", "")
+    if not code.strip():
+        return Response({"detail": "Code is required."}, status=status.HTTP_400_BAD_REQUEST)
+    language = normalized_language(request.data.get("language"))
+    if language is None:
+        return Response({"detail": "Supported languages are java and python."}, status=status.HTTP_400_BAD_REQUEST)
+    expected_output = request.data.get("expected_output", "")
+
+    try:
+        submission = create_and_run_custom_submission(
+            question,
+            code,
+            language,
+            str(request.data.get("input", "")),
+            str(expected_output),
+            request.admin_api_user,
+        )
+    except ValueError as exc:
+        return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
     return Response(SubmissionSerializer(submission).data, status=status.HTTP_201_CREATED)
 
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Editor from "@monaco-editor/react";
-import { BookOpen, CheckCircle2, ExternalLink, History, Pause, Play, RotateCcw, Send, Star, Timer } from "lucide-react";
+import { BookOpen, CheckCircle2, ExternalLink, History, Pause, Play, RotateCcw, Send, Star, TestTube2, Timer } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
@@ -9,7 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { AppHeader } from "@/components/AppHeader";
-import { markQuestionForRevision, runCode, submitCode, type Language, type QuestionDetail, type Submission } from "@/lib/api";
+import { markQuestionForRevision, runCode, runCustomCode, submitCode, type Language, type QuestionDetail, type Submission } from "@/lib/api";
 import { StatusBadge } from "@/components/StatusBadge";
 
 type Props = {
@@ -51,9 +51,13 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
   const [language, setLanguage] = useState<Language>(initialLanguage);
   const [code, setCode] = useState(codeForLanguage(initialLanguage, question, latestSubmittedCode));
   const [isRunning, setIsRunning] = useState(false);
-  const [activeMode, setActiveMode] = useState<"run" | "submit" | null>(null);
+  const [activeMode, setActiveMode] = useState<"run" | "submit" | "custom" | null>(null);
   const [result, setResult] = useState<Submission | null>(null);
   const [error, setError] = useState("");
+  const [customInput, setCustomInput] = useState("");
+  const [customArgValues, setCustomArgValues] = useState<string[]>([]);
+  const [customExpectedOutput, setCustomExpectedOutput] = useState("");
+  const [showCustomTest, setShowCustomTest] = useState(false);
   const [timerStarted, setTimerStarted] = useState(restoredTimer.started);
   const [timerRunning, setTimerRunning] = useState(restoredTimer.running);
   const [elapsedSeconds, setElapsedSeconds] = useState(restoredTimer.elapsedSeconds);
@@ -83,6 +87,10 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
   }, [timerRunning]);
 
   const formattedElapsed = useMemo(() => formatDuration(elapsedSeconds), [elapsedSeconds]);
+  const functionParameters = useMemo(
+    () => parseFunctionParameters(code, language, question.function_name || "solve"),
+    [code, language, question.function_name],
+  );
 
   useEffect(() => {
     if (timerLocked) {
@@ -141,6 +149,14 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
   useEffect(() => {
     setRevisionMarked(question.revision_marked);
   }, [question.revision_marked]);
+
+  useEffect(() => {
+    if (question.execution_mode !== "function") {
+      return;
+    }
+
+    setCustomArgValues((current) => functionParameters.map((_, index) => current[index] ?? ""));
+  }, [functionParameters, question.execution_mode]);
 
   function toggleTimer() {
     if (timerLocked) {
@@ -212,6 +228,38 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
     }
   }
 
+  async function executeCustom() {
+    setError("");
+    let customInputPayload = customInput;
+    if (question.execution_mode === "function") {
+      try {
+        customInputPayload = JSON.stringify(parseCustomArgumentValues(customArgValues, functionParameters));
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Custom argument values are invalid.");
+        return;
+      }
+    }
+
+    setIsRunning(true);
+    setActiveMode("custom");
+    const minimumFeedback = new Promise((resolve) => setTimeout(resolve, 450));
+    try {
+      const response = await runCustomCode(question.slug, code, language, customInputPayload, customExpectedOutput);
+      await minimumFeedback;
+      setResult(response);
+      window.setTimeout(() => {
+        resultPanelRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        resultPanelRef.current?.focus({ preventScroll: true });
+      }, 0);
+    } catch (err) {
+      await minimumFeedback;
+      setError(err instanceof Error ? err.message : "Unable to run custom test.");
+    } finally {
+      setIsRunning(false);
+      setActiveMode(null);
+    }
+  }
+
   async function toggleRevisionMark() {
     if (!question.solved || isUpdatingRevision) {
       return;
@@ -230,10 +278,16 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
     }
   }
 
-  const busyMessage = activeMode === "submit" ? "Submitting against all tests..." : "Running sample tests...";
+  const busyMessage =
+    activeMode === "submit"
+      ? "Submitting against all tests..."
+      : activeMode === "custom"
+        ? "Running custom test..."
+        : "Running sample tests...";
   const editorLanguage = language === "java" ? "java" : "python";
   const languageLabel = language === "java" ? "Java 17" : "Python 3";
   const executionLabel = question.execution_mode === "function" ? `Function: ${question.function_name || "solve"}` : "Standard input";
+  const isOutputOnlyCustomResult = result?.kind === "custom" && !result.results.some((item) => item.expected_output.trim());
 
   function selectLanguage(nextLanguage: Language) {
     setLanguage(nextLanguage);
@@ -440,7 +494,7 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
           <div className="w-full max-w-sm rounded-lg border border-line bg-white p-5 shadow-product">
             <div className="mb-4">
               <h2 id="submission-progress-title" className="text-base font-bold text-ink">
-                {activeMode === "submit" ? "Submitting solution" : "Running code"}
+                {activeMode === "submit" ? "Submitting solution" : activeMode === "custom" ? "Running custom test" : "Running code"}
               </h2>
               <p className="mt-1 text-sm text-muted">{busyMessage}</p>
             </div>
@@ -547,8 +601,92 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
           >
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-sm font-bold">Result</h2>
-              {result ? <StatusBadge status={result.status} /> : null}
+              {result && !isOutputOnlyCustomResult ? <StatusBadge status={result.status} /> : null}
             </div>
+            {!result ? <p className="mb-4 text-sm text-muted">Run sample tests, run a custom test case, or submit against all tests.</p> : null}
+            {!showCustomTest ? (
+              <button
+                type="button"
+                onClick={() => setShowCustomTest(true)}
+                className="mb-4 inline-flex h-9 items-center gap-2 rounded-[7px] border border-line bg-white px-3 text-sm font-bold hover:bg-[#fffaf0]"
+              >
+                <TestTube2 size={15} />
+                Add custom test
+              </button>
+            ) : null}
+            {showCustomTest ? (
+            <div className="mb-4 rounded-[7px] border border-line bg-white p-3">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h3 className="text-sm font-bold">Custom test</h3>
+                <button
+                  type="button"
+                  onClick={executeCustom}
+                  disabled={isRunning}
+                  aria-label="Run custom test"
+                  title="Run custom test"
+                  className="inline-flex h-8 shrink-0 items-center gap-2 rounded-[7px] border border-line bg-white px-3 text-xs font-bold hover:bg-[#fffaf0] disabled:opacity-50"
+                >
+                  <TestTube2 size={14} className={activeMode === "custom" ? "animate-pulse" : ""} />
+                  Run custom
+                </button>
+              </div>
+              {question.execution_mode === "function" ? (
+                <div className="grid gap-3">
+                  {functionParameters.map((parameter, index) => (
+                    <label key={`${parameter}-${index}`} className="grid gap-1 text-xs font-bold text-muted">
+                      {parameter} =
+                      <textarea
+                        value={customArgValues[index] ?? ""}
+                        onChange={(event) =>
+                          setCustomArgValues((current) => {
+                            const next = [...current];
+                            next[index] = event.target.value;
+                            return next;
+                          })
+                        }
+                        className="min-h-12 resize-y rounded-[7px] border border-line bg-[#fffaf0] p-2 font-mono text-xs text-ink outline-none focus:border-gold focus:ring-4 focus:ring-[rgba(247,184,1,0.18)]"
+                        placeholder="Enter testcase"
+                        spellCheck={false}
+                      />
+                    </label>
+                  ))}
+                  <label className="grid gap-1 text-xs font-bold text-muted">
+                    expected output =
+                    <textarea
+                      value={customExpectedOutput}
+                      onChange={(event) => setCustomExpectedOutput(event.target.value)}
+                      className="min-h-12 resize-y rounded-[7px] border border-line bg-[#fffaf0] p-2 font-mono text-xs text-ink outline-none focus:border-gold focus:ring-4 focus:ring-[rgba(247,184,1,0.18)]"
+                      placeholder="Optional"
+                      spellCheck={false}
+                    />
+                  </label>
+                </div>
+              ) : (
+                <div className="grid gap-3 md:grid-cols-2">
+                  <label className="grid gap-1 text-xs font-bold text-muted">
+                    input =
+                    <textarea
+                      value={customInput}
+                      onChange={(event) => setCustomInput(event.target.value)}
+                      className="min-h-20 resize-y rounded-[7px] border border-line bg-[#fffaf0] p-2 font-mono text-xs text-ink outline-none focus:border-gold focus:ring-4 focus:ring-[rgba(247,184,1,0.18)]"
+                      placeholder="stdin for your program"
+                      spellCheck={false}
+                    />
+                  </label>
+                  <label className="grid gap-1 text-xs font-bold text-muted">
+                    expected output =
+                    <textarea
+                      value={customExpectedOutput}
+                      onChange={(event) => setCustomExpectedOutput(event.target.value)}
+                      className="min-h-20 resize-y rounded-[7px] border border-line bg-[#fffaf0] p-2 font-mono text-xs text-ink outline-none focus:border-gold focus:ring-4 focus:ring-[rgba(247,184,1,0.18)]"
+                      placeholder="optional expected stdout"
+                      spellCheck={false}
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
+            ) : null}
             {isRunning ? (
               <div className="rounded-[7px] border border-[rgba(247,184,1,0.45)] bg-[#fffaf0] px-3 py-2 text-sm font-bold text-[#946200]">
                 {busyMessage}
@@ -557,9 +695,13 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
             {error ? <p className="text-sm font-bold text-orange-700">{error}</p> : null}
             {result ? (
               <div className="space-y-3 text-sm">
-                <p className="font-semibold">
-                  Passed {result.passed_count} of {result.total_count} tests in {result.execution_time_ms}ms
-                </p>
+                {isOutputOnlyCustomResult ? (
+                  <p className="font-semibold">Custom test ran in {result.execution_time_ms}ms.</p>
+                ) : (
+                  <p className="font-semibold">
+                    Passed {result.passed_count} of {result.total_count} tests in {result.execution_time_ms}ms
+                  </p>
+                )}
                 {result.solve_time_seconds !== null ? (
                   <p className="text-zinc-600">Solve time: {formatDuration(result.solve_time_seconds)}</p>
                 ) : null}
@@ -569,10 +711,15 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
                       <span className="font-bold">{item.name || "Test case"}</span>
                       <StatusBadge status={item.status} />
                     </div>
+                    {item.custom_input ? (
+                      <pre className="mb-2 overflow-auto rounded-[7px] bg-[#fffaf0] p-2 text-xs">Input: {item.custom_input}</pre>
+                    ) : null}
                     {!item.is_hidden || item.is_sample ? (
                       <div className="grid gap-2 md:grid-cols-2">
                         <pre className="overflow-auto rounded-[7px] bg-[#fffaf0] p-2 text-xs">Output: {item.stdout || "(empty)"}</pre>
-                        <pre className="overflow-auto rounded-[7px] bg-[#fffaf0] p-2 text-xs">Expected: {item.expected_output || "(empty)"}</pre>
+                        {item.expected_output.trim() ? (
+                          <pre className="overflow-auto rounded-[7px] bg-[#fffaf0] p-2 text-xs">Expected: {item.expected_output}</pre>
+                        ) : null}
                       </div>
                     ) : (
                       <p className="text-xs text-muted">Hidden test case</p>
@@ -581,9 +728,7 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
                   </div>
                 ))}
               </div>
-            ) : (
-              <p className="text-sm text-muted">Run sample tests or submit against all tests.</p>
-            )}
+            ) : null}
           </section>
         </aside>
       </section>
@@ -751,6 +896,77 @@ function readSavedDraft(slug: string, language: Language): SavedDraft | null {
 
 function looksLikeJava(code: string) {
   return /\bclass\s+\w+/.test(code) || /\bpublic\s+static\s+void\s+main\s*\(/.test(code);
+}
+
+function parseFunctionParameters(code: string, language: Language, functionName: string) {
+  const escapedName = functionName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const signaturePattern =
+    language === "python"
+      ? new RegExp(`def\\s+${escapedName}\\s*\\(([^)]*)\\)`)
+      : new RegExp(`\\b${escapedName}\\s*\\(([^)]*)\\)`);
+  const match = signaturePattern.exec(code);
+  if (!match?.[1]?.trim()) {
+    return ["arg1"];
+  }
+
+  const parameters = splitParameterList(match[1])
+    .map((parameter) => parameterName(parameter, language))
+    .filter(Boolean);
+
+  return parameters.length ? parameters : ["arg1"];
+}
+
+function splitParameterList(rawParameters: string) {
+  const parts: string[] = [];
+  let current = "";
+  let depth = 0;
+  for (const character of rawParameters) {
+    if (character === "<" || character === "[" || character === "(") {
+      depth += 1;
+    } else if (character === ">" || character === "]" || character === ")") {
+      depth = Math.max(0, depth - 1);
+    }
+
+    if (character === "," && depth === 0) {
+      parts.push(current.trim());
+      current = "";
+    } else {
+      current += character;
+    }
+  }
+  if (current.trim()) {
+    parts.push(current.trim());
+  }
+  return parts;
+}
+
+function parameterName(parameter: string, language: Language) {
+  const withoutDefault = parameter.split("=")[0].trim();
+  if (!withoutDefault || withoutDefault === "self" || withoutDefault === "cls") {
+    return "";
+  }
+  if (language === "python") {
+    return withoutDefault.replace(/^\*+/, "").split(":")[0].trim();
+  }
+  const tokens = withoutDefault.replace(/\[\]/g, " ").trim().split(/\s+/);
+  return tokens[tokens.length - 1]?.replace(/^\.+/, "") ?? "";
+}
+
+function parseCustomArgumentValues(values: string[], parameterNames: string[]) {
+  return parameterNames.map((parameterName, index) => {
+    const rawValue = values[index]?.trim() ?? "";
+    if (!rawValue) {
+      return null;
+    }
+    try {
+      return JSON.parse(rawValue);
+    } catch {
+      if (/^[A-Za-z_][A-Za-z0-9_ -]*$/.test(rawValue)) {
+        return rawValue;
+      }
+      throw new Error(`${parameterName} must be valid JSON.`);
+    }
+  });
 }
 
 const PYTHON_STARTER = `def solve():

@@ -130,6 +130,93 @@ class FunctionModeSubmissionTests(TestCase):
         self.assertEqual(response.data["passed_count"], 1)
         self.assertEqual(response.data["total_count"], 1)
 
+    def test_python_function_custom_run_uses_custom_json_arguments(self):
+        question = self.create_function_question()
+
+        response = self.api_post(
+            "run-custom-code",
+            {
+                "language": Submission.Language.PYTHON,
+                "code": "def solve(a, b):\n    return a + b\n",
+                "input": "[7, 8]",
+                "expected_output": "15",
+            },
+            kwargs={"slug": question.slug},
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["kind"], Submission.Kind.CUSTOM)
+        self.assertEqual(response.data["status"], Submission.Status.ACCEPTED)
+        self.assertEqual(response.data["passed_count"], 1)
+        self.assertEqual(response.data["total_count"], 1)
+        self.assertEqual(response.data["results"][0]["name"], "Custom test")
+        self.assertEqual(response.data["results"][0]["custom_input"], "[7, 8]")
+        self.assertEqual(response.data["results"][0]["stdout"].strip(), "15")
+
+    def test_custom_run_does_not_require_expected_output(self):
+        question = self.create_function_question()
+
+        response = self.api_post(
+            "run-custom-code",
+            {
+                "language": Submission.Language.PYTHON,
+                "code": "def solve(a, b):\n    return a + b\n",
+                "input": "[7, 8]",
+            },
+            kwargs={"slug": question.slug},
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["kind"], Submission.Kind.CUSTOM)
+        self.assertEqual(response.data["status"], Submission.Status.ACCEPTED)
+        self.assertEqual(response.data["passed_count"], 0)
+        self.assertEqual(response.data["total_count"], 1)
+        self.assertEqual(response.data["results"][0]["expected_output"], "")
+        self.assertEqual(response.data["results"][0]["stdout"].strip(), "15")
+
+    def test_custom_function_run_requires_json_input(self):
+        question = self.create_function_question()
+
+        response = self.api_post(
+            "run-custom-code",
+            {
+                "language": Submission.Language.PYTHON,
+                "code": "def solve(a, b):\n    return a + b\n",
+                "input": "7 8",
+                "expected_output": "15",
+            },
+            kwargs={"slug": question.slug},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("valid JSON", response.data["detail"])
+
+    def test_stdin_custom_run_uses_custom_input_and_expected_output(self):
+        question = Question.objects.create(
+            title="Echo",
+            slug="echo",
+            description="Echo input.",
+            execution_mode=Question.ExecutionMode.STDIN,
+        )
+
+        response = self.api_post(
+            "run-custom-code",
+            {
+                "language": Submission.Language.PYTHON,
+                "code": "print(input()[::-1])\n",
+                "input": "abc\n",
+                "expected_output": "cba",
+            },
+            kwargs={"slug": question.slug},
+        )
+        list_response = self.api_get("submission-list", kwargs={"slug": question.slug})
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["kind"], Submission.Kind.CUSTOM)
+        self.assertEqual(response.data["status"], Submission.Status.ACCEPTED)
+        self.assertEqual(response.data["results"][0]["custom_input"], "abc\n")
+        self.assertEqual(list_response.data, [])
+
     def test_python_function_wrong_return_is_wrong_answer(self):
         question = self.create_function_question()
 

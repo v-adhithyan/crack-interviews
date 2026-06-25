@@ -47,13 +47,24 @@ class QuestionReferenceSolutionSerializer(serializers.ModelSerializer):
 
 
 class TestCaseResultSerializer(serializers.ModelSerializer):
-    name = serializers.CharField(source="test_case.name")
-    is_sample = serializers.BooleanField(source="test_case.is_sample")
-    is_hidden = serializers.BooleanField(source="test_case.is_hidden")
+    name = serializers.SerializerMethodField()
+    is_sample = serializers.SerializerMethodField()
+    is_hidden = serializers.SerializerMethodField()
+
+    def get_name(self, obj):
+        if obj.test_case_id:
+            return obj.test_case.name
+        return obj.custom_name
+
+    def get_is_sample(self, obj):
+        return bool(obj.test_case and obj.test_case.is_sample)
+
+    def get_is_hidden(self, obj):
+        return bool(obj.test_case and obj.test_case.is_hidden)
 
     class Meta:
         model = TestCaseResult
-        fields = ["id", "name", "is_sample", "is_hidden", "status", "stdout", "stderr", "expected_output", "execution_time_ms", "memory_kb"]
+        fields = ["id", "name", "is_sample", "is_hidden", "status", "stdout", "stderr", "expected_output", "execution_time_ms", "memory_kb", "custom_input"]
 
 
 class SubmissionSerializer(serializers.ModelSerializer):

@@ -454,7 +454,9 @@ def mark_compile_error(submission, test_cases, compile_error, compile_ms, total_
     for test_case in test_cases:
         TestCaseResult.objects.create(
             submission=submission,
-            test_case=test_case,
+            test_case=test_case if getattr(test_case, "pk", None) else None,
+            custom_name=getattr(test_case, "custom_name", ""),
+            custom_input=getattr(test_case, "custom_input", ""),
             status=final_status,
             stdout="",
             stderr=compile_error,
@@ -482,6 +484,8 @@ def mark_compile_error(submission, test_cases, compile_error, compile_ms, total_
 
 
 def display_expected_output(test_case):
+    if not getattr(test_case, "has_expected_output", True):
+        return ""
     if test_case.expected_value is not None:
         return normalized_json_output(test_case.expected_value)
     return test_case.expected_output
@@ -533,6 +537,8 @@ def run_submission(submission, test_cases):
 
                 if completed.returncode != 0:
                     status = Submission.Status.RUNTIME_ERROR
+                elif not getattr(test_case, "has_expected_output", True):
+                    status = Submission.Status.ACCEPTED
                 elif is_function_mode:
                     try:
                         actual_value = json.loads(normalize_output(stdout))
@@ -561,7 +567,9 @@ def run_submission(submission, test_cases):
             peak_memory_kb = max(peak_memory_kb, memory_kb)
             TestCaseResult.objects.create(
                 submission=submission,
-                test_case=test_case,
+                test_case=test_case if getattr(test_case, "pk", None) else None,
+                custom_name=getattr(test_case, "custom_name", ""),
+                custom_input=getattr(test_case, "custom_input", ""),
                 status=status,
                 stdout=stdout,
                 stderr=stderr,

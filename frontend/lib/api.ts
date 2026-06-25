@@ -42,6 +42,7 @@ export type TestCaseResult = {
   expected_output: string;
   execution_time_ms: number;
   memory_kb: number;
+  custom_input: string;
 };
 
 export type SubmissionStatus = "pending" | "accepted" | "wrong_answer" | "runtime_error" | "time_limit_exceeded";
@@ -52,7 +53,7 @@ export type Submission = {
   question_slug: string;
   question_title: string;
   submission_number: number | null;
-  kind: "run" | "submit";
+  kind: "run" | "submit" | "custom";
   language: Language;
   code: string;
   status: SubmissionStatus;
@@ -206,6 +207,13 @@ export function runCode(slug: string, code: string, language: Language) {
   return request<Submission>(`/questions/${slug}/run/`, {
     method: "POST",
     body: JSON.stringify({ code, language }),
+  });
+}
+
+export function runCustomCode(slug: string, code: string, language: Language, input: string, expectedOutput: string) {
+  return request<Submission>(`/questions/${slug}/custom-run/`, {
+    method: "POST",
+    body: JSON.stringify({ code, language, input, expected_output: expectedOutput }),
   });
 }
 
