@@ -10,8 +10,8 @@ type Props = {
 };
 
 export function AuthGate({ children }: Props) {
-  const [user, setUser] = useState<AuthUser | null>(() => getCachedAuthUser());
-  const [isLoading, setIsLoading] = useState(() => Boolean(getAuthToken() && !getCachedAuthUser()));
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
