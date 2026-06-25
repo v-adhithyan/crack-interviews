@@ -9,13 +9,13 @@ type AppHeaderProps = {
 
 export function AppHeader({ centerSlot, rightSlot }: AppHeaderProps) {
   return (
-    <header className="grid min-h-16 grid-cols-[1fr_auto_1fr] items-center border-b border-line bg-white/75 px-4">
-      <Link href="/" className="inline-flex items-center gap-3 font-[850] text-ink">
+    <header className="grid min-h-16 grid-cols-[minmax(160px,1fr)_auto_minmax(0,1fr)] items-center border-b border-line bg-white/75 px-4">
+      <Link href="/" className="inline-flex min-w-0 items-center gap-3 font-[850] text-ink">
         <BrandMark size="sm" />
         <span>HackerLeap</span>
       </Link>
-      <div className="flex items-center justify-center gap-2">{centerSlot}</div>
-      <div className="flex items-center justify-end gap-2">{rightSlot}</div>
+      <div className="flex shrink-0 items-center justify-center gap-2 whitespace-nowrap">{centerSlot}</div>
+      <div className="flex min-w-0 items-center justify-end gap-2 overflow-x-auto whitespace-nowrap">{rightSlot}</div>
     </header>
   );
 }

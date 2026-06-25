@@ -393,7 +393,7 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
                 }`}
               >
                 <Star size={16} className={revisionMarked ? "fill-[#f7b801] text-[#b77900]" : ""} />
-                {revisionMarked ? "Marked for revision" : "Mark for revision"}
+                Revision
               </button>
               <Link
                 href="/revise"
