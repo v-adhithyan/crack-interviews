@@ -52,7 +52,7 @@ function ProblemSubmissionsContent({ slug }: { slug: string }) {
         <div className="mb-5">
           <Link href={`/questions/${question.slug}`} className="mb-2 inline-flex items-center gap-2 text-sm font-bold text-muted hover:text-[#d08a00]">
             <ArrowLeft size={16} />
-            Back to problem
+            Back to question
           </Link>
           <h1 className="text-2xl font-[850]">{question.title} submissions</h1>
         </div>
