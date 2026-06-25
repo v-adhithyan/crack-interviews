@@ -69,6 +69,28 @@ class FunctionModeSubmissionTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["execution_mode"], Question.ExecutionMode.FUNCTION)
         self.assertEqual(response.data["function_name"], "solve")
+        self.assertFalse(response.data["has_reference_solution"])
+
+    def test_reference_solution_endpoint_returns_saved_solutions(self):
+        question = self.create_function_question()
+        question.java_reference_solution = "class Solution { public int solve(int a, int b) { return a + b; } }"
+        question.python_reference_solution = "def solve(a, b):\n    return a + b\n"
+        question.save()
+
+        detail_response = self.api_get("question-detail", kwargs={"slug": question.slug})
+        solution_response = self.api_get("question-reference-solution", kwargs={"slug": question.slug})
+
+        self.assertTrue(detail_response.data["has_reference_solution"])
+        self.assertEqual(solution_response.status_code, 200)
+        self.assertEqual(solution_response.data["java_reference_solution"], question.java_reference_solution)
+        self.assertEqual(solution_response.data["python_reference_solution"], question.python_reference_solution)
+
+    def test_reference_solution_endpoint_returns_404_when_empty(self):
+        question = self.create_function_question()
+
+        response = self.api_get("question-reference-solution", kwargs={"slug": question.slug})
+
+        self.assertEqual(response.status_code, 404)
 
     def test_python_function_submission_runs_without_input_parsing(self):
         question = self.create_function_question()
@@ -299,6 +321,8 @@ class QuestionAdminJsonImportTests(TestCase):
         self.assertEqual(response.redirect_chain[0][0], f"../{question.pk}/change/")
         self.assertEqual(question.execution_mode, Question.ExecutionMode.FUNCTION)
         self.assertEqual(question.function_name, "solve")
+        self.assertIn("return a + b", question.java_reference_solution)
+        self.assertIn("return a + b", question.python_reference_solution)
         self.assertEqual(question.test_cases.count(), 2)
         self.assertEqual(question.test_cases.get(name="Sample 1").function_args, [1, 2])
         self.assertContains(response, "Created question and imported 2 test cases.")

@@ -121,6 +121,7 @@ class QuestionAdmin(admin.ModelAdmin):
         (None, {"fields": ("title", "slug", "description", "difficulty", "is_active")}),
         ("Execution", {"fields": ("execution_mode", "function_name")}),
         ("Starter code", {"fields": ("starter_code", "java_starter_code", "python_starter_code")}),
+        ("Reference solutions", {"fields": ("java_reference_solution", "python_reference_solution"), "classes": ("collapse",)}),
     )
 
     def test_case_count(self, obj):
@@ -170,6 +171,8 @@ class QuestionAdmin(admin.ModelAdmin):
                     "starter_code": question_data["starter_code"],
                     "java_starter_code": question_data["java_starter_code"],
                     "python_starter_code": question_data["python_starter_code"],
+                    "java_reference_solution": question_data.get("java_reference_solution", ""),
+                    "python_reference_solution": question_data.get("python_reference_solution", ""),
                 }
 
                 with transaction.atomic():

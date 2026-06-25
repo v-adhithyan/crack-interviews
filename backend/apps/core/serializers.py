@@ -14,6 +14,10 @@ class QuestionListSerializer(serializers.ModelSerializer):
 
 class QuestionDetailSerializer(serializers.ModelSerializer):
     solved = serializers.BooleanField()
+    has_reference_solution = serializers.SerializerMethodField()
+
+    def get_has_reference_solution(self, obj):
+        return bool(obj.java_reference_solution.strip() or obj.python_reference_solution.strip())
 
     class Meta:
         model = Question
@@ -29,7 +33,14 @@ class QuestionDetailSerializer(serializers.ModelSerializer):
             "execution_mode",
             "function_name",
             "solved",
+            "has_reference_solution",
         ]
+
+
+class QuestionReferenceSolutionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Question
+        fields = ["id", "title", "slug", "java_reference_solution", "python_reference_solution"]
 
 
 class TestCaseResultSerializer(serializers.ModelSerializer):

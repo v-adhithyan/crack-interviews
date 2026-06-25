@@ -1,7 +1,7 @@
 "use client";
 
 import Editor from "@monaco-editor/react";
-import { CheckCircle2, History, Pause, Play, RotateCcw, Send, Timer } from "lucide-react";
+import { CheckCircle2, ExternalLink, History, Pause, Play, RotateCcw, Send, Timer } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -246,6 +246,17 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
             <History size={16} />
             Submissions
           </Link>
+          {question.has_reference_solution ? (
+            <Link
+              href={`/questions/${question.slug}/reference-solution`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-10 items-center gap-2 rounded-[7px] border border-[rgba(247,184,1,0.45)] bg-white px-3 text-sm font-bold hover:bg-[#fffaf0]"
+            >
+              <ExternalLink size={16} />
+              Reference
+            </Link>
+          ) : null}
         </div>
       </header>
 

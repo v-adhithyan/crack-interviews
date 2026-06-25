@@ -12,6 +12,7 @@ from .models import AdminApiToken, Question, Submission
 from .serializers import (
     QuestionDetailSerializer,
     QuestionListSerializer,
+    QuestionReferenceSolutionSerializer,
     SubmissionListSerializer,
     SubmissionSerializer,
 )
@@ -106,6 +107,16 @@ def question_list(request):
 def question_detail(request, slug):
     question = get_object_or_404(questions_with_solved_flag(request.admin_api_user), slug=slug)
     serializer = QuestionDetailSerializer(question)
+    return Response(serializer.data)
+
+
+@api_view(["GET"])
+@admin_api_required
+def question_reference_solution(request, slug):
+    question = get_object_or_404(Question, slug=slug, is_active=True)
+    if not question.java_reference_solution.strip() and not question.python_reference_solution.strip():
+        return Response({"detail": "Reference solution is not available for this question."}, status=status.HTTP_404_NOT_FOUND)
+    serializer = QuestionReferenceSolutionSerializer(question)
     return Response(serializer.data)
 
 

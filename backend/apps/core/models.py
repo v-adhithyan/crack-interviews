@@ -60,6 +60,8 @@ class Question(models.Model):
     starter_code = models.TextField(default=JAVA_STARTER_CODE)
     java_starter_code = models.TextField(default=JAVA_STARTER_CODE)
     python_starter_code = models.TextField(default=PYTHON_STARTER_CODE)
+    java_reference_solution = models.TextField(blank=True)
+    python_reference_solution = models.TextField(blank=True)
     execution_mode = models.CharField(max_length=20, choices=ExecutionMode.choices, default=ExecutionMode.STDIN)
     function_name = models.CharField(max_length=80, blank=True, default="")
     is_active = models.BooleanField(default=True)

@@ -19,6 +19,15 @@ export type QuestionDetail = QuestionListItem & {
   python_starter_code: string;
   execution_mode: "stdin" | "function";
   function_name: string;
+  has_reference_solution: boolean;
+};
+
+export type QuestionReferenceSolution = {
+  id: number;
+  title: string;
+  slug: string;
+  java_reference_solution: string;
+  python_reference_solution: string;
 };
 
 export type TestCaseResult = {
@@ -134,6 +143,10 @@ export function getQuestions() {
 
 export function getQuestion(slug: string) {
   return request<QuestionDetail>(`/questions/${slug}/`);
+}
+
+export function getQuestionReferenceSolution(slug: string) {
+  return request<QuestionReferenceSolution>(`/questions/${slug}/reference-solution/`);
 }
 
 export function runCode(slug: string, code: string, language: Language) {
