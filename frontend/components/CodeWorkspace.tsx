@@ -29,6 +29,12 @@ type SavedDraft = {
   updatedAt: string;
 };
 
+type SavedTimer = {
+  elapsedSeconds: number;
+  running: boolean;
+  updatedAt: string;
+};
+
 const TIMER_FROZEN_MESSAGE = "Timer is frozen after the first submission for this problem.";
 const MIN_PROBLEM_PANE_PERCENT = 28;
 const MAX_PROBLEM_PANE_PERCENT = 62;
@@ -41,15 +47,16 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
   const router = useRouter();
   const initialLanguage = latestSubmittedLanguage(latestSubmittedCode);
   const initialTimerLocked = hasSubmitted || firstSubmissionSolveTimeSeconds !== null;
+  const restoredTimer = readSavedTimer(question.slug, firstSubmissionSolveTimeSeconds, initialTimerLocked);
   const [language, setLanguage] = useState<Language>(initialLanguage);
   const [code, setCode] = useState(codeForLanguage(initialLanguage, question, latestSubmittedCode));
   const [isRunning, setIsRunning] = useState(false);
   const [activeMode, setActiveMode] = useState<"run" | "submit" | null>(null);
   const [result, setResult] = useState<Submission | null>(null);
   const [error, setError] = useState("");
-  const [timerStarted, setTimerStarted] = useState(initialTimerLocked);
-  const [timerRunning, setTimerRunning] = useState(false);
-  const [elapsedSeconds, setElapsedSeconds] = useState(firstSubmissionSolveTimeSeconds ?? 0);
+  const [timerStarted, setTimerStarted] = useState(restoredTimer.started);
+  const [timerRunning, setTimerRunning] = useState(restoredTimer.running);
+  const [elapsedSeconds, setElapsedSeconds] = useState(restoredTimer.elapsedSeconds);
   const [timerLocked, setTimerLocked] = useState(initialTimerLocked);
   const [hasAnySubmission, setHasAnySubmission] = useState(hasSubmitted);
   const [showTimerTooltip, setShowTimerTooltip] = useState(false);
@@ -74,6 +81,24 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
   }, [timerRunning]);
 
   const formattedElapsed = useMemo(() => formatDuration(elapsedSeconds), [elapsedSeconds]);
+
+  useEffect(() => {
+    if (timerLocked) {
+      clearSavedTimer(question.slug);
+      return;
+    }
+
+    if (!timerStarted && elapsedSeconds === 0) {
+      clearSavedTimer(question.slug);
+      return;
+    }
+
+    saveTimer(question.slug, {
+      elapsedSeconds,
+      running: timerRunning,
+      updatedAt: new Date().toISOString(),
+    });
+  }, [elapsedSeconds, question.slug, timerLocked, timerRunning, timerStarted]);
 
   useEffect(() => {
     if (!toastMessage) {
@@ -128,6 +153,7 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
     setTimerStarted(false);
     setTimerRunning(false);
     setElapsedSeconds(0);
+    clearSavedTimer(question.slug);
   }
 
   async function execute(mode: "run" | "submit") {
@@ -140,6 +166,7 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
     if (mode === "submit") {
       setTimerRunning(false);
       setTimerLocked(true);
+      clearSavedTimer(question.slug);
     }
     try {
       const response = await (mode === "run" ? runCode(question.slug, code, language) : submitCode(question.slug, code, language, solveTimeSeconds));
@@ -569,6 +596,78 @@ function chooseRestoredLanguage(
 
 function draftStorageKey(slug: string, language: Language) {
   return `crack-interviews:${slug}:${language}:draft`;
+}
+
+function timerStorageKey(slug: string) {
+  return `crack-interviews:${slug}:timer`;
+}
+
+function readSavedTimer(slug: string, solveTimeSeconds: number | null, timerLocked: boolean) {
+  if (timerLocked) {
+    return {
+      elapsedSeconds: solveTimeSeconds ?? 0,
+      running: false,
+      started: true,
+    };
+  }
+
+  if (typeof window === "undefined") {
+    return {
+      elapsedSeconds: 0,
+      running: false,
+      started: false,
+    };
+  }
+
+  try {
+    const rawTimer = window.localStorage.getItem(timerStorageKey(slug));
+    if (!rawTimer) {
+      return {
+        elapsedSeconds: 0,
+        running: false,
+        started: false,
+      };
+    }
+
+    const savedTimer = JSON.parse(rawTimer) as Partial<SavedTimer>;
+    if (typeof savedTimer.elapsedSeconds !== "number" || typeof savedTimer.running !== "boolean" || typeof savedTimer.updatedAt !== "string") {
+      return {
+        elapsedSeconds: 0,
+        running: false,
+        started: false,
+      };
+    }
+
+    const elapsedSinceSave = savedTimer.running
+      ? Math.max(0, Math.floor((Date.now() - new Date(savedTimer.updatedAt).getTime()) / 1000))
+      : 0;
+
+    return {
+      elapsedSeconds: Math.max(0, Math.floor(savedTimer.elapsedSeconds + elapsedSinceSave)),
+      running: savedTimer.running,
+      started: true,
+    };
+  } catch {
+    return {
+      elapsedSeconds: 0,
+      running: false,
+      started: false,
+    };
+  }
+}
+
+function saveTimer(slug: string, timer: SavedTimer) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.setItem(timerStorageKey(slug), JSON.stringify(timer));
+}
+
+function clearSavedTimer(slug: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.removeItem(timerStorageKey(slug));
 }
 
 function readSavedDraft(slug: string, language: Language): SavedDraft | null {
