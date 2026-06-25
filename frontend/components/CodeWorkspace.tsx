@@ -1,7 +1,7 @@
 "use client";
 
 import Editor from "@monaco-editor/react";
-import { CheckCircle2, ExternalLink, History, Pause, Play, RotateCcw, Send, Timer } from "lucide-react";
+import { CheckCircle2, ExternalLink, History, Pause, Play, RotateCcw, Send, Star, Timer } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
@@ -9,7 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { AppHeader } from "@/components/AppHeader";
-import { runCode, submitCode, type Language, type QuestionDetail, type Submission } from "@/lib/api";
+import { markQuestionForRevision, runCode, submitCode, type Language, type QuestionDetail, type Submission } from "@/lib/api";
 import { StatusBadge } from "@/components/StatusBadge";
 
 type Props = {
@@ -61,6 +61,8 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
   const [hasAnySubmission, setHasAnySubmission] = useState(hasSubmitted);
   const [showTimerTooltip, setShowTimerTooltip] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
+  const [revisionMarked, setRevisionMarked] = useState(question.revision_marked);
+  const [isUpdatingRevision, setIsUpdatingRevision] = useState(false);
   const [problemPanePercent, setProblemPanePercent] = useState(DEFAULT_PROBLEM_PANE_PERCENT);
   const [resultPanelHeight, setResultPanelHeight] = useState(DEFAULT_RESULT_PANEL_HEIGHT);
   const splitContainerRef = useRef<HTMLElement>(null);
@@ -136,6 +138,10 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
     );
   }, [code, language, question.slug]);
 
+  useEffect(() => {
+    setRevisionMarked(question.revision_marked);
+  }, [question.revision_marked]);
+
   function toggleTimer() {
     if (timerLocked) {
       setShowTimerTooltip(true);
@@ -203,6 +209,24 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
     } finally {
       setIsRunning(false);
       setActiveMode(null);
+    }
+  }
+
+  async function toggleRevisionMark() {
+    if (!question.solved || isUpdatingRevision) {
+      return;
+    }
+
+    setIsUpdatingRevision(true);
+    setError("");
+    try {
+      const response = await markQuestionForRevision(question.slug, !revisionMarked);
+      setRevisionMarked(response.revision_marked);
+      setToastMessage(response.revision_marked ? "Marked for revision." : "Removed from revision.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to update revision mark.");
+    } finally {
+      setIsUpdatingRevision(false);
     }
   }
 
@@ -356,6 +380,29 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
             <History size={16} />
             Submissions
           </Link>
+          {question.solved ? (
+            <>
+              <button
+                type="button"
+                onClick={toggleRevisionMark}
+                disabled={isUpdatingRevision}
+                className={`inline-flex h-10 items-center gap-2 rounded-[7px] border px-3 text-sm font-bold disabled:opacity-60 ${
+                  revisionMarked
+                    ? "border-[rgba(247,184,1,0.72)] bg-soft text-ink"
+                    : "border-line bg-white text-ink hover:bg-[#fffaf0]"
+                }`}
+              >
+                <Star size={16} className={revisionMarked ? "fill-[#f7b801] text-[#b77900]" : ""} />
+                {revisionMarked ? "Marked for revision" : "Mark for revision"}
+              </button>
+              <Link
+                href="/revise"
+                className="inline-flex h-10 items-center rounded-[7px] border border-line bg-white px-3 text-sm font-bold hover:bg-[#fffaf0]"
+              >
+                Revise
+              </Link>
+            </>
+          ) : null}
           {question.has_reference_solution ? (
             <Link
               href={`/questions/${question.slug}/reference-solution`}

@@ -6,11 +6,12 @@ import type { Language } from "@/lib/api";
 type Props = {
   code: string;
   language: Language;
+  className?: string;
 };
 
-export function SubmittedCodeViewer({ code, language }: Props) {
+export function SubmittedCodeViewer({ code, language, className = "h-[720px] max-h-[70vh] min-h-[360px]" }: Props) {
   return (
-    <div className="h-[720px] max-h-[70vh] min-h-[360px] w-full min-w-0 overflow-hidden rounded-[7px] border border-line bg-[#10151f]">
+    <div className={`${className} w-full min-w-0 overflow-hidden rounded-[7px] border border-line bg-[#10151f]`}>
       <Editor
         height="100%"
         language={language === "java" ? "java" : "python"}

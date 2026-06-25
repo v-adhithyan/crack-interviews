@@ -5,15 +5,17 @@ from .models import Question, Submission, TestCaseResult
 
 class QuestionListSerializer(serializers.ModelSerializer):
     solved = serializers.BooleanField()
+    revision_marked = serializers.BooleanField()
     test_case_count = serializers.IntegerField()
 
     class Meta:
         model = Question
-        fields = ["id", "title", "slug", "difficulty", "solved", "test_case_count"]
+        fields = ["id", "title", "slug", "difficulty", "solved", "revision_marked", "test_case_count"]
 
 
 class QuestionDetailSerializer(serializers.ModelSerializer):
     solved = serializers.BooleanField()
+    revision_marked = serializers.BooleanField()
     has_reference_solution = serializers.SerializerMethodField()
 
     def get_has_reference_solution(self, obj):
@@ -33,6 +35,7 @@ class QuestionDetailSerializer(serializers.ModelSerializer):
             "execution_mode",
             "function_name",
             "solved",
+            "revision_marked",
             "has_reference_solution",
         ]
 
@@ -95,6 +98,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
             "execution_time_ms",
             "memory_kb",
             "solve_time_seconds",
+            "marked_for_revision",
             "passed_count",
             "total_count",
             "created_at",
@@ -135,7 +139,26 @@ class SubmissionListSerializer(serializers.ModelSerializer):
             "execution_time_ms",
             "memory_kb",
             "solve_time_seconds",
+            "marked_for_revision",
             "passed_count",
             "total_count",
+            "created_at",
+        ]
+
+
+class RevisionSubmissionSerializer(serializers.ModelSerializer):
+    question_slug = serializers.CharField(source="question.slug", read_only=True)
+    question_title = serializers.CharField(source="question.title", read_only=True)
+
+    class Meta:
+        model = Submission
+        fields = [
+            "id",
+            "question_slug",
+            "question_title",
+            "language",
+            "code",
+            "execution_time_ms",
+            "memory_kb",
             "created_at",
         ]

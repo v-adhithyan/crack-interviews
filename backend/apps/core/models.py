@@ -126,6 +126,7 @@ class Submission(models.Model):
     execution_time_ms = models.PositiveIntegerField(default=0)
     memory_kb = models.PositiveIntegerField(default=0)
     solve_time_seconds = models.PositiveIntegerField(null=True, blank=True)
+    marked_for_revision = models.BooleanField(default=False)
     passed_count = models.PositiveIntegerField(default=0)
     total_count = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)

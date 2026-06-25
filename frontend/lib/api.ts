@@ -9,6 +9,7 @@ export type QuestionListItem = {
   slug: string;
   difficulty: "easy" | "medium" | "hard";
   solved: boolean;
+  revision_marked: boolean;
   test_case_count: number;
 };
 
@@ -60,6 +61,7 @@ export type Submission = {
   execution_time_ms: number;
   memory_kb: number;
   solve_time_seconds: number | null;
+  marked_for_revision: boolean;
   passed_count: number;
   total_count: number;
   created_at: string;
@@ -67,6 +69,17 @@ export type Submission = {
 };
 
 export type SubmissionListItem = Omit<Submission, "code" | "stdout" | "stderr" | "results" | "question">;
+
+export type RevisionSubmission = {
+  id: number;
+  question_slug: string;
+  question_title: string;
+  language: Language;
+  code: string;
+  execution_time_ms: number;
+  memory_kb: number;
+  created_at: string;
+};
 
 export type AuthUser = {
   id: number;
@@ -151,6 +164,13 @@ export function getQuestionReferenceSolution(slug: string) {
   return request<QuestionReferenceSolution>(`/questions/${slug}/reference-solution/`);
 }
 
+export function markQuestionForRevision(slug: string, marked: boolean) {
+  return request<{ revision_marked: boolean; submission: SubmissionListItem | null }>(`/questions/${slug}/revision/`, {
+    method: "POST",
+    body: JSON.stringify({ marked }),
+  });
+}
+
 export function runCode(slug: string, code: string, language: Language) {
   return request<Submission>(`/questions/${slug}/run/`, {
     method: "POST",
@@ -167,6 +187,10 @@ export function submitCode(slug: string, code: string, language: Language, solve
 
 export function getSubmissions(slug: string) {
   return request<SubmissionListItem[]>(`/questions/${slug}/submissions/`);
+}
+
+export function getRevisionSubmissions() {
+  return request<RevisionSubmission[]>("/revision/");
 }
 
 export function getSubmission(id: string) {

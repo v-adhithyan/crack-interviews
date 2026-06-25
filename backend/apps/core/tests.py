@@ -213,6 +213,45 @@ class FunctionModeSubmissionTests(TestCase):
         self.assertEqual(detail_response.data["submission_number"], 2)
         self.assertEqual([item["submission_number"] for item in list_response.data], [2, 1])
 
+    def test_mark_revision_uses_latest_accepted_submission(self):
+        question = self.create_function_question()
+        first_response = self.api_post(
+            "submit-code",
+            {
+                "language": Submission.Language.PYTHON,
+                "code": "def solve(a, b):\n    return a + b\n",
+            },
+            kwargs={"slug": question.slug},
+        )
+        second_response = self.api_post(
+            "submit-code",
+            {
+                "language": Submission.Language.PYTHON,
+                "code": "def solve(a, b):\n    return a + b\n# latest\n",
+            },
+            kwargs={"slug": question.slug},
+        )
+
+        mark_response = self.api_post("mark-question-revision", {"marked": True}, kwargs={"slug": question.slug})
+        revision_response = self.api_get("revision-list")
+        detail_response = self.api_get("question-detail", kwargs={"slug": question.slug})
+
+        self.assertEqual(mark_response.status_code, 200)
+        self.assertTrue(mark_response.data["revision_marked"])
+        self.assertEqual(mark_response.data["submission"]["id"], second_response.data["id"])
+        self.assertFalse(Submission.objects.get(pk=first_response.data["id"]).marked_for_revision)
+        self.assertTrue(Submission.objects.get(pk=second_response.data["id"]).marked_for_revision)
+        self.assertTrue(detail_response.data["revision_marked"])
+        self.assertEqual(len(revision_response.data), 1)
+        self.assertEqual(revision_response.data[0]["id"], second_response.data["id"])
+
+    def test_unsolved_question_cannot_be_marked_for_revision(self):
+        question = self.create_function_question()
+
+        response = self.api_post("mark-question-revision", {"marked": True}, kwargs={"slug": question.slug})
+
+        self.assertEqual(response.status_code, 400)
+
     def test_question_api_requires_admin_token(self):
         self.create_function_question()
 

@@ -13,6 +13,7 @@ from .serializers import (
     QuestionDetailSerializer,
     QuestionListSerializer,
     QuestionReferenceSolutionSerializer,
+    RevisionSubmissionSerializer,
     SubmissionListSerializer,
     SubmissionSerializer,
 )
@@ -25,9 +26,10 @@ def questions_with_solved_flag(user):
         kind=Submission.Kind.SUBMIT,
         status=Submission.Status.ACCEPTED,
     )
+    revision_marked = accepted.filter(marked_for_revision=True)
     return (
         Question.objects.filter(is_active=True)
-        .annotate(solved=Exists(accepted), test_case_count=Count("test_cases"))
+        .annotate(solved=Exists(accepted), revision_marked=Exists(revision_marked), test_case_count=Count("test_cases"))
         .order_by("title")
     )
 
@@ -215,3 +217,46 @@ def submission_detail(request, pk):
     )
     serializer = SubmissionSerializer(submission)
     return Response(serializer.data)
+
+
+@api_view(["GET"])
+@admin_api_required
+def revision_list(request):
+    submissions = (
+        Submission.objects.filter(
+            user=request.admin_api_user,
+            kind=Submission.Kind.SUBMIT,
+            status=Submission.Status.ACCEPTED,
+            marked_for_revision=True,
+            question__is_active=True,
+        )
+        .select_related("question")
+        .order_by("question__title", "-created_at")
+    )
+    serializer = RevisionSubmissionSerializer(submissions, many=True)
+    return Response(serializer.data)
+
+
+@api_view(["POST"])
+@admin_api_required
+def mark_question_for_revision(request, slug):
+    question = get_object_or_404(Question, slug=slug, is_active=True)
+    marked = bool(request.data.get("marked", True))
+    accepted_submissions = question.submissions.filter(
+        user=request.admin_api_user,
+        kind=Submission.Kind.SUBMIT,
+        status=Submission.Status.ACCEPTED,
+    )
+
+    if not marked:
+        accepted_submissions.update(marked_for_revision=False)
+        return Response({"revision_marked": False, "submission": None})
+
+    latest_submission = accepted_submissions.order_by("-created_at", "-id").first()
+    if latest_submission is None:
+        return Response({"detail": "Solve this problem before marking it for revision."}, status=status.HTTP_400_BAD_REQUEST)
+
+    accepted_submissions.exclude(pk=latest_submission.pk).update(marked_for_revision=False)
+    latest_submission.marked_for_revision = True
+    latest_submission.save(update_fields=["marked_for_revision"])
+    return Response({"revision_marked": True, "submission": SubmissionListSerializer(latest_submission).data})

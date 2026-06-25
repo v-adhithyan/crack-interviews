@@ -45,9 +45,14 @@ function QuestionListPage() {
     <main className="min-h-screen bg-paper text-ink">
       <AppHeader
         rightSlot={
-          <div className="rounded border border-[rgba(247,184,1,0.45)] bg-white px-3 py-2 text-sm font-[850] text-muted">
-            {questions.filter((question) => question.solved).length}/{questions.length} solved
-          </div>
+          <>
+            <Link href="/revise" className="inline-flex h-10 items-center rounded-[7px] border border-line bg-white px-3 text-sm font-bold hover:bg-[#fffaf0]">
+              Revise
+            </Link>
+            <div className="rounded border border-[rgba(247,184,1,0.45)] bg-white px-3 py-2 text-sm font-[850] text-muted">
+              {questions.filter((question) => question.solved).length}/{questions.length} solved
+            </div>
+          </>
         }
       />
 
