@@ -93,6 +93,27 @@ export type AuthSession = {
   user: AuthUser;
 };
 
+let cachedAuthUser: AuthUser | null = null;
+const authListeners = new Set<(user: AuthUser | null) => void>();
+
+function notifyAuthListeners() {
+  authListeners.forEach((listener) => listener(cachedAuthUser));
+}
+
+export function getCachedAuthUser() {
+  return cachedAuthUser;
+}
+
+export function setCachedAuthUser(user: AuthUser | null) {
+  cachedAuthUser = user;
+  notifyAuthListeners();
+}
+
+export function subscribeAuthSession(listener: (user: AuthUser | null) => void) {
+  authListeners.add(listener);
+  return () => authListeners.delete(listener);
+}
+
 export function getAuthToken() {
   if (typeof window === "undefined") {
     return null;
@@ -106,6 +127,13 @@ export function setAuthToken(token: string) {
 
 export function clearAuthToken() {
   window.localStorage.removeItem(AUTH_TOKEN_KEY);
+}
+
+export function clearAuthSession() {
+  if (typeof window !== "undefined") {
+    clearAuthToken();
+  }
+  setCachedAuthUser(null);
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -122,8 +150,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const detail = await response.json().catch(() => ({}));
-    if (response.status === 401) {
-      clearAuthToken();
+    if (response.status === 401 || response.status === 403) {
+      clearAuthSession();
     }
     throw new Error(detail.detail ?? `Request failed with ${response.status}`);
   }
@@ -137,18 +165,21 @@ export async function loginAdmin(username: string, password: string) {
     body: JSON.stringify({ username, password }),
   });
   setAuthToken(session.token);
+  setCachedAuthUser(session.user);
   return session;
 }
 
-export function getCurrentAdmin() {
-  return request<AuthUser>("/auth/me/");
+export async function getCurrentAdmin() {
+  const user = await request<AuthUser>("/auth/me/");
+  setCachedAuthUser(user);
+  return user;
 }
 
 export async function logoutAdmin() {
   try {
     await request<{ status: string }>("/auth/logout/", { method: "POST", body: "{}" });
   } finally {
-    clearAuthToken();
+    clearAuthSession();
   }
 }
 

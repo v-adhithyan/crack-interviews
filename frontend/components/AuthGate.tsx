@@ -3,21 +3,35 @@
 import { LogOut } from "lucide-react";
 import { FormEvent, ReactNode, useEffect, useState } from "react";
 import { BrandMark } from "@/components/BrandMark";
-import { getAuthToken, getCurrentAdmin, loginAdmin, logoutAdmin, type AuthUser } from "@/lib/api";
+import { getAuthToken, getCachedAuthUser, getCurrentAdmin, loginAdmin, logoutAdmin, subscribeAuthSession, type AuthUser } from "@/lib/api";
 
 type Props = {
   children: (user: AuthUser, logout: () => Promise<void>) => ReactNode;
 };
 
 export function AuthGate({ children }: Props) {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<AuthUser | null>(() => getCachedAuthUser());
+  const [isLoading, setIsLoading] = useState(() => Boolean(getAuthToken() && !getCachedAuthUser()));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let isMounted = true;
+    const unsubscribe = subscribeAuthSession((nextUser) => {
+      if (isMounted) {
+        setUser(nextUser);
+        setIsLoading(false);
+      }
+    });
+
     async function loadUser() {
+      const cachedUser = getCachedAuthUser();
+      if (cachedUser) {
+        setUser(cachedUser);
+        setIsLoading(false);
+        return;
+      }
+
       if (!getAuthToken()) {
         setIsLoading(false);
         return;
@@ -40,6 +54,7 @@ export function AuthGate({ children }: Props) {
     loadUser();
     return () => {
       isMounted = false;
+      unsubscribe();
     };
   }, []);
 
