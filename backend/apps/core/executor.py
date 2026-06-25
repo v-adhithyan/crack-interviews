@@ -1,5 +1,6 @@
 import json
 import re
+import resource
 import shutil
 import subprocess
 import sys
@@ -326,6 +327,7 @@ def parse_memory_output(output_path, mode):
 
 
 def run_measured_process(command, input_value):
+    before_usage_kb = child_memory_usage_kb()
     with tempfile.NamedTemporaryFile(prefix="hackerleap-memory-", delete=True) as memory_file:
         wrapped_command, measurement_mode = measured_command(command, memory_file.name)
         completed = subprocess.run(
@@ -337,7 +339,17 @@ def run_measured_process(command, input_value):
             check=False,
         )
         memory_kb = parse_memory_output(memory_file.name, measurement_mode)
+        if not memory_kb:
+            after_usage_kb = child_memory_usage_kb()
+            memory_kb = max(0, after_usage_kb - before_usage_kb) or after_usage_kb
         return completed, memory_kb
+
+
+def child_memory_usage_kb():
+    max_rss = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
+    if sys.platform == "darwin":
+        return max_rss // 1024
+    return max_rss
 
 
 def compile_java(code):
