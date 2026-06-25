@@ -1,7 +1,7 @@
 "use client";
 
 import Editor from "@monaco-editor/react";
-import { CheckCircle2, ExternalLink, History, Pause, Play, RotateCcw, Send, Star, Timer } from "lucide-react";
+import { BookOpen, CheckCircle2, ExternalLink, History, Pause, Play, RotateCcw, Send, Star, Timer } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
@@ -324,16 +324,16 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
               type="button"
               onClick={() => execute("run")}
               disabled={isRunning}
-              className="inline-flex h-10 items-center gap-2 rounded-[7px] border border-line bg-white px-4 text-sm font-[850] text-ink disabled:opacity-60"
+              className="inline-flex h-10 shrink-0 items-center gap-2 rounded-[7px] border border-line bg-white px-3 text-sm font-[850] text-ink disabled:opacity-60"
             >
               <Play size={16} className={activeMode === "run" ? "animate-pulse" : ""} />
-              {activeMode === "run" ? "Running" : "Run"}
+              <span className="hidden sm:inline">{activeMode === "run" ? "Running" : "Run"}</span>
             </button>
             <button
               type="button"
               onClick={() => execute("submit")}
               disabled={isRunning}
-              className="inline-flex h-10 items-center gap-2 rounded-[7px] border border-[rgba(247,184,1,0.72)] bg-gradient-to-br from-[#ffd400] to-gold px-4 text-sm font-[850] text-black disabled:opacity-60"
+              className="inline-flex h-10 shrink-0 items-center gap-2 rounded-[7px] border border-[rgba(247,184,1,0.72)] bg-gradient-to-br from-[#ffd400] to-gold px-4 text-sm font-[850] text-black disabled:opacity-60"
             >
               <Send size={16} className={activeMode === "submit" ? "animate-pulse" : ""} />
               {activeMode === "submit" ? "Submitting" : "Submit"}
@@ -342,13 +342,13 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
         }
         rightSlot={
           <>
-          <div className="relative inline-flex h-10 items-center rounded-[7px] border border-line bg-white text-sm font-bold">
+          <div className="relative inline-flex h-10 shrink-0 items-center rounded-[7px] border border-line bg-white text-sm font-bold">
             {showTimerTooltip ? (
               <div role="tooltip" className="absolute right-0 top-12 z-40 w-64 rounded-[7px] border border-line bg-ink px-3 py-2 text-xs font-bold leading-5 text-white shadow-lg">
                 {TIMER_FROZEN_MESSAGE}
               </div>
             ) : null}
-            <span className="inline-flex h-full items-center gap-2 border-r border-line px-3 tabular-nums">
+            <span className="inline-flex h-full min-w-[92px] items-center justify-center gap-2 border-r border-line px-3 tabular-nums">
               <Timer size={16} />
               {formattedElapsed}
             </span>
@@ -375,10 +375,12 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
           </div>
           <Link
             href={`/questions/${question.slug}/submissions`}
-            className="inline-flex h-10 items-center gap-2 rounded-[7px] border border-line bg-white px-3 text-sm font-bold hover:bg-[#fffaf0]"
+            aria-label="Submissions"
+            title="Submissions"
+            className="inline-flex h-10 shrink-0 items-center gap-2 rounded-[7px] border border-line bg-white px-3 text-sm font-bold hover:bg-[#fffaf0]"
           >
             <History size={16} />
-            Submissions
+            <span className="hidden xl:inline">Submissions</span>
           </Link>
           {question.solved ? (
             <>
@@ -386,20 +388,22 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
                 type="button"
                 onClick={toggleRevisionMark}
                 disabled={isUpdatingRevision}
-                className={`inline-flex h-10 items-center gap-2 rounded-[7px] border px-3 text-sm font-bold disabled:opacity-60 ${
+                className={`inline-flex h-10 shrink-0 items-center gap-2 rounded-[7px] border px-3 text-sm font-bold disabled:opacity-60 ${
                   revisionMarked
                     ? "border-[rgba(247,184,1,0.72)] bg-soft text-ink"
                     : "border-line bg-white text-ink hover:bg-[#fffaf0]"
                 }`}
               >
                 <Star size={16} className={revisionMarked ? "fill-[#f7b801] text-[#b77900]" : ""} />
-                Revision
+                <span className="hidden 2xl:inline">Revision</span>
               </button>
               <Link
                 href="/revise"
-                className="inline-flex h-10 items-center rounded-[7px] border border-line bg-white px-3 text-sm font-bold hover:bg-[#fffaf0]"
+                aria-label="Revise"
+                title="Revise"
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-[7px] border border-line bg-white text-sm font-bold hover:bg-[#fffaf0]"
               >
-                Revise
+                <BookOpen size={16} />
               </Link>
             </>
           ) : null}
@@ -408,10 +412,12 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
               href={`/questions/${question.slug}/reference-solution`}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex h-10 items-center gap-2 rounded-[7px] border border-[rgba(247,184,1,0.45)] bg-white px-3 text-sm font-bold hover:bg-[#fffaf0]"
+              aria-label="Reference solution"
+              title="Reference solution"
+              className="inline-flex h-10 shrink-0 items-center gap-2 rounded-[7px] border border-[rgba(247,184,1,0.45)] bg-white px-3 text-sm font-bold hover:bg-[#fffaf0]"
             >
               <ExternalLink size={16} />
-              Reference
+              <span className="hidden 2xl:inline">Reference</span>
             </Link>
           ) : null}
           </>
