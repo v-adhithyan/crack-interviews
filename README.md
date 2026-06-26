@@ -1,5 +1,9 @@
 # Crack Interviews
 
+[![Django tests](https://github.com/v-adhithyan/crack-interviews/actions/workflows/django-ci.yml/badge.svg)](https://github.com/v-adhithyan/crack-interviews/actions/workflows/django-ci.yml)
+[![Deploy backend to PythonAnywhere](https://github.com/v-adhithyan/crack-interviews/actions/workflows/deploy-backend-pythonanywhere.yml/badge.svg)](https://github.com/v-adhithyan/crack-interviews/actions/workflows/deploy-backend-pythonanywhere.yml)
+[![Vercel deployment](https://img.shields.io/github/deployments/v-adhithyan/crack-interviews/Production?label=vercel&logo=vercel)](https://github.com/v-adhithyan/crack-interviews/deployments/Production)
+
 A personal HackerRank/LeetCode-style practice platform built with Django and Next.js.
 
 ## Stack
