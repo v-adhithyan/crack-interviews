@@ -8,13 +8,23 @@
     <div class="product-main-shell">
         {% include "product/includes/topbar.html" %}
         <main class="product-main">
-            <section class="page-heading" aria-labelledby="history-title">
+            <section class="dashboard-hero analysis-history-hero" aria-labelledby="history-title">
                 <div>
                     <span>Analysis History</span>
-                    <h1 id="history-title">Your resume match reports</h1>
+                    <h1 id="history-title">Your resume match reports. 📊</h1>
                     <p>Open any saved analysis to review the prompt, score, and pasted JSON result.</p>
                 </div>
-                <a class="outline-action page-heading-action" href="{% url 'product_dashboard' %}#new-analysis">Start New Analysis <span aria-hidden="true">→</span></a>
+                <aside class="active-resume-card history-action-card" aria-label="Start a new analysis">
+                    <div class="resume-row">
+                        {% include "product/includes/resume_upload_icon.html" with class_name="resume-upload-icon-compact" %}
+                        <div>
+                            <span>Next Report</span>
+                            <strong>Start New Analysis</strong>
+                            <small>Paste a job description and create a fresh match report.</small>
+                        </div>
+                    </div>
+                    <a class="outline-action" href="{% url 'product_dashboard' %}#new-analysis">Start New Analysis <span aria-hidden="true">→</span></a>
+                </aside>
             </section>
 
             <section class="recent-card" aria-labelledby="all-history-title">

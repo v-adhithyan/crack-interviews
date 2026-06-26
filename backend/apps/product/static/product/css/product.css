@@ -374,7 +374,8 @@ a {
     grid-template-columns: minmax(0, 1fr) 360px;
     gap: 30px;
     align-items: center;
-    padding: 0 0 18px;
+    margin-bottom: 14px;
+    padding: 0;
 }
 
 .dashboard-hero h1 {
@@ -382,6 +383,14 @@ a {
     font-size: clamp(28px, 3vw, 38px);
     line-height: 1.2;
     letter-spacing: 0;
+}
+
+.analysis-history-hero > div > span {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 750;
 }
 
 .dashboard-hero p,
@@ -406,6 +415,10 @@ a {
 
 .active-resume-card {
     padding: 24px 20px;
+}
+
+.history-action-card {
+    display: grid;
 }
 
 .resume-row,
@@ -508,7 +521,7 @@ a {
 .outline-action {
     width: 100%;
     margin-top: 18px;
-    background: #fff;
+    background: linear-gradient(135deg, #ffd400, var(--gold));
 }
 
 .active-resume-replace-form {
@@ -538,6 +551,11 @@ a {
 .recent-card {
     padding: 22px;
     margin-top: 14px;
+}
+
+.dashboard-hero + .analysis-card,
+.dashboard-hero + .recent-card {
+    margin-top: 0;
 }
 
 .analysis-card h2,
@@ -831,6 +849,10 @@ a {
     color: #050505;
     cursor: pointer;
     font-weight: 850;
+}
+
+a.outline-small {
+    background: linear-gradient(135deg, #ffd400, var(--gold));
 }
 
 .score-summary-grid,
