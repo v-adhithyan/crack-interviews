@@ -79,6 +79,46 @@
     </div>
 
     <div class="analysis-result-section">
+        <h3>Resume Improvement Suggestions</h3>
+        {% for suggestion in analysis.ai_response_json.resume_improvement_suggestions %}
+            <article>
+                <strong>{{ suggestion.section }}</strong>
+                <p><strong>Current issue:</strong> {{ suggestion.current_issue }}</p>
+                <p><strong>Suggested change:</strong> {{ suggestion.suggested_change }}</p>
+                <small>{{ suggestion.reason }}</small>
+            </article>
+        {% empty %}
+            <p>No improvement suggestions returned.</p>
+        {% endfor %}
+    </div>
+
+    <div class="analysis-result-section">
+        <h3>Rewritten Bullets</h3>
+        {% for bullet in analysis.ai_response_json.rewritten_bullets %}
+            <article>
+                <strong>Original</strong>
+                <p>{{ bullet.original_bullet }}</p>
+                <strong>Improved</strong>
+                <p>{{ bullet.improved_bullet }}</p>
+                <small>{{ bullet.why_better }}</small>
+            </article>
+        {% empty %}
+            <p>No rewritten bullets returned.</p>
+        {% endfor %}
+    </div>
+
+    <div class="analysis-result-section">
+        <h3>Recommended Keywords to Add Naturally</h3>
+        {% for keyword in analysis.ai_response_json.recommended_keywords_to_add_naturally %}
+            <article>
+                <strong>{{ keyword }}</strong>
+            </article>
+        {% empty %}
+            <p>No recommended keywords returned.</p>
+        {% endfor %}
+    </div>
+
+    <div class="analysis-result-section">
         <h3>Final Recommendation</h3>
         <p>{{ analysis.ai_response_json.final_recommendation }}</p>
     </div>

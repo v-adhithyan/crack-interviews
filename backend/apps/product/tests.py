@@ -121,6 +121,22 @@ class ResumeUploadTests(TestCase):
             "missing_keywords": [{"keyword": "Kubernetes", "importance": "Medium", "reason": "Not explicit."}],
             "matched_skills": [{"skill": "Django", "evidence_from_resume": "Built Django APIs."}],
             "gaps_or_risks": [{"gap": "Cloud", "why_it_matters": "Role mentions cloud.", "suggested_fix": "Add cloud work."}],
+            "resume_improvement_suggestions": [
+                {
+                    "section": "Experience",
+                    "current_issue": "Impact is described without numbers.",
+                    "suggested_change": "Add quantified latency and reliability improvements.",
+                    "reason": "Metrics make the backend impact easier to evaluate.",
+                }
+            ],
+            "rewritten_bullets": [
+                {
+                    "original_bullet": "Built Django APIs.",
+                    "improved_bullet": "Built Django APIs that reduced request latency by 35%.",
+                    "why_better": "Adds measurable impact and keeps the technical context.",
+                }
+            ],
+            "recommended_keywords_to_add_naturally": ["System Design", "Kubernetes"],
             "application_confidence": {"score": 80, "label": "High", "reason": "Good overlap."},
             "final_recommendation": "Apply with tailored keywords.",
         }
@@ -549,6 +565,22 @@ class ResumeUploadTests(TestCase):
             "missing_keywords": [{"keyword": "Kubernetes", "importance": "Medium", "reason": "Not explicit."}],
             "matched_skills": [{"skill": "Django", "evidence_from_resume": "Built Django APIs."}],
             "gaps_or_risks": [{"gap": "Cloud", "why_it_matters": "Role mentions cloud.", "suggested_fix": "Add cloud work."}],
+            "resume_improvement_suggestions": [
+                {
+                    "section": "Experience",
+                    "current_issue": "Impact is described without numbers.",
+                    "suggested_change": "Add quantified latency and reliability improvements.",
+                    "reason": "Metrics make the backend impact easier to evaluate.",
+                }
+            ],
+            "rewritten_bullets": [
+                {
+                    "original_bullet": "Built APIs.",
+                    "improved_bullet": "Built Django APIs that reduced request latency by 35%.",
+                    "why_better": "Adds measurable impact and keeps the technical context.",
+                }
+            ],
+            "recommended_keywords_to_add_naturally": ["System Design", "Kubernetes"],
             "application_confidence": {"score": 80, "label": "High", "reason": "Good overlap."},
             "final_recommendation": "Apply with tailored keywords.",
         }
@@ -567,6 +599,12 @@ class ResumeUploadTests(TestCase):
         self.assertEqual(analysis.ai_response_json["overall_match_score"], 82)
         self.assertContains(response, "Analysis Result")
         self.assertContains(response, "82%")
+        self.assertContains(response, "Resume Improvement Suggestions")
+        self.assertContains(response, "Add quantified latency and reliability improvements.")
+        self.assertContains(response, "Rewritten Bullets")
+        self.assertContains(response, "Built Django APIs that reduced request latency by 35%.")
+        self.assertContains(response, "Recommended Keywords to Add Naturally")
+        self.assertContains(response, "System Design")
         self.assertContains(response, "Apply with tailored keywords.")
 
     @override_settings(HACKERLEAP_AI_MODE="manual")
@@ -676,8 +714,30 @@ class ResumeUploadTests(TestCase):
         self.assertContains(response, "Senior Backend Engineer")
         self.assertContains(response, "TechNova Inc.")
         self.assertContains(response, "Analysis Result")
+        self.assertContains(response, "Resume Improvement Suggestions")
+        self.assertContains(response, "Add quantified latency and reliability improvements.")
+        self.assertContains(response, "Rewritten Bullets")
+        self.assertContains(response, "Built Django APIs that reduced request latency by 35%.")
+        self.assertContains(response, "Recommended Keywords to Add Naturally")
+        self.assertContains(response, "System Design")
         self.assertContains(response, "Final Recommendation")
         self.assertContains(response, "Apply with tailored keywords.")
+
+    def test_analysis_detail_displays_empty_states_for_missing_rewrite_sections(self):
+        analysis = self.create_analysis(
+            ai_response_json={
+                "resume_improvement_suggestions": [],
+                "rewritten_bullets": [],
+                "recommended_keywords_to_add_naturally": [],
+            }
+        )
+
+        response = self.client.get(reverse("analysis_detail", kwargs={"analysis_uuid": analysis.uuid}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "No improvement suggestions returned.")
+        self.assertContains(response, "No rewritten bullets returned.")
+        self.assertContains(response, "No recommended keywords returned.")
 
     def test_analysis_detail_does_not_use_numeric_primary_key_url(self):
         analysis = self.create_analysis()
@@ -770,6 +830,9 @@ class ResumeUploadTests(TestCase):
             "missing_keywords": [],
             "matched_skills": [],
             "gaps_or_risks": [],
+            "resume_improvement_suggestions": [],
+            "rewritten_bullets": [],
+            "recommended_keywords_to_add_naturally": [],
             "application_confidence": {"score": 84, "label": "High", "reason": "Good overlap."},
             "final_recommendation": "Apply.",
         }
