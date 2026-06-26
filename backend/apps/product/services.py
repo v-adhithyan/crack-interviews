@@ -152,7 +152,66 @@ def validate_analysis_payload(parsed_json):
     if status not in ("success", "refused"):
         raise ValidationError('The JSON must include status as either "success" or "refused".')
 
+    if status == "refused":
+        if not isinstance(parsed_json.get("reason"), str) or not parsed_json["reason"].strip():
+            raise ValidationError('Refused analysis JSON must include a non-empty "reason".')
+        return parsed_json
+
+    required_strings = (
+        "match_level",
+        "final_recommendation",
+    )
+    required_objects = (
+        "ats_compatibility",
+        "application_confidence",
+        "summary",
+    )
+    required_arrays = (
+        "strengths",
+        "missing_keywords",
+        "matched_skills",
+        "gaps_or_risks",
+    )
+
+    if "overall_match_score" not in parsed_json:
+        raise ValidationError('Analysis JSON must include "overall_match_score".')
+    _validate_score(parsed_json["overall_match_score"], "overall_match_score")
+
+    for field in required_strings:
+        if not isinstance(parsed_json.get(field), str) or not parsed_json[field].strip():
+            raise ValidationError(f'Analysis JSON must include a non-empty "{field}".')
+
+    for field in required_objects:
+        if not isinstance(parsed_json.get(field), dict):
+            raise ValidationError(f'Analysis JSON must include "{field}" as an object.')
+
+    for field in required_arrays:
+        if not isinstance(parsed_json.get(field), list):
+            raise ValidationError(f'Analysis JSON must include "{field}" as a list.')
+
+    _validate_score(parsed_json["ats_compatibility"].get("score"), "ats_compatibility.score")
+    _validate_score(parsed_json["application_confidence"].get("score"), "application_confidence.score")
+
+    for field in ("status",):
+        if not isinstance(parsed_json["ats_compatibility"].get(field), str) or not parsed_json["ats_compatibility"][field].strip():
+            raise ValidationError(f'Analysis JSON must include "ats_compatibility.{field}".')
+
+    if not isinstance(parsed_json["application_confidence"].get("label"), str) or not parsed_json["application_confidence"]["label"].strip():
+        raise ValidationError('Analysis JSON must include "application_confidence.label".')
+
+    required_summary_fields = ("short_verdict", "candidate_positioning", "recruiter_likely_impression")
+    for field in required_summary_fields:
+        if not isinstance(parsed_json["summary"].get(field), str) or not parsed_json["summary"][field].strip():
+            raise ValidationError(f'Analysis JSON must include "summary.{field}".')
+
     return parsed_json
+
+
+def _validate_score(value, field_name):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValidationError(f'Analysis JSON must include "{field_name}" as a number from 0 to 100.')
+    if value < 0 or value > 100:
+        raise ValidationError(f'Analysis JSON must include "{field_name}" as a number from 0 to 100.')
 
 
 @dataclass(frozen=True)

@@ -41,12 +41,25 @@ class ProductAccessTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Upload Your Resume")
 
-    def test_regular_user_can_access_product_dashboard(self):
+    def test_regular_user_without_active_beta_access_is_forbidden(self):
         user = get_user_model().objects.create_user(
             username="regular@example.com",
             email="regular@example.com",
             password="Password1!",
         )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("product_dashboard"))
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_active_beta_user_can_access_product_dashboard(self):
+        user = get_user_model().objects.create_user(
+            username="active@example.com",
+            email="active@example.com",
+            password="Password1!",
+        )
+        EarlyAccessUser.objects.create(email=user.email, user=user, is_beta_active=True, signup_completed_at=timezone.now())
         self.client.force_login(user)
 
         response = self.client.get(reverse("product_dashboard"))
@@ -75,6 +88,7 @@ class ResumeUploadTests(TestCase):
             email="resume@example.com",
             password="Password1!",
         )
+        EarlyAccessUser.objects.create(email=self.user.email, user=self.user, is_beta_active=True, signup_completed_at=timezone.now())
         self.client.force_login(self.user)
 
     def create_resume(self, user=None):
@@ -312,6 +326,24 @@ class ResumeUploadTests(TestCase):
         self.assertIn('"job_description": "We need a Python Django backend engineer."', analysis.generated_prompt)
         self.assertIn('"resume_text": "Built Django APIs and Python services."', analysis.generated_prompt)
 
+    @override_settings(HACKERLEAP_AI_MODE="manual")
+    def test_job_description_over_server_limit_is_rejected(self):
+        resume_file = SimpleUploadedFile("resume.pdf", b"%PDF-1.4\nresume\n%%EOF", content_type="application/pdf")
+        with patch("apps.product.forms.extract_pdf_text", return_value="Built Django APIs and Python services."):
+            self.client.post(reverse("product_dashboard"), {"resume": resume_file})
+
+        response = self.client.post(
+            reverse("product_dashboard"),
+            {
+                "action": "generate_prompt",
+                "job_description": "x" * 12001,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(ResumeAnalysis.objects.filter(user=self.user).exists())
+        self.assertContains(response, "Please keep the job description under 12,000 characters.")
+
     @override_settings(HACKERLEAP_AI_MODE="chatgpt")
     def test_chatgpt_mode_queues_ai_analysis_and_redirects_to_progress(self):
         resume_file = SimpleUploadedFile("resume.pdf", b"%PDF-1.4\nresume\n%%EOF", content_type="application/pdf")
@@ -542,6 +574,58 @@ class ResumeUploadTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Please paste valid JSON.")
+
+    @override_settings(HACKERLEAP_AI_MODE="manual")
+    def test_analysis_json_missing_required_report_fields_is_rejected(self):
+        resume_file = SimpleUploadedFile("resume.pdf", b"%PDF-1.4\nresume\n%%EOF", content_type="application/pdf")
+        with patch("apps.product.forms.extract_pdf_text", return_value="Python backend resume."):
+            self.client.post(reverse("product_dashboard"), {"resume": resume_file})
+        self.client.post(
+            reverse("product_dashboard"),
+            {
+                "action": "generate_prompt",
+                "job_description": "Python backend role.",
+            },
+        )
+
+        response = self.client.post(
+            reverse("product_dashboard"),
+            {
+                "action": "save_analysis_json",
+                "analysis_json": json.dumps({"status": "success"}),
+            },
+        )
+
+        analysis = ResumeAnalysis.objects.get(user=self.user)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(analysis.status, ResumeAnalysis.Status.PROMPT_READY)
+        self.assertContains(response, 'Analysis JSON must include &quot;overall_match_score&quot;.')
+
+    @override_settings(HACKERLEAP_AI_MODE="manual")
+    def test_analysis_json_over_server_limit_is_rejected(self):
+        resume_file = SimpleUploadedFile("resume.pdf", b"%PDF-1.4\nresume\n%%EOF", content_type="application/pdf")
+        with patch("apps.product.forms.extract_pdf_text", return_value="Python backend resume."):
+            self.client.post(reverse("product_dashboard"), {"resume": resume_file})
+        self.client.post(
+            reverse("product_dashboard"),
+            {
+                "action": "generate_prompt",
+                "job_description": "Python backend role.",
+            },
+        )
+
+        response = self.client.post(
+            reverse("product_dashboard"),
+            {
+                "action": "save_analysis_json",
+                "analysis_json": "x" * 100001,
+            },
+        )
+
+        analysis = ResumeAnalysis.objects.get(user=self.user)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(analysis.status, ResumeAnalysis.Status.PROMPT_READY)
+        self.assertContains(response, "Please keep the analysis JSON under 100 KB.")
 
     def test_dashboard_recent_analysis_fetches_saved_results(self):
         analysis = self.create_analysis()

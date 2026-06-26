@@ -19,6 +19,13 @@ from .views import server_error
 
 
 class EarlyAccessSignupTests(TestCase):
+    def test_home_page_resume_upload_copy_matches_pdf_only_product_support(self):
+        response = self.client.get(reverse("home_page"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Upload your current resume as a PDF.")
+        self.assertNotContains(response, "PDF/DOCX")
+
     def test_home_page_saves_valid_email(self):
         response = self.client.post(reverse("home_page"), {"email": "USER@example.COM"}, follow=True)
 

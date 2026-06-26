@@ -14,6 +14,8 @@ from .services import parse_analysis_json
 
 
 MAX_RESUME_SIZE = 1024 * 1024
+MAX_JOB_DESCRIPTION_LENGTH = 12000
+MAX_ANALYSIS_JSON_LENGTH = 100000
 
 
 class ProductLoginForm(AuthenticationForm):
@@ -167,20 +169,28 @@ class ResumeUploadForm(forms.Form):
 
 class AnalysisPromptForm(forms.Form):
     job_description = forms.CharField(
+        max_length=MAX_JOB_DESCRIPTION_LENGTH,
         widget=forms.Textarea(
             attrs={
-                "maxlength": "12000",
+                "maxlength": str(MAX_JOB_DESCRIPTION_LENGTH),
                 "placeholder": "Paste job description here...",
             }
         ),
-        error_messages={"required": "Please paste the job description."},
+        error_messages={
+            "required": "Please paste the job description.",
+            "max_length": f"Please keep the job description under {MAX_JOB_DESCRIPTION_LENGTH:,} characters.",
+        },
     )
 
 
 class AnalysisResultForm(forms.Form):
     analysis_json = forms.CharField(
+        max_length=MAX_ANALYSIS_JSON_LENGTH,
         widget=forms.Textarea(attrs={"placeholder": "Paste the JSON result here..."}),
-        error_messages={"required": "Please paste the JSON result."},
+        error_messages={
+            "required": "Please paste the JSON result.",
+            "max_length": f"Please keep the analysis JSON under {MAX_ANALYSIS_JSON_LENGTH // 1000} KB.",
+        },
     )
 
     def clean_analysis_json(self):
