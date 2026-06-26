@@ -94,8 +94,10 @@ jobs:
           cd /home/hackerleap/hackerleap.pythonanywhere.com
 
           if [[ -f /usr/local/bin/virtualenvwrapper.sh ]]; then
+            set +u
             source /usr/local/bin/virtualenvwrapper.sh
             workon "$PYTHONANYWHERE_VENV"
+            set -u
           else
             source ~/.virtualenvs/"$PYTHONANYWHERE_VENV"/bin/activate
           fi
