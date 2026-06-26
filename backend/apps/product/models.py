@@ -1,5 +1,6 @@
 import uuid
 
+from datetime import timedelta
 from pathlib import Path
 
 from django.conf import settings
@@ -143,22 +144,56 @@ class ResumeAnalysis(models.Model):
         return self.display_status
 
 
-class ResumeAnalysisSettings(models.Model):
+class UserFeatureFlags(models.Model):
+    DEFAULT_AI_ANALYSIS_DAILY_LIMIT = 2
+
     class AIMode(models.TextChoices):
         MANUAL = "manual", "Manual"
         CHATGPT = "chatgpt", "ChatGPT"
         CLAUDE = "claude", "Claude"
 
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="resume_analysis_settings")
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="feature_flags")
     ai_mode = models.CharField(max_length=20, choices=AIMode.choices, blank=True, null=True)
+    ai_analysis_daily_limit = models.PositiveSmallIntegerField(default=DEFAULT_AI_ANALYSIS_DAILY_LIMIT)
+    ai_analysis_window_started_at = models.DateTimeField(blank=True, null=True)
+    ai_analysis_count = models.PositiveSmallIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = "Resume Analysis Settings"
-        verbose_name_plural = "Resume Analysis Settings"
+        db_table = "product_user_feature_flags"
+        verbose_name = "User Feature Flags"
+        verbose_name_plural = "User Feature Flags"
 
     def __str__(self):
         mode = self.ai_mode or "default"
-        return f"{self.user} resume analysis mode: {mode}"
+        return f"{self.user} feature flags: resume analysis mode {mode}"
 
+    def reset_ai_analysis_usage_if_expired(self, now=None):
+        now = now or timezone.now()
+        if self.ai_analysis_window_started_at and now - self.ai_analysis_window_started_at >= timedelta(hours=24):
+            self.ai_analysis_window_started_at = None
+            self.ai_analysis_count = 0
+            self.save(update_fields=("ai_analysis_window_started_at", "ai_analysis_count", "updated_at"))
+
+    @property
+    def ai_analysis_quota_remaining(self):
+        return max(0, self.ai_analysis_daily_limit - self.ai_analysis_count)
+
+    def can_run_ai_analysis(self, now=None):
+        self.reset_ai_analysis_usage_if_expired(now=now)
+        return self.ai_analysis_daily_limit > 0 and self.ai_analysis_count < self.ai_analysis_daily_limit
+
+    def consume_ai_analysis_quota(self, now=None):
+        now = now or timezone.now()
+        self.reset_ai_analysis_usage_if_expired(now=now)
+        if not self.can_run_ai_analysis(now=now):
+            return False
+        if not self.ai_analysis_window_started_at:
+            self.ai_analysis_window_started_at = now
+        self.ai_analysis_count += 1
+        self.save(update_fields=("ai_analysis_window_started_at", "ai_analysis_count", "updated_at"))
+        return True
+
+
+ResumeAnalysisSettings = UserFeatureFlags

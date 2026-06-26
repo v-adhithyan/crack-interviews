@@ -245,14 +245,41 @@ def normalize_resume_analysis_mode(mode):
     return (mode or "manual").strip().lower()
 
 
-def get_effective_resume_analysis_mode(user):
-    from .models import ResumeAnalysisSettings
+def get_user_feature_flags(user, *, create=False):
+    from .models import UserFeatureFlags
 
-    user_mode = (
-        ResumeAnalysisSettings.objects.filter(user=user)
-        .exclude(ai_mode__isnull=True)
-        .exclude(ai_mode="")
-        .values_list("ai_mode", flat=True)
-        .first()
-    )
+    if create:
+        feature_flags, _ = UserFeatureFlags.objects.get_or_create(user=user)
+        return feature_flags
+
+    return UserFeatureFlags.objects.filter(user=user).first()
+
+
+def get_configured_resume_analysis_mode(user):
+    feature_flags = get_user_feature_flags(user)
+    user_mode = feature_flags.ai_mode if feature_flags and feature_flags.ai_mode else None
     return normalize_resume_analysis_mode(user_mode or settings.HACKERLEAP_AI_MODE)
+
+
+def get_effective_resume_analysis_mode(user):
+    configured_mode = get_configured_resume_analysis_mode(user)
+    if configured_mode not in {"chatgpt", "claude"}:
+        return configured_mode
+
+    feature_flags = get_user_feature_flags(user)
+    if not feature_flags:
+        return configured_mode
+
+    if feature_flags.can_run_ai_analysis():
+        return configured_mode
+
+    return "manual"
+
+
+def reserve_resume_analysis_ai_quota(user):
+    configured_mode = get_configured_resume_analysis_mode(user)
+    if configured_mode not in {"chatgpt", "claude"}:
+        return False
+
+    feature_flags = get_user_feature_flags(user, create=True)
+    return feature_flags.consume_ai_analysis_quota()

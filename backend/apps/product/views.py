@@ -25,7 +25,9 @@ from .forms import ResumeUploadForm
 from .models import Resume
 from .models import ResumeAnalysis
 from .services import build_resume_match_prompt
+from .services import get_configured_resume_analysis_mode
 from .services import get_effective_resume_analysis_mode
+from .services import reserve_resume_analysis_ai_quota
 from .services import run_resume_match_analysis
 
 
@@ -84,30 +86,35 @@ def dashboard(request):
             analysis_form = AnalysisPromptForm(request.POST)
             if analysis_form.is_valid():
                 job_description = analysis_form.cleaned_data["job_description"]
+                configured_ai_mode = get_configured_resume_analysis_mode(request.user)
                 ai_mode = selected_ai_mode(request.user)
+                manual_due_to_quota = configured_ai_mode in {"chatgpt", "claude"} and ai_mode == "manual"
                 if ai_mode in {"chatgpt", "claude"}:
-                    analysis = ResumeAnalysis.objects.create(
-                        user=request.user,
-                        resume=resume,
-                        job_description=job_description,
-                        resume_text=resume.parsed_text,
-                        generated_prompt=build_resume_match_prompt(job_description, resume.parsed_text),
-                        status=ResumeAnalysis.Status.QUEUED,
-                        ai_provider=ai_mode,
-                    )
-                    try:
-                        task_id = enqueue_background_job("apps.product.tasks.run_resume_analysis", analysis.id)
-                    except Exception as exc:
-                        analysis.status = ResumeAnalysis.Status.FAILED
-                        analysis.error_message = str(exc) or "Unable to queue analysis right now. Please try again later."
-                        analysis.completed_at = timezone.now()
-                        analysis.save(update_fields=("status", "error_message", "completed_at", "updated_at"))
-                        messages.error(request, "Unable to queue analysis right now. Please try again later.")
+                    if reserve_resume_analysis_ai_quota(request.user):
+                        analysis = ResumeAnalysis.objects.create(
+                            user=request.user,
+                            resume=resume,
+                            job_description=job_description,
+                            resume_text=resume.parsed_text,
+                            generated_prompt=build_resume_match_prompt(job_description, resume.parsed_text),
+                            status=ResumeAnalysis.Status.QUEUED,
+                            ai_provider=ai_mode,
+                        )
+                        try:
+                            task_id = enqueue_background_job("apps.product.tasks.run_resume_analysis", analysis.id)
+                        except Exception as exc:
+                            analysis.status = ResumeAnalysis.Status.FAILED
+                            analysis.error_message = str(exc) or "Unable to queue analysis right now. Please try again later."
+                            analysis.completed_at = timezone.now()
+                            analysis.save(update_fields=("status", "error_message", "completed_at", "updated_at"))
+                            messages.error(request, "Unable to queue analysis right now. Please try again later.")
+                            return redirect("analysis_detail", analysis_uuid=analysis.uuid)
+                        analysis.task_id = task_id or ""
+                        analysis.save(update_fields=("task_id", "updated_at"))
+                        messages.success(request, "Analysis queued. We will update this page as it runs.")
                         return redirect("analysis_detail", analysis_uuid=analysis.uuid)
-                    analysis.task_id = task_id or ""
-                    analysis.save(update_fields=("task_id", "updated_at"))
-                    messages.success(request, "Analysis queued. We will update this page as it runs.")
-                    return redirect("analysis_detail", analysis_uuid=analysis.uuid)
+                    ai_mode = "manual"
+                    manual_due_to_quota = True
 
                 try:
                     analysis_result = run_resume_match_analysis(
@@ -133,7 +140,10 @@ def dashboard(request):
                     ai_provider=analysis_result.provider,
                 )
 
-                messages.success(request, "Prompt generated. Copy it, run it manually, then paste the JSON result below.")
+                if manual_due_to_quota:
+                    messages.success(request, "Daily AI analysis limit reached. Manual prompt generated for now; AI analysis resets after 24 hours.")
+                else:
+                    messages.success(request, "Prompt generated. Copy it, use it with your preferred AI tool, then paste the JSON result below.")
                 return redirect("product_dashboard")
 
             messages.error(request, "Please complete the analysis inputs.")

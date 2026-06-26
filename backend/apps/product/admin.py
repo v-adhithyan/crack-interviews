@@ -2,7 +2,7 @@ from django.contrib import admin
 
 from .models import Resume
 from .models import ResumeAnalysis
-from .models import ResumeAnalysisSettings
+from .models import UserFeatureFlags
 
 
 @admin.register(Resume)
@@ -21,10 +21,9 @@ class ResumeAnalysisAdmin(admin.ModelAdmin):
     readonly_fields = ("task_id", "started_at", "completed_at", "created_at", "updated_at")
 
 
-@admin.register(ResumeAnalysisSettings)
-class ResumeAnalysisSettingsAdmin(admin.ModelAdmin):
-    list_display = ("user", "ai_mode", "updated_at")
+@admin.register(UserFeatureFlags)
+class UserFeatureFlagsAdmin(admin.ModelAdmin):
+    list_display = ("user", "ai_mode", "ai_analysis_daily_limit", "ai_analysis_count", "ai_analysis_window_started_at", "updated_at")
     list_filter = ("ai_mode", "created_at", "updated_at")
     search_fields = ("user__username", "user__email")
     readonly_fields = ("created_at", "updated_at")
-

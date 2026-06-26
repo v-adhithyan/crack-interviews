@@ -2,6 +2,7 @@ import json
 import shutil
 import tempfile
 
+from datetime import timedelta
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -9,6 +10,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from apps.website.models import EarlyAccessUser
 
@@ -335,6 +337,61 @@ class ResumeUploadTests(TestCase):
         self.assertIsNone(analysis.ai_response_json)
         self.assertContains(response, "Queued for analysis")
         self.assertContains(response, "Analysis queued.")
+
+    @override_settings(HACKERLEAP_AI_MODE="chatgpt")
+    def test_ai_analysis_limit_falls_back_to_manual_after_two_uses(self):
+        resume_file = SimpleUploadedFile("resume.pdf", b"%PDF-1.4\nresume\n%%EOF", content_type="application/pdf")
+        with patch("apps.product.forms.extract_pdf_text", return_value="Built Django APIs and Python services."):
+            self.client.post(reverse("product_dashboard"), {"resume": resume_file})
+
+        with patch("apps.product.views.enqueue_background_job", side_effect=["task-1", "task-2"]) as enqueue_job:
+            for index in range(3):
+                response = self.client.post(
+                    reverse("product_dashboard"),
+                    {
+                        "action": "generate_prompt",
+                        "job_description": f"We need a Python Django backend engineer {index}.",
+                    },
+                    follow=True,
+                )
+
+        analyses = list(ResumeAnalysis.objects.filter(user=self.user).order_by("created_at"))
+        feature_flags = ResumeAnalysisSettings.objects.get(user=self.user)
+        self.assertEqual(enqueue_job.call_count, 2)
+        self.assertEqual([analysis.status for analysis in analyses], [ResumeAnalysis.Status.QUEUED, ResumeAnalysis.Status.QUEUED, ResumeAnalysis.Status.PROMPT_READY])
+        self.assertEqual([analysis.ai_provider for analysis in analyses], ["chatgpt", "chatgpt", "manual"])
+        self.assertEqual(feature_flags.ai_analysis_count, 2)
+        self.assertContains(response, "Daily AI analysis limit reached.")
+
+    @override_settings(HACKERLEAP_AI_MODE="chatgpt")
+    def test_ai_analysis_limit_resets_after_twenty_four_hours(self):
+        ResumeAnalysisSettings.objects.create(
+            user=self.user,
+            ai_analysis_count=2,
+            ai_analysis_window_started_at=timezone.now() - timedelta(hours=25),
+        )
+        resume_file = SimpleUploadedFile("resume.pdf", b"%PDF-1.4\nresume\n%%EOF", content_type="application/pdf")
+        with patch("apps.product.forms.extract_pdf_text", return_value="Built Django APIs and Python services."):
+            self.client.post(reverse("product_dashboard"), {"resume": resume_file})
+
+        with patch("apps.product.views.enqueue_background_job", return_value="task-reset") as enqueue_job:
+            response = self.client.post(
+                reverse("product_dashboard"),
+                {
+                    "action": "generate_prompt",
+                    "job_description": "We need a Python Django backend engineer.",
+                },
+                follow=True,
+            )
+
+        analysis = ResumeAnalysis.objects.get(user=self.user)
+        feature_flags = ResumeAnalysisSettings.objects.get(user=self.user)
+        enqueue_job.assert_called_once_with("apps.product.tasks.run_resume_analysis", analysis.id)
+        self.assertRedirects(response, reverse("analysis_detail", kwargs={"analysis_uuid": analysis.uuid}))
+        self.assertEqual(analysis.status, ResumeAnalysis.Status.QUEUED)
+        self.assertEqual(analysis.ai_provider, "chatgpt")
+        self.assertEqual(feature_flags.ai_analysis_count, 1)
+        self.assertGreater(feature_flags.ai_analysis_window_started_at, timezone.now() - timedelta(minutes=1))
 
     @override_settings(HACKERLEAP_AI_MODE="manual")
     def test_user_analysis_mode_override_queues_when_global_mode_is_manual(self):
