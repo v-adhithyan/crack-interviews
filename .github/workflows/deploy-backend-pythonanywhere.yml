@@ -1,0 +1,126 @@
+name: Deploy backend to PythonAnywhere
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "backend/**"
+      - ".github/workflows/deploy-backend-pythonanywhere.yml"
+
+concurrency:
+  group: pythonanywhere-backend-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect backend changes
+        id: changes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          before="${{ github.event.before }}"
+          after="${{ github.sha }}"
+
+          if [[ -z "$before" || "$before" == "0000000000000000000000000000000000000000" ]]; then
+            before="$(git rev-list --max-parents=0 "$after")"
+          fi
+
+          changed_files="$(git diff --name-only "$before" "$after" -- backend/ || true)"
+
+          {
+            echo "changed_files<<EOF"
+            echo "$changed_files"
+            echo "EOF"
+            if echo "$changed_files" | grep -Eq '^backend/requirements(_dev)?\.txt$'; then
+              echo "install_requirements=true"
+            else
+              echo "install_requirements=false"
+            fi
+            if echo "$changed_files" | grep -Eq '^backend/.*/migrations/[^/]+\.py$'; then
+              echo "run_migrations=true"
+            else
+              echo "run_migrations=false"
+            fi
+            if echo "$changed_files" | grep -Eq '^backend/.*/(templates|static)/'; then
+              echo "run_collectstatic=true"
+            else
+              echo "run_collectstatic=false"
+            fi
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Configure SSH
+        shell: bash
+        env:
+          PYTHONANYWHERE_SSH_KEY: ${{ secrets.PYTHONANYWHERE_SSH_KEY }}
+          PYTHONANYWHERE_HOST: ${{ secrets.PYTHONANYWHERE_HOST }}
+        run: |
+          set -euo pipefail
+
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$PYTHONANYWHERE_SSH_KEY" > ~/.ssh/pythonanywhere_deploy_key
+          chmod 600 ~/.ssh/pythonanywhere_deploy_key
+          ssh-keyscan -H "$PYTHONANYWHERE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Deploy on PythonAnywhere
+        shell: bash
+        env:
+          PYTHONANYWHERE_HOST: ${{ secrets.PYTHONANYWHERE_HOST }}
+          PYTHONANYWHERE_USER: ${{ secrets.PYTHONANYWHERE_USER }}
+          PYTHONANYWHERE_VENV: ${{ secrets.PYTHONANYWHERE_VENV }}
+          INSTALL_REQUIREMENTS: ${{ steps.changes.outputs.install_requirements }}
+          RUN_MIGRATIONS: ${{ steps.changes.outputs.run_migrations }}
+          RUN_COLLECTSTATIC: ${{ steps.changes.outputs.run_collectstatic }}
+        run: |
+          set -euo pipefail
+
+          ssh -i ~/.ssh/pythonanywhere_deploy_key \
+            "$PYTHONANYWHERE_USER@$PYTHONANYWHERE_HOST" \
+            "INSTALL_REQUIREMENTS='$INSTALL_REQUIREMENTS' RUN_MIGRATIONS='$RUN_MIGRATIONS' RUN_COLLECTSTATIC='$RUN_COLLECTSTATIC' PYTHONANYWHERE_VENV='${PYTHONANYWHERE_VENV:-hackerleap.pythonanywhere.com}' bash -s" <<'REMOTE_SCRIPT'
+          set -euo pipefail
+
+          cd /home/hackerleap/hackerleap.pythonanywhere.com
+
+          if [[ -f /usr/local/bin/virtualenvwrapper.sh ]]; then
+            source /usr/local/bin/virtualenvwrapper.sh
+            workon "$PYTHONANYWHERE_VENV"
+          else
+            source ~/.virtualenvs/"$PYTHONANYWHERE_VENV"/bin/activate
+          fi
+
+          git pull origin main
+
+          cd backend
+
+          if [[ "$INSTALL_REQUIREMENTS" == "true" ]]; then
+            pip install -r requirements_dev.txt
+          fi
+
+          if [[ "$RUN_MIGRATIONS" == "true" ]]; then
+            python manage.py migrate --noinput
+          fi
+
+          if [[ "$RUN_COLLECTSTATIC" == "true" ]]; then
+            python manage.py collectstatic --noinput
+          fi
+          REMOTE_SCRIPT
+
+      - name: Reload PythonAnywhere web app
+        uses: jensvog/pythonanywhere-webapp-reload-action@v1
+        with:
+          host: ${{ secrets.PYTHONANYWHERE_API_HOST || 'www.pythonanywhere.com' }}
+          username: ${{ secrets.PYTHONANYWHERE_USER }}
+          api-token: ${{ secrets.PYTHONANYWHERE_API_TOKEN }}
+          domain-name: ${{ secrets.PYTHONANYWHERE_DOMAIN_NAME }}
