@@ -150,6 +150,7 @@ class ResumeUploadTests(TestCase):
         self.assertContains(response, ">Logout<")
         self.assertContains(response, "Choose your resume PDF")
         self.assertContains(response, "Select PDF")
+        self.assertContains(response, reverse("current_resume_content"))
         self.assertContains(response, "favicon.svg")
         self.assertContains(response, "No analyses yet")
         self.assertNotContains(response, "Ankit_Resume.pdf")
@@ -256,6 +257,23 @@ class ResumeUploadTests(TestCase):
         self.assertEqual(response["Content-Type"], "application/pdf")
         self.assertEqual(response["Cache-Control"], "private, max-age=31536000, immutable")
         self.assertEqual(response["ETag"], f'"resume-{resume.uuid}"')
+        self.assertIn("inline", response["Content-Disposition"])
+        self.assertEqual(b"".join(response.streaming_content), b"%PDF-1.4\nown\n%%EOF")
+
+    def test_current_resume_link_returns_404_when_user_has_no_resume(self):
+        response = self.client.get(reverse("current_resume_content"))
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_current_resume_link_serves_users_uploaded_resume(self):
+        resume_file = SimpleUploadedFile("own.pdf", b"%PDF-1.4\nown\n%%EOF", content_type="application/pdf")
+        with patch("apps.product.forms.extract_pdf_text", return_value="Parsed resume text."):
+            self.client.post(reverse("product_dashboard"), {"resume": resume_file})
+
+        response = self.client.get(reverse("current_resume_content"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/pdf")
         self.assertIn("inline", response["Content-Disposition"])
         self.assertEqual(b"".join(response.streaming_content), b"%PDF-1.4\nown\n%%EOF")
 

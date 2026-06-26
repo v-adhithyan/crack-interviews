@@ -246,11 +246,24 @@ def analysis_status(request, analysis_uuid):
 
 
 @product_access_required
+def current_resume_content(request):
+    resume = user_resume(request.user)
+    if not resume:
+        raise Http404
+
+    return serve_resume_content(resume)
+
+
+@product_access_required
 def resume_content(request, resume_uuid):
     resume = get_object_or_404(Resume, uuid=resume_uuid)
     if resume.user_id != request.user.id and not request.user.is_staff:
         raise Http404
 
+    return serve_resume_content(resume)
+
+
+def serve_resume_content(resume):
     response = FileResponse(
         resume.file.open("rb"),
         content_type=resume.content_type or "application/pdf",

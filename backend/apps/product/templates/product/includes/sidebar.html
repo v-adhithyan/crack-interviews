@@ -8,7 +8,7 @@
             <span aria-hidden="true">⌂</span>
             <span>Dashboard</span>
         </a>
-        <a href="{% if resume %}{% url 'resume_content' resume_uuid=resume.uuid %}{% else %}{% url 'product_dashboard' %}{% endif %}" {% if resume %}target="_blank" rel="noopener"{% endif %}>
+        <a href="{% if resume %}{% url 'resume_content' resume_uuid=resume.uuid %}{% else %}{% url 'current_resume_content' %}{% endif %}" {% if resume %}target="_blank" rel="noopener"{% endif %}>
             <span aria-hidden="true">▧</span>
             <span>Resume</span>
         </a>
