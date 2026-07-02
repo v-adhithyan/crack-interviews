@@ -70,6 +70,48 @@ class ProductAccessTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Recent Analysis")
 
+    @override_settings(HACKERLEAP_CODE="http://localhost:3000")
+    def test_staff_user_can_redirect_to_code_platform(self):
+        user = get_user_model().objects.create_user(
+            username="staff-code",
+            email="staff-code@example.com",
+            password="Password1!",
+            is_staff=True,
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("code_platform_redirect"))
+
+        self.assertRedirects(response, "http://localhost:3000", fetch_redirect_response=False)
+
+    @override_settings(HACKERLEAP_CODE="https://code.hackerleap.com")
+    def test_beta_user_with_coding_flag_can_redirect_to_code_platform(self):
+        user = get_user_model().objects.create_user(
+            username="coder@example.com",
+            email="coder@example.com",
+            password="Password1!",
+        )
+        EarlyAccessUser.objects.create(email=user.email, user=user, is_beta_active=True, signup_completed_at=timezone.now())
+        ResumeAnalysisSettings.objects.create(user=user, can_access_coding_platform=True)
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("code_platform_redirect"))
+
+        self.assertRedirects(response, "https://code.hackerleap.com", fetch_redirect_response=False)
+
+    def test_beta_user_without_coding_flag_is_redirected_to_dashboard(self):
+        user = get_user_model().objects.create_user(
+            username="blocked-code@example.com",
+            email="blocked-code@example.com",
+            password="Password1!",
+        )
+        EarlyAccessUser.objects.create(email=user.email, user=user, is_beta_active=True, signup_completed_at=timezone.now())
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("code_platform_redirect"))
+
+        self.assertRedirects(response, reverse("product_dashboard"))
+
 
 class MockInterviewTests(TestCase):
     def setUp(self):

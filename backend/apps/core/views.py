@@ -8,6 +8,8 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
+from apps.product.services import user_has_coding_platform_access
+
 from .auth import admin_api_required
 from .auth import user_from_authorization_header
 from .executor import run_submission
@@ -42,6 +44,16 @@ def health(request):
     return Response({"status": "ok"})
 
 
+def coding_auth_user_payload(user):
+    return {
+        "id": user.id,
+        "username": user.get_username(),
+        "email": user.email,
+        "is_staff": user.is_staff,
+        "can_access_coding_platform": user_has_coding_platform_access(user),
+    }
+
+
 @api_view(["POST"])
 def auth_login(request):
     identifier = request.data.get("username", "").strip()
@@ -58,19 +70,14 @@ def auth_login(request):
     user = authenticate(request, username=username, password=password)
     if user is None:
         return Response({"detail": "Invalid username or password."}, status=status.HTTP_400_BAD_REQUEST)
-    if not user.is_staff:
-        return Response({"detail": "Admin access is required."}, status=status.HTTP_403_FORBIDDEN)
+    if not user_has_coding_platform_access(user):
+        return Response({"detail": "Coding platform access is required."}, status=status.HTTP_403_FORBIDDEN)
 
     token = AdminApiToken.objects.create(user=user)
     return Response(
         {
             "token": token.token,
-            "user": {
-                "id": user.id,
-                "username": user.get_username(),
-                "email": user.email,
-                "is_staff": user.is_staff,
-            },
+            "user": coding_auth_user_payload(user),
         }
     )
 
@@ -89,15 +96,8 @@ def auth_logout(request):
 def auth_me(request):
     user = user_from_authorization_header(request)
     if user is None:
-        return Response({"detail": "Admin login is required."}, status=status.HTTP_401_UNAUTHORIZED)
-    return Response(
-        {
-            "id": user.id,
-            "username": user.get_username(),
-            "email": user.email,
-            "is_staff": user.is_staff,
-        }
-    )
+        return Response({"detail": "Coding platform access is required."}, status=status.HTTP_401_UNAUTHORIZED)
+    return Response(coding_auth_user_payload(user))
 
 
 @api_view(["GET"])

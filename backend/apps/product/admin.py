@@ -25,8 +25,8 @@ class ResumeAnalysisAdmin(admin.ModelAdmin):
 
 @admin.register(UserFeatureFlags)
 class UserFeatureFlagsAdmin(admin.ModelAdmin):
-    list_display = ("user", "ai_mode", "ai_analysis_daily_limit", "ai_analysis_count", "mock_interview_daily_limit", "mock_interview_count", "updated_at")
-    list_filter = ("ai_mode", "created_at", "updated_at")
+    list_display = ("user", "can_access_coding_platform", "ai_mode", "ai_analysis_daily_limit", "ai_analysis_count", "mock_interview_daily_limit", "mock_interview_count", "updated_at")
+    list_filter = ("can_access_coding_platform", "ai_mode", "created_at", "updated_at")
     search_fields = ("user__username", "user__email")
     readonly_fields = ("created_at", "updated_at")
 

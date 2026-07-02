@@ -8,6 +8,10 @@
             <span aria-hidden="true">⌂</span>
             <span>Dashboard</span>
         </a>
+        <a href="{% url 'code_platform_redirect' %}">
+            <span aria-hidden="true">⌁</span>
+            <span>Code</span>
+        </a>
         <a href="{% if resume %}{% url 'resume_content' resume_uuid=resume.uuid %}{% else %}{% url 'current_resume_content' %}{% endif %}" {% if resume %}target="_blank" rel="noopener"{% endif %}>
             <span aria-hidden="true">▧</span>
             <span>Resume</span>

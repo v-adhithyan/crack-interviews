@@ -81,7 +81,7 @@ export function AuthGate({ children }: Props) {
   if (isLoading) {
     return (
       <main className="grid min-h-screen place-items-center bg-paper px-6 text-ink">
-        <div className="rounded-lg border border-line bg-white/90 px-5 py-4 text-sm font-bold shadow-product">Checking admin access...</div>
+        <div className="rounded-lg border border-line bg-white/90 px-5 py-4 text-sm font-bold shadow-product">Checking coding platform access...</div>
       </main>
     );
   }
@@ -94,8 +94,8 @@ export function AuthGate({ children }: Props) {
             <div className="mb-4">
               <BrandMark size="lg" />
             </div>
-            <h1 className="text-2xl font-[850]">Admin Login</h1>
-            <p className="mt-2 text-sm leading-6 text-muted">Use your HackerLeap admin account to access coding practice.</p>
+            <h1 className="text-2xl font-[850]">Coding Platform Login</h1>
+            <p className="mt-2 text-sm leading-6 text-muted">Use your HackerLeap account with coding platform access.</p>
           </div>
           <form className="grid gap-4" onSubmit={handleLogin}>
             <label className="grid gap-2 text-sm font-bold">

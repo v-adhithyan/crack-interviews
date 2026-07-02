@@ -161,6 +161,7 @@ class UserFeatureFlags(models.Model):
     mock_interview_daily_limit = models.PositiveSmallIntegerField(default=DEFAULT_MOCK_INTERVIEW_DAILY_LIMIT)
     mock_interview_window_started_at = models.DateTimeField(blank=True, null=True)
     mock_interview_count = models.PositiveSmallIntegerField(default=0)
+    can_access_coding_platform = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

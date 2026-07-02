@@ -463,6 +463,15 @@ def get_user_feature_flags(user, *, create=False):
     return UserFeatureFlags.objects.filter(user=user).first()
 
 
+def user_has_coding_platform_access(user):
+    if not user or not user.is_authenticated or not user.is_active:
+        return False
+    if user.is_staff:
+        return True
+    feature_flags = get_user_feature_flags(user)
+    return bool(feature_flags and feature_flags.can_access_coding_platform)
+
+
 def get_configured_resume_analysis_mode(user):
     feature_flags = get_user_feature_flags(user)
     user_mode = feature_flags.ai_mode if feature_flags and feature_flags.ai_mode else None

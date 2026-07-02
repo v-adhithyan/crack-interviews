@@ -1,5 +1,6 @@
 import json
 
+from django.conf import settings
 from django.http import FileResponse
 from django.http import Http404
 from django.http import HttpResponseBadRequest
@@ -39,6 +40,7 @@ from .services import get_effective_resume_analysis_mode
 from .services import get_user_feature_flags
 from .services import reserve_resume_analysis_ai_quota
 from .services import run_resume_match_analysis
+from .services import user_has_coding_platform_access
 
 
 class ProductLoginView(LoginView):
@@ -82,6 +84,14 @@ def is_manual_ai_mode(user):
 
 def selected_ai_mode(user):
     return get_effective_resume_analysis_mode(user)
+
+
+@product_access_required
+def code_platform_redirect(request):
+    if not user_has_coding_platform_access(request.user):
+        messages.error(request, "Coding platform access is not enabled for your account yet.")
+        return redirect("product_dashboard")
+    return redirect(settings.HACKERLEAP_CODE)
 
 
 @product_access_required

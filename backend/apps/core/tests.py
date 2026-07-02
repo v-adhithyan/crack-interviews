@@ -6,6 +6,8 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
+from apps.product.models import UserFeatureFlags
+
 from .models import AdminApiToken
 from .models import Question
 from .models import Submission
@@ -385,7 +387,7 @@ class FunctionModeSubmissionTests(TestCase):
 
         self.assertEqual(response.status_code, 401)
 
-    def test_non_staff_user_cannot_login_to_code_api(self):
+    def test_non_staff_user_without_coding_access_cannot_login_to_code_api(self):
         get_user_model().objects.create_user(
             username="regular",
             email="regular@example.com",
@@ -399,6 +401,54 @@ class FunctionModeSubmissionTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data["detail"], "Coding platform access is required.")
+
+    def test_non_staff_user_with_coding_access_can_login_to_code_api(self):
+        user = get_user_model().objects.create_user(
+            username="coder",
+            email="coder@example.com",
+            password="Password1!",
+        )
+        UserFeatureFlags.objects.create(user=user, can_access_coding_platform=True)
+
+        response = self.client.post(
+            reverse("auth-login"),
+            {"username": "coder", "password": "Password1!"},
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("token", response.data)
+        self.assertFalse(response.data["user"]["is_staff"])
+        self.assertTrue(response.data["user"]["can_access_coding_platform"])
+
+    def test_non_staff_token_with_coding_access_can_use_question_api(self):
+        question = self.create_function_question()
+        user = get_user_model().objects.create_user(
+            username="coder-token",
+            email="coder-token@example.com",
+            password="Password1!",
+        )
+        UserFeatureFlags.objects.create(user=user, can_access_coding_platform=True)
+        token = AdminApiToken.objects.create(user=user)
+
+        response = self.client.get(reverse("question-detail", kwargs={"slug": question.slug}), HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["slug"], question.slug)
+
+    def test_non_staff_token_without_coding_access_cannot_use_question_api(self):
+        question = self.create_function_question()
+        user = get_user_model().objects.create_user(
+            username="blocked-token",
+            email="blocked-token@example.com",
+            password="Password1!",
+        )
+        token = AdminApiToken.objects.create(user=user)
+
+        response = self.client.get(reverse("question-detail", kwargs={"slug": question.slug}), HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+        self.assertEqual(response.status_code, 401)
 
     def test_submission_history_is_scoped_to_authenticated_user(self):
         question = self.create_function_question()

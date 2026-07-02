@@ -92,6 +92,7 @@ export type AuthUser = {
   username: string;
   email: string;
   is_staff: boolean;
+  can_access_coding_platform: boolean;
 };
 
 export type AuthSession = {

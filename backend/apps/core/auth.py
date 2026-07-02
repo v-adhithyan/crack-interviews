@@ -4,6 +4,8 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 
+from apps.product.services import user_has_coding_platform_access
+
 from .models import AdminApiToken
 
 
@@ -14,8 +16,10 @@ def user_from_authorization_header(request):
         return None
 
     token_value = authorization.removeprefix(prefix).strip()
-    token = AdminApiToken.objects.select_related("user").filter(token=token_value, user__is_active=True, user__is_staff=True).first()
+    token = AdminApiToken.objects.select_related("user").filter(token=token_value, user__is_active=True).first()
     if not token:
+        return None
+    if not user_has_coding_platform_access(token.user):
         return None
 
     token.last_used_at = timezone.now()
@@ -28,7 +32,7 @@ def admin_api_required(view_func):
     def wrapped(request, *args, **kwargs):
         user = user_from_authorization_header(request)
         if user is None:
-            return Response({"detail": "Admin login is required."}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({"detail": "Coding platform access is required."}, status=status.HTTP_401_UNAUTHORIZED)
         request.admin_api_user = user
         return view_func(request, *args, **kwargs)
 
