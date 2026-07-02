@@ -1,0 +1,127 @@
+{% extends "product/base.html" %}
+
+{% block title %}Mock Interview Feedback | HackerLeap{% endblock %}
+
+{% block body %}
+<div class="product-layout">
+    {% include "product/includes/sidebar.html" %}
+    <div class="product-main-shell">
+        {% include "product/includes/topbar.html" %}
+        <main class="product-main">
+            <section class="mock-room-hero" aria-labelledby="feedback-title">
+                <div>
+                    <a class="back-link" href="{% url 'mock_interview_history' %}">← Back to history</a>
+                    <p class="eyebrow">{{ session.get_level_display }} · {{ session.get_topic_source_display }}</p>
+                    <h1 id="feedback-title">{{ session.topic }}</h1>
+                </div>
+                <a class="outline-small" href="{% url 'mock_interview_start' %}">New Interview</a>
+            </section>
+
+            {% if session.status == 'failed' %}
+                <section class="analysis-progress-card analysis-progress-card-failed">
+                    <h2>Feedback unavailable</h2>
+                    <p>{{ session.error_message|default:"Unable to generate feedback for this session." }}</p>
+                </section>
+            {% elif feedback %}
+                <section class="analysis-result-card mock-feedback-card">
+                    <div class="score-summary-grid">
+                        <div>
+                            <span>Overall Score</span>
+                            <strong>{{ feedback.overall_score }}</strong>
+                            <small>Out of 100</small>
+                        </div>
+                        <div>
+                            <span>Status</span>
+                            <strong class="compact-score">{{ session.get_status_display }}</strong>
+                            <small>{{ session.updated_at|date:"M j, Y, g:i A" }}</small>
+                        </div>
+                        <div>
+                            <span>Topic Source</span>
+                            <strong class="compact-score">{{ session.get_topic_source_display }}</strong>
+                            <small>{{ session.get_level_display }}</small>
+                        </div>
+                    </div>
+                    <section class="analysis-result-section">
+                        <h3>Summary</h3>
+                        <p>{{ feedback.summary }}</p>
+                    </section>
+                    <div class="analysis-result-grid">
+                        <section>
+                            <h3>Strengths</h3>
+                            <ul>
+                                {% for item in feedback.strengths %}
+                                    <li>{{ item }}</li>
+                                {% empty %}
+                                    <li>No strengths captured.</li>
+                                {% endfor %}
+                            </ul>
+                        </section>
+                        <section>
+                            <h3>Gaps</h3>
+                            <ul>
+                                {% for item in feedback.gaps %}
+                                    <li>{{ item }}</li>
+                                {% empty %}
+                                    <li>No gaps captured.</li>
+                                {% endfor %}
+                            </ul>
+                        </section>
+                        <section>
+                            <h3>Missed Topics</h3>
+                            <ul>
+                                {% for item in feedback.missed_topics %}
+                                    <li>{{ item }}</li>
+                                {% empty %}
+                                    <li>No missed topics captured.</li>
+                                {% endfor %}
+                            </ul>
+                        </section>
+                    </div>
+                    <section class="analysis-result-section">
+                        <h3>Better Answer Outline</h3>
+                        <ol>
+                            {% for item in feedback.better_answer_outline %}
+                                <li>{{ item }}</li>
+                            {% empty %}
+                                <li>No outline generated.</li>
+                            {% endfor %}
+                        </ol>
+                    </section>
+                    <section class="analysis-result-section">
+                        <h3>Next Practice Steps</h3>
+                        <ul>
+                            {% for item in feedback.next_practice_steps %}
+                                <li>{{ item }}</li>
+                            {% empty %}
+                                <li>No next steps generated.</li>
+                            {% endfor %}
+                        </ul>
+                    </section>
+                </section>
+            {% else %}
+                <section class="analysis-progress-card">
+                    <h2>Interview not completed</h2>
+                    <p>Finish the voice interview to generate feedback.</p>
+                    <a class="outline-small" href="{% url 'mock_interview_room' session_uuid=session.uuid %}">Return to Room</a>
+                </section>
+            {% endif %}
+
+            <section class="prompt-card">
+                <h2>Transcript</h2>
+                {% if session.turns.exists %}
+                    <div class="mock-transcript mock-transcript-static">
+                        {% for turn in session.turns.all %}
+                            <article class="mock-turn mock-turn-{{ turn.role }}">
+                                <span>{{ turn.get_role_display }}</span>
+                                <p>{{ turn.text }}</p>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="empty-state">No transcript was saved.</p>
+                {% endif %}
+            </section>
+        </main>
+    </div>
+</div>
+{% endblock %}

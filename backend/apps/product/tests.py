@@ -17,7 +17,10 @@ from apps.website.models import EarlyAccessUser
 from .models import Resume
 from .models import ResumeAnalysis
 from .models import ResumeAnalysisSettings
+from .models import MockInterviewSession
+from .models import MockInterviewTurn
 from .services import ResumeMatchResult
+from .services import parse_mock_interview_feedback_json
 from .tasks import run_resume_analysis
 
 
@@ -66,6 +69,179 @@ class ProductAccessTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Recent Analysis")
+
+
+class MockInterviewTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="mock@example.com",
+            email="mock@example.com",
+            password="Password1!",
+        )
+        EarlyAccessUser.objects.create(email=self.user.email, user=self.user, is_beta_active=True, signup_completed_at=timezone.now())
+        self.client.force_login(self.user)
+
+    def test_start_page_is_accessible_to_beta_user(self):
+        response = self.client.get(reverse("mock_interview_start"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Mock system design interview")
+        self.assertContains(response, "URL Shortener")
+        self.assertContains(response, "Custom question")
+
+    def test_create_preset_interview_session(self):
+        response = self.client.post(
+            reverse("mock_interview_create"),
+            {
+                "preset_topic": "Rate Limiter",
+                "custom_topic": "",
+                "level": MockInterviewSession.Level.SENIOR,
+            },
+        )
+
+        session = MockInterviewSession.objects.get(user=self.user)
+        self.assertRedirects(response, reverse("mock_interview_room", kwargs={"session_uuid": session.uuid}))
+        self.assertEqual(session.topic_source, MockInterviewSession.TopicSource.PRESET)
+        self.assertEqual(session.topic, "Rate Limiter")
+        self.assertEqual(session.level, MockInterviewSession.Level.SENIOR)
+
+    def test_custom_question_takes_precedence_over_preset_topic(self):
+        response = self.client.post(
+            reverse("mock_interview_create"),
+            {
+                "preset_topic": "URL Shortener",
+                "custom_topic": "Design a real-time stock alerting platform.",
+                "level": MockInterviewSession.Level.STAFF,
+            },
+        )
+
+        session = MockInterviewSession.objects.get(user=self.user)
+        self.assertRedirects(response, reverse("mock_interview_room", kwargs={"session_uuid": session.uuid}))
+        self.assertEqual(session.topic_source, MockInterviewSession.TopicSource.CUSTOM)
+        self.assertEqual(session.topic, "Design a real-time stock alerting platform.")
+        self.assertEqual(session.level, MockInterviewSession.Level.STAFF)
+
+    def test_custom_question_max_length_is_validated(self):
+        response = self.client.post(
+            reverse("mock_interview_create"),
+            {
+                "preset_topic": "URL Shortener",
+                "custom_topic": "x" * 1001,
+                "level": MockInterviewSession.Level.SENIOR,
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(MockInterviewSession.objects.filter(user=self.user).exists())
+        self.assertContains(response, "Please keep the custom question under 1,000 characters", status_code=400)
+
+    @override_settings(OPENAI_API_KEY="test-key")
+    def test_token_endpoint_consumes_quota_and_returns_payload(self):
+        session = MockInterviewSession.objects.create(
+            user=self.user,
+            topic="URL Shortener",
+            level=MockInterviewSession.Level.SENIOR,
+        )
+
+        with patch("apps.product.views.create_mock_interview_realtime_token", return_value={"value": "ephemeral-token"}):
+            response = self.client.post(reverse("mock_interview_token", kwargs={"session_uuid": session.uuid}))
+
+        session.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["value"], "ephemeral-token")
+        self.assertEqual(session.status, MockInterviewSession.Status.ACTIVE)
+        self.assertIsNotNone(session.started_at)
+        self.assertEqual(self.user.feature_flags.mock_interview_count, 1)
+
+    def test_token_endpoint_rejects_exhausted_quota(self):
+        feature_flags = ResumeAnalysisSettings.objects.create(
+            user=self.user,
+            mock_interview_daily_limit=1,
+            mock_interview_count=1,
+            mock_interview_window_started_at=timezone.now(),
+        )
+        session = MockInterviewSession.objects.create(user=self.user, topic="Chat Application")
+
+        response = self.client.post(reverse("mock_interview_token", kwargs={"session_uuid": session.uuid}))
+
+        feature_flags.refresh_from_db()
+        session.refresh_from_db()
+        self.assertEqual(response.status_code, 429)
+        self.assertEqual(feature_flags.mock_interview_count, 1)
+        self.assertEqual(session.status, MockInterviewSession.Status.CREATED)
+
+    def test_turn_endpoint_saves_transcript_turn(self):
+        session = MockInterviewSession.objects.create(user=self.user, topic="Notification System")
+
+        response = self.client.post(
+            reverse("mock_interview_turns", kwargs={"session_uuid": session.uuid}),
+            data=json.dumps({"role": "assistant", "text": "What are the core requirements?"}),
+            content_type="application/json",
+        )
+
+        session.refresh_from_db()
+        turn = MockInterviewTurn.objects.get(session=session)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(turn.role, MockInterviewTurn.Role.INTERVIEWER)
+        self.assertIn("Interviewer: What are the core requirements?", session.transcript_text)
+
+    def test_other_users_cannot_access_session(self):
+        other_user = get_user_model().objects.create_user(username="other@example.com", email="other@example.com", password="Password1!")
+        EarlyAccessUser.objects.create(email=other_user.email, user=other_user, is_beta_active=True, signup_completed_at=timezone.now())
+        session = MockInterviewSession.objects.create(user=other_user, topic="File Storage Service")
+
+        response = self.client.get(reverse("mock_interview_room", kwargs={"session_uuid": session.uuid}))
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_staff_can_access_other_users_session(self):
+        staff = get_user_model().objects.create_user(username="staff-mock", email="staff-mock@example.com", password="Password1!", is_staff=True)
+        session = MockInterviewSession.objects.create(user=self.user, topic="Food Delivery App")
+        self.client.force_login(staff)
+
+        response = self.client.get(reverse("mock_interview_room", kwargs={"session_uuid": session.uuid}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Food Delivery App")
+
+    def test_mock_interview_quota_resets_after_24_hours(self):
+        feature_flags = ResumeAnalysisSettings.objects.create(
+            user=self.user,
+            mock_interview_daily_limit=1,
+            mock_interview_count=1,
+            mock_interview_window_started_at=timezone.now() - timedelta(hours=25),
+        )
+
+        self.assertTrue(feature_flags.can_run_mock_interview())
+        feature_flags.refresh_from_db()
+        self.assertEqual(feature_flags.mock_interview_count, 0)
+        self.assertIsNone(feature_flags.mock_interview_window_started_at)
+
+    def test_finish_endpoint_generates_feedback(self):
+        session = MockInterviewSession.objects.create(user=self.user, topic="URL Shortener")
+        MockInterviewTurn.objects.create(session=session, role=MockInterviewTurn.Role.USER, text="I would clarify scale first.")
+        feedback = {
+            "overall_score": 72,
+            "summary": "Solid clarification start.",
+            "strengths": ["Clarified scale."],
+            "gaps": ["Needs deeper storage design."],
+            "missed_topics": ["Caching"],
+            "better_answer_outline": ["Clarify requirements.", "Define APIs."],
+            "next_practice_steps": ["Practice data modeling."],
+        }
+
+        with patch("apps.product.views.generate_mock_interview_feedback", return_value=feedback):
+            response = self.client.post(reverse("mock_interview_finish", kwargs={"session_uuid": session.uuid}))
+
+        session.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(session.status, MockInterviewSession.Status.COMPLETED)
+        self.assertEqual(session.feedback_json["overall_score"], 72)
+        self.assertEqual(response.json()["feedback_url"], reverse("mock_interview_feedback", kwargs={"session_uuid": session.uuid}))
+
+    def test_parse_mock_interview_feedback_json_validates_score(self):
+        with self.assertRaises(Exception):
+            parse_mock_interview_feedback_json(json.dumps({"overall_score": 101, "summary": "Bad", "strengths": [], "gaps": [], "missed_topics": [], "better_answer_outline": [], "next_practice_steps": []}))
 
 
 class ResumeUploadTests(TestCase):

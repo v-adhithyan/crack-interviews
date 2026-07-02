@@ -1,5 +1,8 @@
+import json
+
 from django.http import FileResponse
 from django.http import Http404
+from django.http import HttpResponseBadRequest
 from django.http import JsonResponse
 from django.contrib import messages
 from django.contrib.auth import login
@@ -12,6 +15,7 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.urls import reverse_lazy
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from apps.website.models import EarlyAccessUser
 from apps.core.jobs import enqueue_background_job
@@ -20,13 +24,19 @@ from .decorators import product_access_required
 from .forms import AnalysisPromptForm
 from .forms import AnalysisResultForm
 from .forms import EarlyAccessSignupForm
+from .forms import MockInterviewStartForm
 from .forms import ProductLoginForm
 from .forms import ResumeUploadForm
 from .models import Resume
 from .models import ResumeAnalysis
+from .models import MockInterviewSession
+from .models import MockInterviewTurn
 from .services import build_resume_match_prompt
+from .services import create_mock_interview_realtime_token
+from .services import generate_mock_interview_feedback
 from .services import get_configured_resume_analysis_mode
 from .services import get_effective_resume_analysis_mode
+from .services import get_user_feature_flags
 from .services import reserve_resume_analysis_ai_quota
 from .services import run_resume_match_analysis
 
@@ -53,6 +63,17 @@ def get_visible_analysis_or_404(user, analysis_uuid):
     if not user.is_staff:
         queryset = queryset.filter(user=user)
     return get_object_or_404(queryset, uuid=analysis_uuid)
+
+
+def user_mock_interview_queryset(user):
+    queryset = MockInterviewSession.objects.select_related("user")
+    if not user.is_staff:
+        queryset = queryset.filter(user=user)
+    return queryset
+
+
+def get_visible_mock_interview_or_404(user, session_uuid):
+    return get_object_or_404(user_mock_interview_queryset(user), uuid=session_uuid)
 
 
 def is_manual_ai_mode(user):
@@ -242,6 +263,192 @@ def analysis_status(request, analysis_uuid):
             "error_message": analysis.error_message,
             "detail_url": reverse("analysis_detail", kwargs={"analysis_uuid": analysis.uuid}),
         }
+    )
+
+
+@product_access_required
+def mock_interview_start(request):
+    resume = user_resume(request.user)
+    feature_flags = get_user_feature_flags(request.user, create=True)
+    feature_flags.reset_mock_interview_usage_if_expired()
+    form = MockInterviewStartForm()
+    sessions = user_mock_interview_queryset(request.user)[:5]
+    return render(
+        request,
+        "product/mock_interview_start.html",
+        {
+            "resume": resume,
+            "form": form,
+            "recent_sessions": sessions,
+            "active_nav": "mock_interview",
+            "quota_remaining": feature_flags.mock_interview_quota_remaining,
+        },
+    )
+
+
+@product_access_required
+@require_POST
+def mock_interview_create(request):
+    form = MockInterviewStartForm(request.POST)
+    if form.is_valid():
+        session = MockInterviewSession.objects.create(
+            user=request.user,
+            topic_source=form.cleaned_data["topic_source"],
+            topic=form.cleaned_data["topic"],
+            level=form.cleaned_data["level"],
+        )
+        return redirect("mock_interview_room", session_uuid=session.uuid)
+
+    resume = user_resume(request.user)
+    feature_flags = get_user_feature_flags(request.user, create=True)
+    messages.error(request, "Please choose a topic or enter a custom system design question.")
+    return render(
+        request,
+        "product/mock_interview_start.html",
+        {
+            "resume": resume,
+            "form": form,
+            "recent_sessions": user_mock_interview_queryset(request.user)[:5],
+            "active_nav": "mock_interview",
+            "quota_remaining": feature_flags.mock_interview_quota_remaining,
+        },
+        status=400,
+    )
+
+
+@product_access_required
+def mock_interview_room(request, session_uuid):
+    session = get_visible_mock_interview_or_404(request.user, session_uuid)
+    if session.status == MockInterviewSession.Status.COMPLETED:
+        return redirect("mock_interview_feedback", session_uuid=session.uuid)
+
+    return render(
+        request,
+        "product/mock_interview_room.html",
+        {
+            "resume": user_resume(request.user),
+            "session": session,
+            "active_nav": "mock_interview",
+        },
+    )
+
+
+@product_access_required
+@require_POST
+def mock_interview_token(request, session_uuid):
+    session = get_visible_mock_interview_or_404(request.user, session_uuid)
+    if session.status == MockInterviewSession.Status.COMPLETED:
+        return JsonResponse({"detail": "This interview has already ended."}, status=400)
+
+    should_start_session = session.status == MockInterviewSession.Status.CREATED
+    feature_flags = None
+    if should_start_session:
+        feature_flags = get_user_feature_flags(request.user, create=True)
+        if not feature_flags.can_run_mock_interview():
+            return JsonResponse({"detail": "Daily mock interview limit reached. Please try again after 24 hours."}, status=429)
+
+    try:
+        token_payload = create_mock_interview_realtime_token(request.user, session)
+    except (ImproperlyConfigured, ValidationError) as exc:
+        session.status = MockInterviewSession.Status.FAILED
+        session.error_message = str(exc)
+        session.ended_at = timezone.now()
+        session.save(update_fields=("status", "error_message", "ended_at", "updated_at"))
+        return JsonResponse({"detail": str(exc)}, status=400)
+    except Exception:
+        session.status = MockInterviewSession.Status.FAILED
+        session.error_message = "Unable to create voice interview session right now."
+        session.ended_at = timezone.now()
+        session.save(update_fields=("status", "error_message", "ended_at", "updated_at"))
+        return JsonResponse({"detail": session.error_message}, status=500)
+
+    if session.status == MockInterviewSession.Status.CREATED:
+        if feature_flags is None or not feature_flags.consume_mock_interview_quota():
+            return JsonResponse({"detail": "Daily mock interview limit reached. Please try again after 24 hours."}, status=429)
+        session.status = MockInterviewSession.Status.ACTIVE
+        session.started_at = timezone.now()
+        session.save(update_fields=("status", "started_at", "updated_at"))
+
+    return JsonResponse(token_payload)
+
+
+@product_access_required
+@require_POST
+def mock_interview_turns(request, session_uuid):
+    session = get_visible_mock_interview_or_404(request.user, session_uuid)
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except json.JSONDecodeError:
+        return HttpResponseBadRequest("Invalid JSON.")
+
+    role = payload.get("role")
+    text = (payload.get("text") or "").strip()
+    if role == "assistant":
+        role = MockInterviewTurn.Role.INTERVIEWER
+    if role not in {MockInterviewTurn.Role.USER, MockInterviewTurn.Role.INTERVIEWER} or not text:
+        return HttpResponseBadRequest("Turn role and text are required.")
+
+    turn = MockInterviewTurn.objects.create(session=session, role=role, text=text)
+    session.transcript_text = "\n".join(f"{item.get_role_display()}: {item.text}" for item in session.turns.all())
+    session.save(update_fields=("transcript_text", "updated_at"))
+    return JsonResponse({"id": turn.id, "status": "saved"})
+
+
+@product_access_required
+@require_POST
+def mock_interview_finish(request, session_uuid):
+    session = get_visible_mock_interview_or_404(request.user, session_uuid)
+    if session.status == MockInterviewSession.Status.COMPLETED and session.feedback_json:
+        return JsonResponse({"feedback_url": reverse("mock_interview_feedback", kwargs={"session_uuid": session.uuid})})
+
+    session.transcript_text = "\n".join(f"{turn.get_role_display()}: {turn.text}" for turn in session.turns.all())
+    try:
+        session.feedback_json = generate_mock_interview_feedback(session)
+        session.status = MockInterviewSession.Status.COMPLETED
+        session.ended_at = timezone.now()
+        session.error_message = ""
+        session.save(update_fields=("transcript_text", "feedback_json", "status", "ended_at", "error_message", "updated_at"))
+    except (ImproperlyConfigured, ValidationError) as exc:
+        session.status = MockInterviewSession.Status.FAILED
+        session.error_message = str(exc)
+        session.ended_at = timezone.now()
+        session.save(update_fields=("transcript_text", "status", "error_message", "ended_at", "updated_at"))
+        return JsonResponse({"detail": str(exc)}, status=400)
+    except Exception:
+        session.status = MockInterviewSession.Status.FAILED
+        session.error_message = "Unable to generate feedback right now. Please try again."
+        session.ended_at = timezone.now()
+        session.save(update_fields=("transcript_text", "status", "error_message", "ended_at", "updated_at"))
+        return JsonResponse({"detail": session.error_message}, status=500)
+
+    return JsonResponse({"feedback_url": reverse("mock_interview_feedback", kwargs={"session_uuid": session.uuid})})
+
+
+@product_access_required
+def mock_interview_history(request):
+    return render(
+        request,
+        "product/mock_interview_history.html",
+        {
+            "resume": user_resume(request.user),
+            "sessions": user_mock_interview_queryset(request.user),
+            "active_nav": "mock_interview_history",
+        },
+    )
+
+
+@product_access_required
+def mock_interview_feedback(request, session_uuid):
+    session = get_visible_mock_interview_or_404(request.user, session_uuid)
+    return render(
+        request,
+        "product/mock_interview_feedback.html",
+        {
+            "resume": user_resume(request.user),
+            "session": session,
+            "feedback": session.feedback_json or {},
+            "active_nav": "mock_interview_history",
+        },
     )
 
 

@@ -9,6 +9,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.core.exceptions import ValidationError
 
 from .models import Resume
+from .models import MockInterviewSession
 from .pdf import extract_pdf_text
 from .services import parse_analysis_json
 
@@ -16,6 +17,16 @@ from .services import parse_analysis_json
 MAX_RESUME_SIZE = 1024 * 1024
 MAX_JOB_DESCRIPTION_LENGTH = 12000
 MAX_ANALYSIS_JSON_LENGTH = 100000
+MAX_CUSTOM_INTERVIEW_TOPIC_LENGTH = 1000
+
+SYSTEM_DESIGN_TOPICS = (
+    ("URL Shortener", "URL Shortener"),
+    ("Rate Limiter", "Rate Limiter"),
+    ("Chat Application", "Chat Application"),
+    ("Notification System", "Notification System"),
+    ("File Storage Service", "File Storage Service"),
+    ("Food Delivery App", "Food Delivery App"),
+)
 
 
 class ProductLoginForm(AuthenticationForm):
@@ -197,3 +208,45 @@ class AnalysisResultForm(forms.Form):
         raw_json = self.cleaned_data["analysis_json"]
         self.parsed_json = parse_analysis_json(raw_json)
         return raw_json
+
+
+class MockInterviewStartForm(forms.Form):
+    preset_topic = forms.ChoiceField(
+        choices=SYSTEM_DESIGN_TOPICS,
+        label="Preset topic",
+        required=False,
+    )
+    custom_topic = forms.CharField(
+        label="Custom question",
+        required=False,
+        max_length=MAX_CUSTOM_INTERVIEW_TOPIC_LENGTH,
+        widget=forms.Textarea(
+            attrs={
+                "maxlength": str(MAX_CUSTOM_INTERVIEW_TOPIC_LENGTH),
+                "placeholder": "Example: Design a ticket booking system for a high-traffic event platform.",
+                "rows": 4,
+            }
+        ),
+        error_messages={
+            "max_length": f"Please keep the custom question under {MAX_CUSTOM_INTERVIEW_TOPIC_LENGTH:,} characters.",
+        },
+    )
+    level = forms.ChoiceField(
+        choices=MockInterviewSession.Level.choices,
+        label="Interview level",
+        initial=MockInterviewSession.Level.SENIOR,
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        custom_topic = (cleaned_data.get("custom_topic") or "").strip()
+        preset_topic = cleaned_data.get("preset_topic") or SYSTEM_DESIGN_TOPICS[0][0]
+
+        if custom_topic:
+            cleaned_data["topic"] = custom_topic
+            cleaned_data["topic_source"] = MockInterviewSession.TopicSource.CUSTOM
+            return cleaned_data
+
+        cleaned_data["topic"] = preset_topic
+        cleaned_data["topic_source"] = MockInterviewSession.TopicSource.PRESET
+        return cleaned_data

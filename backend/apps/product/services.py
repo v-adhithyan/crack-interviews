@@ -1,4 +1,7 @@
 import json
+import hashlib
+import urllib.error
+import urllib.request
 
 from dataclasses import dataclass
 
@@ -119,6 +122,29 @@ Refusal JSON format:
 
 Return only JSON."""
 
+MOCK_INTERVIEW_FEEDBACK_INSTRUCTIONS = """You are HackerLeap System Design Interview Evaluator.
+
+Evaluate the candidate only from the provided mock interview transcript.
+Return only valid JSON. No markdown.
+
+Return JSON in this exact structure:
+
+{
+"overall_score": 0,
+"summary": "",
+"strengths": [""],
+"gaps": [""],
+"missed_topics": [""],
+"better_answer_outline": [""],
+"next_practice_steps": [""]
+}
+
+Scoring rules:
+* overall_score must be a number from 0 to 100.
+* Reward clear requirements clarification, API design, data modeling, architecture, scalability, reliability, observability, and tradeoff thinking.
+* Penalize vague answers, missing bottlenecks, missing failure handling, and unsupported assumptions.
+* If the transcript is too short to judge, give a low score and explain what was missing."""
+
 
 def build_resume_match_prompt(job_description, resume_text):
     payload = {
@@ -212,6 +238,129 @@ def _validate_score(value, field_name):
         raise ValidationError(f'Analysis JSON must include "{field_name}" as a number from 0 to 100.')
     if value < 0 or value > 100:
         raise ValidationError(f'Analysis JSON must include "{field_name}" as a number from 0 to 100.')
+
+
+def build_mock_interview_instructions(topic, level):
+    return f"""You are a realistic system design interviewer for HackerLeap.
+
+Interview topic:
+{topic}
+
+Candidate level:
+{level}
+
+Run a live mock system design interview. Follow these rules:
+1. Converse only in English, even if the candidate uses another language.
+2. Act like an interviewer, not a tutor or solution explainer.
+3. Ask one question at a time.
+4. Start by asking the candidate to clarify requirements.
+5. Probe functional requirements, non-functional requirements, APIs, data model, high-level architecture, scaling, caching, consistency, reliability, observability, failure handling, and tradeoffs.
+6. Do not reveal the full answer, suggested architecture, or detailed solution unless the candidate explicitly asks for help.
+7. If the candidate asks for help, give a small hint or nudge, then return to interviewing.
+8. If the candidate explicitly asks for help, give a small hint immediately and return to interviewing.
+9. Otherwise, wait for the candidate to pause for about 20 seconds before giving a brief nudge, follow-up question, or redirect.
+10. Keep responses concise and natural, like a real interviewer.
+11. Avoid giving a final score during the voice session.
+12. Continue until the candidate ends the interview."""
+
+
+def create_mock_interview_realtime_token(user, session):
+    if not settings.OPENAI_API_KEY:
+        raise ImproperlyConfigured("OPENAI_API_KEY is required for mock voice interviews.")
+
+    safety_identifier = hashlib.sha256(f"hackerleap-user-{user.id}".encode("utf-8")).hexdigest()
+    payload = {
+        "session": {
+            "type": "realtime",
+            "model": settings.OPENAI_REALTIME_MODEL,
+            "instructions": build_mock_interview_instructions(session.topic, session.get_level_display()),
+            "audio": {
+                "input": {
+                    "transcription": {
+                        "model": settings.OPENAI_REALTIME_TRANSCRIPTION_MODEL,
+                    },
+                    "turn_detection": {
+                        "type": "server_vad",
+                        "create_response": False,
+                    },
+                },
+                "output": {
+                    "voice": settings.OPENAI_REALTIME_VOICE,
+                },
+            },
+        }
+    }
+    request = urllib.request.Request(
+        "https://api.openai.com/v1/realtime/client_secrets",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
+            "Content-Type": "application/json",
+            "OpenAI-Safety-Identifier": safety_identifier,
+        },
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        raise ValidationError(f"Unable to create voice interview session. OpenAI returned {exc.code}: {detail[:240]}") from exc
+    except urllib.error.URLError as exc:
+        raise ValidationError("Unable to reach OpenAI for voice interview setup. Please try again.") from exc
+
+
+def generate_mock_interview_feedback(session):
+    if not settings.OPENAI_API_KEY:
+        raise ImproperlyConfigured("OPENAI_API_KEY is required for mock interview feedback.")
+
+    transcript = session.transcript_text.strip()
+    if not transcript:
+        transcript = "\n".join(f"{turn.get_role_display()}: {turn.text}" for turn in session.turns.all())
+
+    from openai import OpenAI
+
+    response = OpenAI(api_key=settings.OPENAI_API_KEY).chat.completions.create(
+        model=settings.OPENAI_FEEDBACK_MODEL,
+        messages=[
+            {"role": "system", "content": MOCK_INTERVIEW_FEEDBACK_INSTRUCTIONS},
+            {
+                "role": "user",
+                "content": json.dumps(
+                    {
+                        "topic": session.topic,
+                        "level": session.get_level_display(),
+                        "transcript": transcript,
+                    },
+                    ensure_ascii=False,
+                ),
+            },
+        ],
+        response_format={"type": "json_object"},
+    )
+    content = response.choices[0].message.content
+    return parse_mock_interview_feedback_json(content)
+
+
+def parse_mock_interview_feedback_json(raw_json):
+    try:
+        parsed_json = json.loads(raw_json)
+    except json.JSONDecodeError as exc:
+        raise ValidationError(f"Mock interview feedback must be valid JSON. {exc.msg}") from exc
+
+    if not isinstance(parsed_json, dict):
+        raise ValidationError("Mock interview feedback must be a JSON object.")
+
+    _validate_score(parsed_json.get("overall_score"), "overall_score")
+    if not isinstance(parsed_json.get("summary"), str) or not parsed_json["summary"].strip():
+        raise ValidationError('Mock interview feedback must include non-empty "summary".')
+
+    for field in ("strengths", "gaps", "missed_topics", "better_answer_outline", "next_practice_steps"):
+        if not isinstance(parsed_json.get(field), list):
+            raise ValidationError(f'Mock interview feedback must include "{field}" as a list.')
+
+    return parsed_json
 
 
 @dataclass(frozen=True)
@@ -342,3 +491,8 @@ def reserve_resume_analysis_ai_quota(user):
 
     feature_flags = get_user_feature_flags(user, create=True)
     return feature_flags.consume_ai_analysis_quota()
+
+
+def reserve_mock_interview_quota(user):
+    feature_flags = get_user_feature_flags(user, create=True)
+    return feature_flags.consume_mock_interview_quota()

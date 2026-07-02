@@ -112,6 +112,10 @@ CODE_TIMEOUT_SECONDS = float(os.getenv("CODE_TIMEOUT_SECONDS", "2"))
 HACKERLEAP_AI_MODE = os.getenv("HACKERLEAP_AI_MODE", "manual").strip().lower()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+OPENAI_REALTIME_MODEL = os.getenv("OPENAI_REALTIME_MODEL", "gpt-realtime-2")
+OPENAI_REALTIME_VOICE = os.getenv("OPENAI_REALTIME_VOICE", "marin")
+OPENAI_REALTIME_TRANSCRIPTION_MODEL = os.getenv("OPENAI_REALTIME_TRANSCRIPTION_MODEL", "gpt-4o-mini-transcribe")
+OPENAI_FEEDBACK_MODEL = os.getenv("OPENAI_FEEDBACK_MODEL", OPENAI_MODEL)
 
 Q_CLUSTER = {
     "name": "HackerLeap",

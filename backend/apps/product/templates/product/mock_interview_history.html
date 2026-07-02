@@ -1,0 +1,46 @@
+{% extends "product/base.html" %}
+
+{% block title %}Mock Interview History | HackerLeap{% endblock %}
+
+{% block body %}
+<div class="product-layout">
+    {% include "product/includes/sidebar.html" %}
+    <div class="product-main-shell">
+        {% include "product/includes/topbar.html" %}
+        <main class="product-main">
+            <section class="dashboard-hero" aria-labelledby="history-title">
+                <div>
+                    <h1 id="history-title">Mock interview history</h1>
+                    <p>Review previous system design practice sessions and feedback.</p>
+                </div>
+                <a class="outline-small" href="{% url 'mock_interview_start' %}">New Interview</a>
+            </section>
+
+            <section class="recent-card">
+                {% if sessions %}
+                    <div class="mock-history-table">
+                        <div class="mock-history-header">
+                            <span>Topic</span>
+                            <span>Level</span>
+                            <span>Status</span>
+                            <span>Score</span>
+                            <span>Updated</span>
+                        </div>
+                        {% for session in sessions %}
+                            <a class="mock-history-row" href="{% if session.status == 'completed' %}{% url 'mock_interview_feedback' session_uuid=session.uuid %}{% else %}{% url 'mock_interview_room' session_uuid=session.uuid %}{% endif %}">
+                                <strong>{{ session.topic }}</strong>
+                                <span>{{ session.get_level_display }}</span>
+                                <span>{{ session.get_status_display }}</span>
+                                <span>{% if session.display_score is not None %}{{ session.display_score }}{% else %}-{% endif %}</span>
+                                <span>{{ session.updated_at|date:"M j, Y, g:i A" }}</span>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="empty-state">No mock interviews yet.</p>
+                {% endif %}
+            </section>
+        </main>
+    </div>
+</div>
+{% endblock %}

@@ -16,6 +16,14 @@
             <span aria-hidden="true">◷</span>
             <span>Analysis History</span>
         </a>
+        <a class="{% if active_nav == 'mock_interview' %}active{% endif %}" href="{% url 'mock_interview_start' %}">
+            <span aria-hidden="true">◉</span>
+            <span>Mock Interview</span>
+        </a>
+        <a class="{% if active_nav == 'mock_interview_history' %}active{% endif %}" href="{% url 'mock_interview_history' %}">
+            <span aria-hidden="true">▤</span>
+            <span>Interview History</span>
+        </a>
 <!--        <a href="{% url 'product_dashboard' %}">-->
 <!--            <span aria-hidden="true">⚙</span>-->
 <!--            <span>Settings</span>-->

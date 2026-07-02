@@ -1,0 +1,75 @@
+{% extends "product/base.html" %}
+
+{% block title %}Mock System Design Interview | HackerLeap{% endblock %}
+
+{% block body %}
+<div class="product-layout">
+    {% include "product/includes/sidebar.html" %}
+    <div class="product-main-shell">
+        {% include "product/includes/topbar.html" %}
+        <main class="product-main">
+            <section class="dashboard-hero" aria-labelledby="mock-title">
+                <div>
+                    <h1 id="mock-title">Mock system design interview</h1>
+                    <p>Practice with an AI interviewer over voice, then review the transcript and feedback.</p>
+                </div>
+                <aside class="active-resume-card" aria-label="Mock interview quota">
+                    <span>Daily voice sessions</span>
+                    <strong>{{ quota_remaining }} remaining</strong>
+                    <small>Resets 24 hours after your first session.</small>
+                </aside>
+            </section>
+
+            <section class="analysis-card mock-interview-card" aria-labelledby="start-mock-title">
+                <header>
+                    <h2 id="start-mock-title">Start Interview</h2>
+                    <p>Choose a preset topic or type a custom system design question. Custom question takes precedence.</p>
+                </header>
+                <form class="mock-interview-form" method="post" action="{% url 'mock_interview_create' %}">
+                    {% csrf_token %}
+                    <div class="mock-form-grid">
+                        <label>
+                            Preset topic
+                            {{ form.preset_topic }}
+                        </label>
+                        <label>
+                            Level
+                            {{ form.level }}
+                        </label>
+                    </div>
+                    <label>
+                        Custom question
+                        {{ form.custom_topic }}
+                    </label>
+                    {% for error in form.custom_topic.errors %}
+                        <span class="field-error">{{ error }}</span>
+                    {% endfor %}
+                    <button type="submit">Create Voice Room <span aria-hidden="true">→</span></button>
+                </form>
+            </section>
+
+            <section class="recent-card" aria-labelledby="recent-mock-title">
+                <div class="section-heading">
+                    <div>
+                        <h2 id="recent-mock-title">Recent Mock Interviews</h2>
+                        <p>Jump back to feedback from your latest practice sessions.</p>
+                    </div>
+                    <a class="outline-small" href="{% url 'mock_interview_history' %}">View All</a>
+                </div>
+                {% if recent_sessions %}
+                    <div class="mock-session-list">
+                        {% for session in recent_sessions %}
+                            <a class="mock-session-row" href="{% if session.status == 'completed' %}{% url 'mock_interview_feedback' session_uuid=session.uuid %}{% else %}{% url 'mock_interview_room' session_uuid=session.uuid %}{% endif %}">
+                                <strong>{{ session.topic }}</strong>
+                                <span>{{ session.get_level_display }} · {{ session.get_status_display }} · {{ session.updated_at|date:"M j, Y, g:i A" }}</span>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="empty-state">No mock interviews yet.</p>
+                {% endif %}
+            </section>
+        </main>
+    </div>
+</div>
+{% endblock %}

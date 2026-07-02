@@ -146,6 +146,7 @@ class ResumeAnalysis(models.Model):
 
 class UserFeatureFlags(models.Model):
     DEFAULT_AI_ANALYSIS_DAILY_LIMIT = 2
+    DEFAULT_MOCK_INTERVIEW_DAILY_LIMIT = 1
 
     class AIMode(models.TextChoices):
         MANUAL = "manual", "Manual"
@@ -157,6 +158,9 @@ class UserFeatureFlags(models.Model):
     ai_analysis_daily_limit = models.PositiveSmallIntegerField(default=DEFAULT_AI_ANALYSIS_DAILY_LIMIT)
     ai_analysis_window_started_at = models.DateTimeField(blank=True, null=True)
     ai_analysis_count = models.PositiveSmallIntegerField(default=0)
+    mock_interview_daily_limit = models.PositiveSmallIntegerField(default=DEFAULT_MOCK_INTERVIEW_DAILY_LIMIT)
+    mock_interview_window_started_at = models.DateTimeField(blank=True, null=True)
+    mock_interview_count = models.PositiveSmallIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -195,5 +199,98 @@ class UserFeatureFlags(models.Model):
         self.save(update_fields=("ai_analysis_window_started_at", "ai_analysis_count", "updated_at"))
         return True
 
+    def reset_mock_interview_usage_if_expired(self, now=None):
+        now = now or timezone.now()
+        if self.mock_interview_window_started_at and now - self.mock_interview_window_started_at >= timedelta(hours=24):
+            self.mock_interview_window_started_at = None
+            self.mock_interview_count = 0
+            self.save(update_fields=("mock_interview_window_started_at", "mock_interview_count", "updated_at"))
+
+    @property
+    def mock_interview_quota_remaining(self):
+        return max(0, self.mock_interview_daily_limit - self.mock_interview_count)
+
+    def can_run_mock_interview(self, now=None):
+        self.reset_mock_interview_usage_if_expired(now=now)
+        return self.mock_interview_daily_limit > 0 and self.mock_interview_count < self.mock_interview_daily_limit
+
+    def consume_mock_interview_quota(self, now=None):
+        now = now or timezone.now()
+        self.reset_mock_interview_usage_if_expired(now=now)
+        if not self.can_run_mock_interview(now=now):
+            return False
+        if not self.mock_interview_window_started_at:
+            self.mock_interview_window_started_at = now
+        self.mock_interview_count += 1
+        self.save(update_fields=("mock_interview_window_started_at", "mock_interview_count", "updated_at"))
+        return True
+
 
 ResumeAnalysisSettings = UserFeatureFlags
+
+
+class MockInterviewSession(models.Model):
+    class TopicSource(models.TextChoices):
+        PRESET = "preset", "Preset"
+        CUSTOM = "custom", "Custom"
+
+    class Level(models.TextChoices):
+        MID = "mid", "Mid-level"
+        SENIOR = "senior", "Senior"
+        STAFF = "staff", "Staff"
+
+    class Status(models.TextChoices):
+        CREATED = "created", "Created"
+        ACTIVE = "active", "Active"
+        COMPLETED = "completed", "Completed"
+        FAILED = "failed", "Failed"
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="mock_interview_sessions")
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    topic_source = models.CharField(max_length=12, choices=TopicSource.choices, default=TopicSource.PRESET)
+    topic = models.CharField(max_length=1000)
+    level = models.CharField(max_length=12, choices=Level.choices, default=Level.SENIOR)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.CREATED)
+    transcript_text = models.TextField(blank=True)
+    feedback_json = models.JSONField(blank=True, null=True)
+    error_message = models.TextField(blank=True)
+    started_at = models.DateTimeField(blank=True, null=True)
+    ended_at = models.DateTimeField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-updated_at",)
+        db_table = "product_mock_interview_session"
+
+    def __str__(self):
+        return f"{self.get_level_display()} mock interview: {self.topic[:80]}"
+
+    @property
+    def display_score(self):
+        if not self.feedback_json:
+            return None
+        score = self.feedback_json.get("overall_score")
+        try:
+            return int(score)
+        except (TypeError, ValueError):
+            return None
+
+
+class MockInterviewTurn(models.Model):
+    class Role(models.TextChoices):
+        USER = "user", "User"
+        INTERVIEWER = "interviewer", "Interviewer"
+
+    session = models.ForeignKey(MockInterviewSession, on_delete=models.CASCADE, related_name="turns")
+    role = models.CharField(max_length=20, choices=Role.choices)
+    text = models.TextField()
+    occurred_at = models.DateTimeField(default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("occurred_at", "id")
+        db_table = "product_mock_interview_turn"
+
+    def __str__(self):
+        return f"{self.get_role_display()}: {self.text[:80]}"

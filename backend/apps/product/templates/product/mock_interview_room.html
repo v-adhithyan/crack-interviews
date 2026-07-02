@@ -1,0 +1,383 @@
+{% extends "product/base.html" %}
+
+{% block title %}Mock Interview Room | HackerLeap{% endblock %}
+
+{% block body %}
+<div class="product-layout">
+    {% include "product/includes/sidebar.html" %}
+    <div class="product-main-shell">
+        {% include "product/includes/topbar.html" %}
+        <main class="product-main">
+            <section class="mock-room-hero" aria-labelledby="room-title">
+                <div>
+                    <a class="back-link" href="{% url 'mock_interview_start' %}">← Back to mock interviews</a>
+                    <p class="eyebrow">{{ session.get_level_display }} · {{ session.get_topic_source_display }}</p>
+                    <h1 id="room-title">{{ session.topic }}</h1>
+                </div>
+                <div class="mock-room-controls">
+                    <span class="mock-timer" data-mock-timer>0:00</span>
+                    <button type="button" data-start-interview>Start Interview</button>
+                    <button class="outline-small" type="button" data-end-interview disabled>End Interview</button>
+                </div>
+            </section>
+
+            <section class="mock-room-grid" data-session-root
+                data-token-url="{% url 'mock_interview_token' session_uuid=session.uuid %}"
+                data-turns-url="{% url 'mock_interview_turns' session_uuid=session.uuid %}"
+                data-finish-url="{% url 'mock_interview_finish' session_uuid=session.uuid %}">
+                <div class="prompt-card mock-status-card">
+                    <h2>Session Status</h2>
+                    <p data-session-status>Ready. Click start and allow microphone access.</p>
+                    {% if session.error_message %}
+                        <p class="field-error">{{ session.error_message }}</p>
+                    {% endif %}
+                </div>
+                <div class="prompt-card mock-transcript-card">
+                    <div class="section-heading">
+                        <div>
+                            <h2>Live Transcript</h2>
+                            <p>Transcript turns are saved as the interview progresses.</p>
+                        </div>
+                    </div>
+                    <div class="mock-transcript" data-transcript>
+                        {% for turn in session.turns.all %}
+                            <article class="mock-turn mock-turn-{{ turn.role }}">
+                                <span>{{ turn.get_role_display }}</span>
+                                <p>{{ turn.text }}</p>
+                            </article>
+                        {% empty %}
+                            <p class="empty-state" data-empty-transcript>No transcript yet.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script>
+    (function () {
+        var root = document.querySelector("[data-session-root]");
+        if (!root) {
+            return;
+        }
+
+        var startButton = document.querySelector("[data-start-interview]");
+        var endButton = document.querySelector("[data-end-interview]");
+        var statusNode = document.querySelector("[data-session-status]");
+        var transcriptNode = document.querySelector("[data-transcript]");
+        var timerNode = document.querySelector("[data-mock-timer]");
+        var csrfToken = document.querySelector("[name=csrfmiddlewaretoken]") ? document.querySelector("[name=csrfmiddlewaretoken]").value : "{{ csrf_token }}";
+        var peerConnection = null;
+        var dataChannel = null;
+        var localStream = null;
+        var timerInterval = null;
+        var pauseTimeout = null;
+        var audioContext = null;
+        var analyser = null;
+        var silenceMonitorFrame = null;
+        var startedAt = null;
+        var isInterviewLive = false;
+        var responseInProgress = false;
+        var savedTexts = {};
+        var PAUSE_BEFORE_RESPONSE_MS = 20000;
+        var SPEECH_LEVEL_THRESHOLD = 0.018;
+
+        function setStatus(message) {
+            statusNode.textContent = message;
+        }
+
+        function startTimer() {
+            startedAt = Date.now();
+            timerInterval = window.setInterval(function () {
+                var elapsed = Math.floor((Date.now() - startedAt) / 1000);
+                var minutes = Math.floor(elapsed / 60);
+                var seconds = String(elapsed % 60).padStart(2, "0");
+                timerNode.textContent = minutes + ":" + seconds;
+            }, 500);
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                window.clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function requestInterviewerResponse(reason) {
+            if (!isInterviewLive || responseInProgress || !dataChannel || dataChannel.readyState !== "open") {
+                return;
+            }
+            responseInProgress = true;
+            setStatus(reason || "Asking interviewer for the next prompt...");
+            dataChannel.send(JSON.stringify({ type: "response.create" }));
+        }
+
+        function clearPauseTimer() {
+            if (pauseTimeout) {
+                window.clearTimeout(pauseTimeout);
+                pauseTimeout = null;
+            }
+        }
+
+        function schedulePauseResponse() {
+            clearPauseTimer();
+            if (!isInterviewLive) {
+                return;
+            }
+            pauseTimeout = window.setTimeout(function () {
+                requestInterviewerResponse("Candidate paused for 20 seconds. Getting interviewer nudge...");
+            }, PAUSE_BEFORE_RESPONSE_MS);
+        }
+
+        function startSilenceMonitor() {
+            if (!localStream || audioContext) {
+                return;
+            }
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            var source = audioContext.createMediaStreamSource(localStream);
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 1024;
+            source.connect(analyser);
+            var samples = new Uint8Array(analyser.fftSize);
+
+            function monitor() {
+                if (!analyser || !isInterviewLive) {
+                    return;
+                }
+                analyser.getByteTimeDomainData(samples);
+                var sum = 0;
+                for (var index = 0; index < samples.length; index += 1) {
+                    var normalized = (samples[index] - 128) / 128;
+                    sum += normalized * normalized;
+                }
+                var volume = Math.sqrt(sum / samples.length);
+                if (volume > SPEECH_LEVEL_THRESHOLD) {
+                    responseInProgress = false;
+                    schedulePauseResponse();
+                    setStatus("Listening. The interviewer will respond after a 20 second pause.");
+                }
+                silenceMonitorFrame = window.requestAnimationFrame(monitor);
+            }
+
+            monitor();
+        }
+
+        function stopSilenceMonitor() {
+            clearPauseTimer();
+            if (silenceMonitorFrame) {
+                window.cancelAnimationFrame(silenceMonitorFrame);
+                silenceMonitorFrame = null;
+            }
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
+            analyser = null;
+        }
+
+        function appendTurn(role, text) {
+            var empty = document.querySelector("[data-empty-transcript]");
+            if (empty) {
+                empty.remove();
+            }
+            var article = document.createElement("article");
+            article.className = "mock-turn mock-turn-" + role;
+            var label = document.createElement("span");
+            label.textContent = role === "user" ? "User" : "Interviewer";
+            var paragraph = document.createElement("p");
+            paragraph.textContent = text;
+            article.appendChild(label);
+            article.appendChild(paragraph);
+            transcriptNode.appendChild(article);
+            transcriptNode.scrollTop = transcriptNode.scrollHeight;
+        }
+
+        function saveTurn(role, text) {
+            text = (text || "").trim();
+            if (!text) {
+                return;
+            }
+            var key = role + ":" + text;
+            if (savedTexts[key]) {
+                return;
+            }
+            savedTexts[key] = true;
+            appendTurn(role, text);
+            fetch(root.dataset.turnsUrl, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrfToken
+                },
+                body: JSON.stringify({ role: role, text: text })
+            }).catch(function () {
+                setStatus("Transcript save failed, but the interview can continue.");
+            });
+        }
+
+        function handleRealtimeEvent(event) {
+            if (!event || !event.type) {
+                return;
+            }
+            if (event.type === "response.output_audio_transcript.done" || event.type === "response.audio_transcript.done") {
+                saveTurn("interviewer", event.transcript);
+                responseInProgress = false;
+                schedulePauseResponse();
+            }
+            if (
+                event.type === "conversation.item.input_audio_transcription.completed" ||
+                event.type === "conversation.item.audio_transcription.completed" ||
+                event.type === "input_audio_buffer.transcription_completed"
+            ) {
+                saveTurn("user", event.transcript);
+                responseInProgress = false;
+                schedulePauseResponse();
+            }
+            if (event.type === "response.done" || event.type === "response.cancelled") {
+                responseInProgress = false;
+                schedulePauseResponse();
+            }
+            if (event.type === "error") {
+                responseInProgress = false;
+                setStatus(event.error && event.error.message ? event.error.message : "Realtime session error.");
+            }
+        }
+
+        function extractEphemeralKey(payload) {
+            if (payload && payload.value) {
+                return payload.value;
+            }
+            if (payload && payload.client_secret && payload.client_secret.value) {
+                return payload.client_secret.value;
+            }
+            return "";
+        }
+
+        async function startInterview() {
+            startButton.disabled = true;
+            setStatus("Requesting microphone access...");
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            } catch (error) {
+                startButton.disabled = false;
+                setStatus("Microphone permission was denied. Allow mic access and try again.");
+                return;
+            }
+
+            try {
+                setStatus("Creating voice interview session...");
+                var tokenResponse = await fetch(root.dataset.tokenUrl, {
+                    method: "POST",
+                    headers: { "X-CSRFToken": csrfToken }
+                });
+                var tokenPayload = await tokenResponse.json();
+                if (!tokenResponse.ok) {
+                    throw new Error(tokenPayload.detail || "Unable to start interview.");
+                }
+                var ephemeralKey = extractEphemeralKey(tokenPayload);
+                if (!ephemeralKey) {
+                    throw new Error("Voice session token was missing.");
+                }
+
+                peerConnection = new RTCPeerConnection();
+                var audio = document.createElement("audio");
+                audio.autoplay = true;
+                peerConnection.ontrack = function (event) {
+                    audio.srcObject = event.streams[0];
+                };
+                localStream.getTracks().forEach(function (track) {
+                    peerConnection.addTrack(track, localStream);
+                });
+                dataChannel = peerConnection.createDataChannel("oai-events");
+                dataChannel.addEventListener("open", function () {
+                    isInterviewLive = true;
+                    setStatus("Interview is live. The interviewer will respond after a 20 second pause.");
+                    startSilenceMonitor();
+                    schedulePauseResponse();
+                });
+                dataChannel.addEventListener("message", function (message) {
+                    try {
+                        handleRealtimeEvent(JSON.parse(message.data));
+                    } catch (error) {
+                        return;
+                    }
+                });
+
+                var offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                var sdpResponse = await fetch("https://api.openai.com/v1/realtime/calls", {
+                    method: "POST",
+                    body: offer.sdp,
+                    headers: {
+                        "Authorization": "Bearer " + ephemeralKey,
+                        "Content-Type": "application/sdp"
+                    }
+                });
+                if (!sdpResponse.ok) {
+                    throw new Error("Realtime connection failed.");
+                }
+                await peerConnection.setRemoteDescription({
+                    type: "answer",
+                    sdp: await sdpResponse.text()
+                });
+                endButton.disabled = false;
+                startTimer();
+            } catch (error) {
+                startButton.disabled = false;
+                cleanupConnection();
+                setStatus(error.message || "Unable to start voice interview.");
+            }
+        }
+
+        function cleanupConnection() {
+            stopTimer();
+            isInterviewLive = false;
+            responseInProgress = false;
+            stopSilenceMonitor();
+            if (dataChannel) {
+                dataChannel.close();
+                dataChannel = null;
+            }
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            if (localStream) {
+                localStream.getTracks().forEach(function (track) {
+                    track.stop();
+                });
+                localStream = null;
+            }
+        }
+
+        async function endInterview() {
+            endButton.disabled = true;
+            startButton.disabled = true;
+            cleanupConnection();
+            setStatus("Generating feedback...");
+            try {
+                var response = await fetch(root.dataset.finishUrl, {
+                    method: "POST",
+                    headers: { "X-CSRFToken": csrfToken }
+                });
+                var payload = await response.json();
+                if (!response.ok) {
+                    throw new Error(payload.detail || "Unable to finish interview.");
+                }
+                window.location.href = payload.feedback_url;
+            } catch (error) {
+                setStatus(error.message || "Unable to generate feedback.");
+                endButton.disabled = false;
+            }
+        }
+
+        startButton.addEventListener("click", startInterview);
+        endButton.addEventListener("click", endInterview);
+        window.addEventListener("beforeunload", cleanupConnection);
+    })();
+</script>
+{% endblock %}
