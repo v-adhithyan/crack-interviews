@@ -82,9 +82,12 @@
         var startedAt = null;
         var isInterviewLive = false;
         var responseInProgress = false;
+        var candidateHasSpokenSinceLastResponse = false;
+        var lastSpeechDetectedAt = 0;
         var savedTexts = {};
         var PAUSE_BEFORE_RESPONSE_MS = 20000;
         var SPEECH_LEVEL_THRESHOLD = 0.018;
+        var SPEECH_DETECTION_DEBOUNCE_MS = 450;
 
         function setStatus(message) {
             statusNode.textContent = message;
@@ -111,6 +114,11 @@
             if (!isInterviewLive || responseInProgress || !dataChannel || dataChannel.readyState !== "open") {
                 return;
             }
+            if (!candidateHasSpokenSinceLastResponse) {
+                return;
+            }
+            clearPauseTimer();
+            candidateHasSpokenSinceLastResponse = false;
             responseInProgress = true;
             setStatus(reason || "Asking interviewer for the next prompt...");
             dataChannel.send(JSON.stringify({ type: "response.create" }));
@@ -125,12 +133,23 @@
 
         function schedulePauseResponse() {
             clearPauseTimer();
-            if (!isInterviewLive) {
+            if (!isInterviewLive || responseInProgress || !candidateHasSpokenSinceLastResponse) {
                 return;
             }
             pauseTimeout = window.setTimeout(function () {
                 requestInterviewerResponse("Candidate paused for 20 seconds. Getting interviewer nudge...");
             }, PAUSE_BEFORE_RESPONSE_MS);
+        }
+
+        function markCandidateActivity(statusMessage) {
+            if (!isInterviewLive) {
+                return;
+            }
+            candidateHasSpokenSinceLastResponse = true;
+            schedulePauseResponse();
+            if (statusMessage) {
+                setStatus(statusMessage);
+            }
         }
 
         function startSilenceMonitor() {
@@ -155,10 +174,9 @@
                     sum += normalized * normalized;
                 }
                 var volume = Math.sqrt(sum / samples.length);
-                if (volume > SPEECH_LEVEL_THRESHOLD) {
-                    responseInProgress = false;
-                    schedulePauseResponse();
-                    setStatus("Listening. The interviewer will respond after a 20 second pause.");
+                if (volume > SPEECH_LEVEL_THRESHOLD && Date.now() - lastSpeechDetectedAt > SPEECH_DETECTION_DEBOUNCE_MS) {
+                    lastSpeechDetectedAt = Date.now();
+                    markCandidateActivity("Listening. The interviewer will respond after a 20 second pause.");
                 }
                 silenceMonitorFrame = window.requestAnimationFrame(monitor);
             }
@@ -226,7 +244,8 @@
             if (event.type === "response.output_audio_transcript.done" || event.type === "response.audio_transcript.done") {
                 saveTurn("interviewer", event.transcript);
                 responseInProgress = false;
-                schedulePauseResponse();
+                clearPauseTimer();
+                setStatus("Listening. Speak when you are ready.");
             }
             if (
                 event.type === "conversation.item.input_audio_transcription.completed" ||
@@ -234,12 +253,12 @@
                 event.type === "input_audio_buffer.transcription_completed"
             ) {
                 saveTurn("user", event.transcript);
-                responseInProgress = false;
-                schedulePauseResponse();
+                markCandidateActivity("Candidate answer captured. Waiting for a 20 second pause.");
             }
             if (event.type === "response.done" || event.type === "response.cancelled") {
                 responseInProgress = false;
-                schedulePauseResponse();
+                clearPauseTimer();
+                setStatus("Listening. Speak when you are ready.");
             }
             if (event.type === "error") {
                 responseInProgress = false;
@@ -295,9 +314,9 @@
                 dataChannel = peerConnection.createDataChannel("oai-events");
                 dataChannel.addEventListener("open", function () {
                     isInterviewLive = true;
-                    setStatus("Interview is live. The interviewer will respond after a 20 second pause.");
+                    candidateHasSpokenSinceLastResponse = false;
+                    setStatus("Interview is live. Start speaking; the interviewer responds after you pause for 20 seconds.");
                     startSilenceMonitor();
-                    schedulePauseResponse();
                 });
                 dataChannel.addEventListener("message", function (message) {
                     try {
@@ -337,6 +356,7 @@
             stopTimer();
             isInterviewLive = false;
             responseInProgress = false;
+            candidateHasSpokenSinceLastResponse = false;
             stopSilenceMonitor();
             if (dataChannel) {
                 dataChannel.close();
