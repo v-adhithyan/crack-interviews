@@ -431,62 +431,6 @@ class MockInterviewTests(TestCase):
         self.assertEqual(session.feedback_json["overall_score"], 72)
         self.assertEqual(response.json()["feedback_url"], reverse("mock_interview_feedback", kwargs={"session_uuid": session.uuid}))
 
-    def test_feedback_page_contains_public_share_link(self):
-        session = MockInterviewSession.objects.create(
-            user=self.user,
-            topic="URL Shortener",
-            status=MockInterviewSession.Status.COMPLETED,
-            feedback_json={
-                "overall_score": 72,
-                "summary": "Solid clarification start.",
-                "strengths": ["Clarified scale."],
-                "gaps": ["Needs deeper storage design."],
-                "missed_topics": ["Caching"],
-                "better_answer_outline": ["Clarify requirements."],
-                "next_practice_steps": ["Practice data modeling."],
-            },
-        )
-
-        response = self.client.get(reverse("mock_interview_feedback", kwargs={"session_uuid": session.uuid}))
-
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Copy Share Link")
-        self.assertContains(response, reverse("mock_interview_public_share", kwargs={"share_uuid": session.share_uuid}))
-
-    def test_public_share_page_is_available_without_login(self):
-        session = MockInterviewSession.objects.create(
-            user=self.user,
-            topic="URL Shortener",
-            status=MockInterviewSession.Status.COMPLETED,
-            feedback_json={
-                "overall_score": 72,
-                "summary": "Solid clarification start.",
-                "strengths": ["Clarified scale."],
-                "gaps": ["Needs deeper storage design."],
-                "missed_topics": ["Caching"],
-                "better_answer_outline": ["Clarify requirements."],
-                "next_practice_steps": ["Practice data modeling."],
-            },
-        )
-        MockInterviewTurn.objects.create(session=session, role=MockInterviewTurn.Role.USER, text="I would clarify scale first.")
-        self.client.logout()
-
-        response = self.client.get(reverse("mock_interview_public_share", kwargs={"share_uuid": session.share_uuid}))
-
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Shared mock interview feedback")
-        self.assertContains(response, "Copy Training Context")
-        self.assertContains(response, "Solid clarification start.")
-        self.assertContains(response, "I would clarify scale first.")
-
-    def test_public_share_page_rejects_incomplete_interview(self):
-        session = MockInterviewSession.objects.create(user=self.user, topic="URL Shortener")
-        self.client.logout()
-
-        response = self.client.get(reverse("mock_interview_public_share", kwargs={"share_uuid": session.share_uuid}))
-
-        self.assertEqual(response.status_code, 404)
-
     def test_parse_mock_interview_feedback_json_validates_score(self):
         with self.assertRaises(Exception):
             parse_mock_interview_feedback_json(json.dumps({"overall_score": 101, "summary": "Bad", "strengths": [], "gaps": [], "missed_topics": [], "better_answer_outline": [], "next_practice_steps": []}))

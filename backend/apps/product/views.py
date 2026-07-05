@@ -498,7 +498,6 @@ def mock_interview_history(request):
 @product_access_required
 def mock_interview_feedback(request, session_uuid):
     session = get_visible_mock_interview_or_404(request.user, session_uuid)
-    share_url = request.build_absolute_uri(reverse("mock_interview_public_share", kwargs={"share_uuid": session.share_uuid}))
     return render(
         request,
         "product/mock_interview_feedback.html",
@@ -506,27 +505,7 @@ def mock_interview_feedback(request, session_uuid):
             "resume": user_resume(request.user),
             "session": session,
             "feedback": session.feedback_json or {},
-            "share_url": share_url,
-            "mock_interview_user_label": user_display_label(session.user),
             "active_nav": "mock_interview_history",
-        },
-    )
-
-
-def mock_interview_public_share(request, share_uuid):
-    session = get_object_or_404(
-        MockInterviewSession.objects.select_related("user").prefetch_related("turns"),
-        share_uuid=share_uuid,
-        status=MockInterviewSession.Status.COMPLETED,
-        feedback_json__isnull=False,
-    )
-    return render(
-        request,
-        "product/mock_interview_public_share.html",
-        {
-            "session": session,
-            "feedback": session.feedback_json or {},
-            "mock_interview_user_label": user_display_label(session.user),
         },
     )
 

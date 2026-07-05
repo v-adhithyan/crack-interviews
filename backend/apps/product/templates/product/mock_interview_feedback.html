@@ -14,12 +14,7 @@
                     <p class="eyebrow">{{ session.get_level_display }} · {{ session.get_topic_source_display }}</p>
                     <h1 id="feedback-title">{{ session.topic }}</h1>
                 </div>
-                <div class="mock-room-controls">
-                    {% if feedback %}
-                        <button class="outline-small" type="button" data-copy-share-link data-share-url="{{ share_url }}">Copy Share Link</button>
-                    {% endif %}
-                    <a class="outline-small" href="{% url 'mock_interview_start' %}">New Interview</a>
-                </div>
+                <a class="outline-small" href="{% url 'mock_interview_start' %}">New Interview</a>
             </section>
 
             {% if session.status == 'failed' %}
@@ -28,16 +23,6 @@
                     <p>{{ session.error_message|default:"Unable to generate feedback for this session." }}</p>
                 </section>
             {% elif feedback %}
-                <section class="prompt-card mock-share-card">
-                    <div>
-                        <h2>Share feedback</h2>
-                        <p>Anyone with this link can view the feedback and transcript. Use it with ChatGPT or a coach for follow-up training.</p>
-                    </div>
-                    <div class="share-link-row">
-                        <input type="text" value="{{ share_url }}" readonly aria-label="Mock interview share link">
-                        <a class="outline-small" href="{{ share_url }}" target="_blank" rel="noopener">Open</a>
-                    </div>
-                </section>
                 <section class="analysis-result-card mock-feedback-card">
                     <div class="score-summary-grid">
                         <div>
@@ -127,7 +112,7 @@
                     <div class="mock-transcript mock-transcript-static">
                         {% for turn in session.turns.all %}
                             <article class="mock-turn mock-turn-{{ turn.role }}">
-                                <span>{% if turn.role == 'user' %}{{ mock_interview_user_label }}{% else %}{{ turn.get_role_display }}{% endif %}</span>
+                                <span>{{ turn.get_role_display }}</span>
                                 <p>{{ turn.text }}</p>
                             </article>
                         {% endfor %}
@@ -139,24 +124,4 @@
         </main>
     </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-{{ block.super }}
-<script>
-    document.querySelectorAll("[data-copy-share-link]").forEach(function (button) {
-        button.addEventListener("click", function () {
-            var shareUrl = button.getAttribute("data-share-url");
-            if (!shareUrl || !navigator.clipboard) {
-                return;
-            }
-            navigator.clipboard.writeText(shareUrl).then(function () {
-                button.textContent = "Copied";
-                window.setTimeout(function () {
-                    button.textContent = "Copy Share Link";
-                }, 1600);
-            });
-        });
-    });
-</script>
 {% endblock %}
