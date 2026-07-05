@@ -26,10 +26,17 @@
                 data-turns-url="{% url 'mock_interview_turns' session_uuid=session.uuid %}"
                 data-finish-url="{% url 'mock_interview_finish' session_uuid=session.uuid %}"
                 data-started-at="{% if session.started_at %}{{ session.started_at|date:'c' }}{% endif %}"
+                data-session-status="{{ session.status }}"
                 data-duration-seconds="{{ duration_seconds|default:3600 }}">
                 <div class="prompt-card mock-status-card">
                     <h2>Session Status</h2>
-                    <p data-session-status>Ready. Click start and allow microphone access.</p>
+                    <p data-session-status>
+                        {% if session.started_at %}
+                            Session paused in this browser. Click resume and allow microphone access to continue.
+                        {% else %}
+                            Ready. Click start and allow microphone access.
+                        {% endif %}
+                    </p>
                     <div class="mock-speaking-panel" aria-label="Speaking activity">
                         <div class="mock-speaker" data-candidate-speaker>
                             <span>Candidate</span>
@@ -107,6 +114,7 @@
         var silenceMonitorFrame = null;
         var startedAt = root.dataset.startedAt ? new Date(root.dataset.startedAt).getTime() : null;
         var durationSeconds = Number(root.dataset.durationSeconds || 3600);
+        var sessionStatus = root.dataset.sessionStatus || "created";
         var hasAutoEnded = false;
         var isInterviewLive = false;
         var responseInProgress = false;
@@ -118,6 +126,23 @@
         var PAUSE_BEFORE_RESPONSE_MS = 20000;
         var SPEECH_LEVEL_THRESHOLD = 0.018;
         var SPEECH_DETECTION_DEBOUNCE_MS = 450;
+
+        function hydrateSavedTranscriptKeys() {
+            var existingTurns = transcriptNode ? transcriptNode.querySelectorAll(".mock-turn") : [];
+            existingTurns.forEach(function (turn) {
+                var label = turn.querySelector("span");
+                var paragraph = turn.querySelector("p");
+                if (!label || !paragraph) {
+                    return;
+                }
+                var roleLabel = label.textContent.trim().toLowerCase();
+                var role = roleLabel === "interviewer" ? "interviewer" : "user";
+                var text = paragraph.textContent.trim();
+                if (text) {
+                    savedTexts[role + ":" + text] = true;
+                }
+            });
+        }
 
         function setStatus(message) {
             statusNode.textContent = message;
@@ -177,7 +202,7 @@
             var remainingSeconds = remainingInterviewSeconds();
             timerNode.textContent = formatDuration(remainingSeconds);
             timerNode.classList.toggle("is-ending", remainingSeconds <= 300);
-            if (startedAt && remainingSeconds <= 0 && !hasAutoEnded) {
+            if (isInterviewLive && startedAt && remainingSeconds <= 0 && !hasAutoEnded) {
                 hasAutoEnded = true;
                 endInterview(true);
             }
@@ -464,6 +489,7 @@
                     setNudgeCountdown("Speak to start the 20 second nudge timer, or ask for a manual nudge.");
                     setStatus("Interview is live. Start speaking; the interviewer responds after you pause for 20 seconds.");
                     startSilenceMonitor();
+                    startTimer(startedAt || Date.now());
                 });
                 dataChannel.addEventListener("message", function (message) {
                     try {
@@ -491,7 +517,6 @@
                     sdp: await sdpResponse.text()
                 });
                 endButton.disabled = false;
-                startTimer(startedAt || Date.now());
             } catch (error) {
                 startButton.disabled = false;
                 cleanupConnection();
@@ -550,10 +575,15 @@
             requestInterviewerResponse("Manual interviewer nudge requested.", true);
         });
         endButton.addEventListener("click", endInterview);
+        hydrateSavedTranscriptKeys();
         if (startedAt) {
             startButton.textContent = "Resume Interview";
             endButton.disabled = false;
-            startTimer(startedAt);
+            renderInterviewTimer();
+            if (sessionStatus === "active") {
+                setStatus("Session paused in this browser. Click resume and allow microphone access to continue from the saved transcript.");
+            }
+            setNudgeCountdown("Resume the interview to continue the nudge timer.");
         } else {
             renderInterviewTimer();
         }

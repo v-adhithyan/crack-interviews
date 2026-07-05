@@ -20,6 +20,7 @@ from .models import ResumeAnalysisSettings
 from .models import MockInterviewSession
 from .models import MockInterviewTurn
 from .services import ResumeMatchResult
+from .services import build_mock_interview_instructions
 from .services import parse_mock_interview_feedback_json
 from .tasks import run_resume_analysis
 
@@ -185,6 +186,32 @@ class MockInterviewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'data-duration-seconds="3600"')
         self.assertContains(response, "60:00")
+
+    def test_active_room_loads_as_paused_resume_state(self):
+        session = MockInterviewSession.objects.create(
+            user=self.user,
+            topic="URL Shortener",
+            status=MockInterviewSession.Status.ACTIVE,
+            started_at=timezone.now() - timedelta(minutes=5),
+        )
+
+        response = self.client.get(reverse("mock_interview_room", kwargs={"session_uuid": session.uuid}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-session-status="active"')
+        self.assertContains(response, "Resume Interview")
+        self.assertContains(response, "Session paused in this browser")
+
+    def test_mock_interview_instructions_include_resume_transcript_context(self):
+        instructions = build_mock_interview_instructions(
+            "URL Shortener",
+            "Senior",
+            "Interviewer: What scale should we design for?\nUser: Ten million daily active users.",
+        )
+
+        self.assertIn("Conversation so far before this realtime connection was created", instructions)
+        self.assertIn("Ten million daily active users", instructions)
+        self.assertIn("Do not restart the interview", instructions)
 
     @override_settings(OPENAI_API_KEY="test-key")
     def test_token_endpoint_consumes_quota_and_returns_payload(self):

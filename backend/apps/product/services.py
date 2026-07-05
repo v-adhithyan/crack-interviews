@@ -240,7 +240,19 @@ def _validate_score(value, field_name):
         raise ValidationError(f'Analysis JSON must include "{field_name}" as a number from 0 to 100.')
 
 
-def build_mock_interview_instructions(topic, level):
+def build_mock_interview_instructions(topic, level, transcript_text=""):
+    transcript_text = (transcript_text or "").strip()
+    resume_context = ""
+    if transcript_text:
+        resume_context = f"""
+
+Conversation so far before this realtime connection was created:
+{transcript_text[-12000:]}
+
+The candidate has refreshed or reconnected. Continue from the conversation above.
+Do not restart the interview, do not repeat the opening question, and ask the next
+natural interviewer follow-up based on the saved transcript."""
+
     return f"""You are a realistic system design interviewer for HackerLeap.
 
 Interview topic:
@@ -248,6 +260,7 @@ Interview topic:
 
 Candidate level:
 {level}
+{resume_context}
 
 Run a live mock system design interview. Follow these rules:
 1. Converse only in English, even if the candidate uses another language.
@@ -269,11 +282,18 @@ def create_mock_interview_realtime_token(user, session):
         raise ImproperlyConfigured("OPENAI_API_KEY is required for mock voice interviews.")
 
     safety_identifier = hashlib.sha256(f"hackerleap-user-{user.id}".encode("utf-8")).hexdigest()
+    transcript_text = session.transcript_text.strip()
+    if not transcript_text and session.pk:
+        transcript_text = "\n".join(f"{turn.get_role_display()}: {turn.text}" for turn in session.turns.all())
     payload = {
         "session": {
             "type": "realtime",
             "model": settings.OPENAI_REALTIME_MODEL,
-            "instructions": build_mock_interview_instructions(session.topic, session.get_level_display()),
+            "instructions": build_mock_interview_instructions(
+                session.topic,
+                session.get_level_display(),
+                transcript_text,
+            ),
             "audio": {
                 "input": {
                     "transcription": {
