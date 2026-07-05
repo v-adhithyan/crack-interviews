@@ -177,6 +177,15 @@ class MockInterviewTests(TestCase):
         self.assertFalse(MockInterviewSession.objects.filter(user=self.user).exists())
         self.assertContains(response, "Please keep the custom question under 1,000 characters", status_code=400)
 
+    def test_room_exposes_sixty_minute_timer_data(self):
+        session = MockInterviewSession.objects.create(user=self.user, topic="URL Shortener")
+
+        response = self.client.get(reverse("mock_interview_room", kwargs={"session_uuid": session.uuid}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-duration-seconds="3600"')
+        self.assertContains(response, "60:00")
+
     @override_settings(OPENAI_API_KEY="test-key")
     def test_token_endpoint_consumes_quota_and_returns_payload(self):
         session = MockInterviewSession.objects.create(
@@ -211,6 +220,19 @@ class MockInterviewTests(TestCase):
         self.assertEqual(response.status_code, 429)
         self.assertEqual(feature_flags.mock_interview_count, 1)
         self.assertEqual(session.status, MockInterviewSession.Status.CREATED)
+
+    def test_token_endpoint_rejects_expired_active_interview(self):
+        session = MockInterviewSession.objects.create(
+            user=self.user,
+            topic="URL Shortener",
+            status=MockInterviewSession.Status.ACTIVE,
+            started_at=timezone.now() - timedelta(minutes=61),
+        )
+
+        response = self.client.post(reverse("mock_interview_token", kwargs={"session_uuid": session.uuid}))
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["detail"], "This interview has reached the 60 minute time limit.")
 
     def test_turn_endpoint_saves_transcript_turn(self):
         session = MockInterviewSession.objects.create(user=self.user, topic="Notification System")

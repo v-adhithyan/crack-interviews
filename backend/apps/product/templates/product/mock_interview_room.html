@@ -15,7 +15,7 @@
                     <h1 id="room-title">{{ session.topic }}</h1>
                 </div>
                 <div class="mock-room-controls">
-                    <span class="mock-timer" data-mock-timer>0:00</span>
+                    <span class="mock-timer" data-mock-timer>{{ session.remaining_display }}</span>
                     <button type="button" data-start-interview>Start Interview</button>
                     <button class="outline-small" type="button" data-end-interview disabled>End Interview</button>
                 </div>
@@ -25,7 +25,8 @@
                 data-token-url="{% url 'mock_interview_token' session_uuid=session.uuid %}"
                 data-turns-url="{% url 'mock_interview_turns' session_uuid=session.uuid %}"
                 data-finish-url="{% url 'mock_interview_finish' session_uuid=session.uuid %}"
-                data-started-at="{% if session.started_at %}{{ session.started_at|date:'c' }}{% endif %}">
+                data-started-at="{% if session.started_at %}{{ session.started_at|date:'c' }}{% endif %}"
+                data-duration-seconds="{{ duration_seconds|default:3600 }}">
                 <div class="prompt-card mock-status-card">
                     <h2>Session Status</h2>
                     <p data-session-status>Ready. Click start and allow microphone access.</p>
@@ -105,6 +106,8 @@
         var analyser = null;
         var silenceMonitorFrame = null;
         var startedAt = root.dataset.startedAt ? new Date(root.dataset.startedAt).getTime() : null;
+        var durationSeconds = Number(root.dataset.durationSeconds || 3600);
+        var hasAutoEnded = false;
         var isInterviewLive = false;
         var responseInProgress = false;
         var candidateHasSpokenSinceLastResponse = false;
@@ -156,15 +159,28 @@
             }, 1400);
         }
 
-        function formatElapsed(seconds) {
+        function formatDuration(seconds) {
             var minutes = Math.floor(seconds / 60);
             var remainingSeconds = String(seconds % 60).padStart(2, "0");
             return minutes + ":" + remainingSeconds;
         }
 
+        function remainingInterviewSeconds() {
+            if (!startedAt) {
+                return durationSeconds;
+            }
+            var elapsed = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+            return Math.max(0, durationSeconds - elapsed);
+        }
+
         function renderInterviewTimer() {
-            var elapsed = startedAt ? Math.max(0, Math.floor((Date.now() - startedAt) / 1000)) : 0;
-            timerNode.textContent = formatElapsed(elapsed);
+            var remainingSeconds = remainingInterviewSeconds();
+            timerNode.textContent = formatDuration(remainingSeconds);
+            timerNode.classList.toggle("is-ending", remainingSeconds <= 300);
+            if (startedAt && remainingSeconds <= 0 && !hasAutoEnded) {
+                hasAutoEnded = true;
+                endInterview(true);
+            }
         }
 
         function startTimer(startedAtOverride) {
@@ -508,11 +524,11 @@
             }
         }
 
-        async function endInterview() {
+        async function endInterview(isAutomatic) {
             endButton.disabled = true;
             startButton.disabled = true;
             cleanupConnection();
-            setStatus("Generating feedback...");
+            setStatus(isAutomatic ? "Time is up. Generating feedback..." : "Generating feedback...");
             try {
                 var response = await fetch(root.dataset.finishUrl, {
                     method: "POST",
@@ -535,6 +551,8 @@
         });
         endButton.addEventListener("click", endInterview);
         if (startedAt) {
+            startButton.textContent = "Resume Interview";
+            endButton.disabled = false;
             startTimer(startedAt);
         } else {
             renderInterviewTimer();

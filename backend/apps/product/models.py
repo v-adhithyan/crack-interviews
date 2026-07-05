@@ -231,6 +231,8 @@ ResumeAnalysisSettings = UserFeatureFlags
 
 
 class MockInterviewSession(models.Model):
+    DURATION = timedelta(minutes=60)
+
     class TopicSource(models.TextChoices):
         PRESET = "preset", "Preset"
         CUSTOM = "custom", "Custom"
@@ -266,6 +268,30 @@ class MockInterviewSession(models.Model):
 
     def __str__(self):
         return f"{self.get_level_display()} mock interview: {self.topic[:80]}"
+
+    @property
+    def expires_at(self):
+        if not self.started_at:
+            return None
+        return self.started_at + self.DURATION
+
+    @property
+    def remaining_seconds(self):
+        if self.status == self.Status.COMPLETED:
+            return 0
+        expires_at = self.expires_at
+        if not expires_at:
+            return int(self.DURATION.total_seconds())
+        return max(0, int((expires_at - timezone.now()).total_seconds()))
+
+    @property
+    def remaining_display(self):
+        minutes, seconds = divmod(self.remaining_seconds, 60)
+        return f"{minutes}:{seconds:02d}"
+
+    @property
+    def is_time_expired(self):
+        return self.remaining_seconds <= 0
 
     @property
     def display_score(self):

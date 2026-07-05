@@ -993,6 +993,12 @@ a {
     font-variant-numeric: tabular-nums;
 }
 
+.mock-timer.is-ending {
+    border-color: rgba(220, 38, 38, 0.28);
+    background: #fff1f2;
+    color: #b42318;
+}
+
 .mock-room-grid {
     display: grid;
     grid-template-columns: 320px minmax(0, 1fr);

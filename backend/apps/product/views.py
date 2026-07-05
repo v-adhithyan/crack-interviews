@@ -339,6 +339,8 @@ def mock_interview_room(request, session_uuid):
             "resume": user_resume(request.user),
             "session": session,
             "active_nav": "mock_interview",
+            "duration_seconds": int(MockInterviewSession.DURATION.total_seconds()),
+            "remaining_seconds": session.remaining_seconds,
         },
     )
 
@@ -349,6 +351,8 @@ def mock_interview_token(request, session_uuid):
     session = get_visible_mock_interview_or_404(request.user, session_uuid)
     if session.status == MockInterviewSession.Status.COMPLETED:
         return JsonResponse({"detail": "This interview has already ended."}, status=400)
+    if session.status == MockInterviewSession.Status.ACTIVE and session.is_time_expired:
+        return JsonResponse({"detail": "This interview has reached the 60 minute time limit."}, status=400)
 
     should_start_session = session.status == MockInterviewSession.Status.CREATED
     feature_flags = None
@@ -386,6 +390,8 @@ def mock_interview_token(request, session_uuid):
 @require_POST
 def mock_interview_turns(request, session_uuid):
     session = get_visible_mock_interview_or_404(request.user, session_uuid)
+    if session.status == MockInterviewSession.Status.COMPLETED or session.is_time_expired:
+        return HttpResponseBadRequest("This interview has ended.")
     try:
         payload = json.loads(request.body.decode("utf-8"))
     except json.JSONDecodeError:
