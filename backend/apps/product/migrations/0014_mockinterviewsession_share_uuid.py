@@ -21,12 +21,12 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="mockinterviewsession",
             name="share_uuid",
-            field=models.UUIDField(default=uuid.uuid4, editable=False, null=True),
+            field=models.UUIDField(editable=False, null=True),
         ),
         migrations.RunPython(backfill_share_uuids, migrations.RunPython.noop),
         migrations.AlterField(
             model_name="mockinterviewsession",
             name="share_uuid",
-            field=models.UUIDField(default=uuid.uuid4, editable=False, unique=True),
+            field=models.UUIDField(blank=True, default=uuid.uuid4, editable=False, null=True, unique=True),
         ),
     ]

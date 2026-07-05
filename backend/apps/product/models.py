@@ -255,7 +255,7 @@ class MockInterviewSession(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="mock_interview_sessions")
     continued_from = models.ForeignKey("self", on_delete=models.SET_NULL, related_name="free_style_continuations", blank=True, null=True)
     uuid = models.UUIDField(default=uuid_lib.uuid4, unique=True, editable=False)
-    share_uuid = models.UUIDField(default=uuid_lib.uuid4, unique=True, editable=False)
+    share_uuid = models.UUIDField(default=uuid_lib.uuid4, unique=True, editable=False, blank=True, null=True)
     mode = models.CharField(max_length=12, choices=Mode.choices, default=Mode.TIMED)
     topic_source = models.CharField(max_length=12, choices=TopicSource.choices, default=TopicSource.PRESET)
     topic = models.CharField(max_length=1000)
