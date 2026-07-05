@@ -263,6 +263,69 @@ class MockInterviewTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["detail"], "This interview has reached the 60 minute time limit.")
 
+    def test_continue_free_style_from_completed_interview_copies_context(self):
+        source_session = MockInterviewSession.objects.create(
+            user=self.user,
+            topic="URL Shortener",
+            status=MockInterviewSession.Status.COMPLETED,
+            started_at=timezone.now() - timedelta(minutes=60),
+            ended_at=timezone.now(),
+            feedback_json={"overall_score": 70},
+        )
+        MockInterviewTurn.objects.create(session=source_session, role=MockInterviewTurn.Role.INTERVIEWER, text="What are the requirements?")
+        MockInterviewTurn.objects.create(session=source_session, role=MockInterviewTurn.Role.USER, text="We need short links and redirects.")
+
+        response = self.client.post(reverse("mock_interview_continue_free_style", kwargs={"session_uuid": source_session.uuid}))
+
+        continuation = MockInterviewSession.objects.exclude(id=source_session.id).get(user=self.user)
+        self.assertRedirects(response, reverse("mock_interview_room", kwargs={"session_uuid": continuation.uuid}))
+        self.assertEqual(continuation.mode, MockInterviewSession.Mode.FREE)
+        self.assertEqual(continuation.continued_from, source_session)
+        self.assertEqual(continuation.topic, source_session.topic)
+        self.assertEqual(continuation.turns.count(), 2)
+        self.assertIn("User: We need short links and redirects.", continuation.transcript_text)
+
+    @override_settings(OPENAI_API_KEY="test-key")
+    def test_free_style_token_does_not_consume_daily_quota(self):
+        feature_flags = ResumeAnalysisSettings.objects.create(
+            user=self.user,
+            mock_interview_daily_limit=1,
+            mock_interview_count=1,
+            mock_interview_window_started_at=timezone.now(),
+        )
+        session = MockInterviewSession.objects.create(
+            user=self.user,
+            topic="URL Shortener",
+            mode=MockInterviewSession.Mode.FREE,
+        )
+
+        with patch("apps.product.views.create_mock_interview_realtime_token", return_value={"value": "ephemeral-token"}):
+            response = self.client.post(reverse("mock_interview_token", kwargs={"session_uuid": session.uuid}))
+
+        feature_flags.refresh_from_db()
+        session.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(feature_flags.mock_interview_count, 1)
+        self.assertEqual(session.status, MockInterviewSession.Status.ACTIVE)
+
+    def test_free_style_turns_do_not_expire_after_sixty_minutes(self):
+        session = MockInterviewSession.objects.create(
+            user=self.user,
+            topic="URL Shortener",
+            mode=MockInterviewSession.Mode.FREE,
+            status=MockInterviewSession.Status.ACTIVE,
+            started_at=timezone.now() - timedelta(minutes=90),
+        )
+
+        response = self.client.post(
+            reverse("mock_interview_turns", kwargs={"session_uuid": session.uuid}),
+            data=json.dumps({"role": "user", "text": "I want to go deeper on caching."}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(session.turns.get().text, "I want to go deeper on caching.")
+
     def test_turn_endpoint_saves_transcript_turn(self):
         session = MockInterviewSession.objects.create(user=self.user, topic="Notification System")
 

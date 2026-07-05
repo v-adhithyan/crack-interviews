@@ -14,6 +14,7 @@ urlpatterns = [
     path("app/mock-interview/start/", views.mock_interview_create, name="mock_interview_create"),
     path("app/mock-interview/history/", views.mock_interview_history, name="mock_interview_history"),
     path("app/mock-interview/<uuid:session_uuid>/", views.mock_interview_room, name="mock_interview_room"),
+    path("app/mock-interview/<uuid:session_uuid>/continue-free-style/", views.mock_interview_continue_free_style, name="mock_interview_continue_free_style"),
     path("app/mock-interview/<uuid:session_uuid>/token/", views.mock_interview_token, name="mock_interview_token"),
     path("app/mock-interview/<uuid:session_uuid>/turns/", views.mock_interview_turns, name="mock_interview_turns"),
     path("app/mock-interview/<uuid:session_uuid>/finish/", views.mock_interview_finish, name="mock_interview_finish"),

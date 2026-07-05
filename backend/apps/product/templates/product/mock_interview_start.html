@@ -59,10 +59,18 @@
                 {% if recent_sessions %}
                     <div class="mock-session-list">
                         {% for session in recent_sessions %}
-                            <a class="mock-session-row" href="{% if session.status == 'completed' %}{% url 'mock_interview_feedback' session_uuid=session.uuid %}{% else %}{% url 'mock_interview_room' session_uuid=session.uuid %}{% endif %}">
-                                <strong>{{ session.topic }}</strong>
-                                <span>{{ session.get_level_display }} · {{ session.get_status_display }} · {{ session.updated_at|date:"M j, Y, g:i A" }}</span>
-                            </a>
+                            <div class="mock-session-row" data-href="{% if session.status == 'completed' %}{% url 'mock_interview_feedback' session_uuid=session.uuid %}{% else %}{% url 'mock_interview_room' session_uuid=session.uuid %}{% endif %}">
+                                <div>
+                                    <strong>{{ session.topic }}</strong>
+                                    <span>{{ session.get_level_display }} · {{ session.get_status_display }} · {{ session.get_mode_display }} · {{ session.updated_at|date:"M j, Y, g:i A" }}</span>
+                                </div>
+                                {% if session.status == 'completed' and session.mode == 'timed' %}
+                                    <form class="inline-action-form" method="post" action="{% url 'mock_interview_continue_free_style' session_uuid=session.uuid %}">
+                                        {% csrf_token %}
+                                        <button type="submit">Continue free style</button>
+                                    </form>
+                                {% endif %}
+                            </div>
                         {% endfor %}
                     </div>
                 {% else %}

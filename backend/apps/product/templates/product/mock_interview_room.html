@@ -11,7 +11,7 @@
             <section class="mock-room-hero" aria-labelledby="room-title">
                 <div>
                     <a class="back-link" href="{% url 'mock_interview_start' %}">← Back to mock interviews</a>
-                    <p class="eyebrow">{{ session.get_level_display }} · {{ session.get_topic_source_display }}</p>
+                    <p class="eyebrow">{{ session.get_level_display }} · {{ session.get_topic_source_display }} · {{ session.get_mode_display }}</p>
                     <h1 id="room-title">{{ session.topic }}</h1>
                 </div>
                 <div class="mock-room-controls">
@@ -27,6 +27,7 @@
                 data-finish-url="{% url 'mock_interview_finish' session_uuid=session.uuid %}"
                 data-started-at="{% if session.started_at %}{{ session.started_at|date:'c' }}{% endif %}"
                 data-interview-status="{{ session.status }}"
+                data-interview-mode="{{ session.mode }}"
                 data-duration-seconds="{{ duration_seconds|default:3600 }}">
                 <div class="prompt-card mock-status-card">
                     <h2>Session Status</h2>
@@ -118,6 +119,7 @@
         var startedAt = root.dataset.startedAt ? new Date(root.dataset.startedAt).getTime() : null;
         var durationSeconds = Number(root.dataset.durationSeconds || 3600);
         var sessionStatus = root.dataset.interviewStatus || "created";
+        var isFreeStyle = root.dataset.interviewMode === "free";
         var hasAutoEnded = false;
         var isInterviewLive = false;
         var responseInProgress = false;
@@ -195,6 +197,9 @@
         }
 
         function remainingInterviewSeconds() {
+            if (isFreeStyle) {
+                return null;
+            }
             if (!startedAt) {
                 return durationSeconds;
             }
@@ -203,6 +208,11 @@
         }
 
         function renderInterviewTimer() {
+            if (isFreeStyle) {
+                timerNode.textContent = "Free style";
+                timerNode.classList.remove("is-ending");
+                return;
+            }
             var remainingSeconds = remainingInterviewSeconds();
             timerNode.textContent = formatDuration(remainingSeconds);
             timerNode.classList.toggle("is-ending", remainingSeconds <= 300);
@@ -213,6 +223,10 @@
         }
 
         function startTimer(startedAtOverride) {
+            if (isFreeStyle) {
+                renderInterviewTimer();
+                return;
+            }
             if (startedAtOverride) {
                 startedAt = startedAtOverride;
             }

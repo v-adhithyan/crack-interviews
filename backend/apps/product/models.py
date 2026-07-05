@@ -233,6 +233,10 @@ ResumeAnalysisSettings = UserFeatureFlags
 class MockInterviewSession(models.Model):
     DURATION = timedelta(minutes=60)
 
+    class Mode(models.TextChoices):
+        TIMED = "timed", "Timed"
+        FREE = "free", "Free style"
+
     class TopicSource(models.TextChoices):
         PRESET = "preset", "Preset"
         CUSTOM = "custom", "Custom"
@@ -249,7 +253,9 @@ class MockInterviewSession(models.Model):
         FAILED = "failed", "Failed"
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="mock_interview_sessions")
+    continued_from = models.ForeignKey("self", on_delete=models.SET_NULL, related_name="free_style_continuations", blank=True, null=True)
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    mode = models.CharField(max_length=12, choices=Mode.choices, default=Mode.TIMED)
     topic_source = models.CharField(max_length=12, choices=TopicSource.choices, default=TopicSource.PRESET)
     topic = models.CharField(max_length=1000)
     level = models.CharField(max_length=12, choices=Level.choices, default=Level.SENIOR)
@@ -271,12 +277,14 @@ class MockInterviewSession(models.Model):
 
     @property
     def expires_at(self):
-        if not self.started_at:
+        if self.is_free_style or not self.started_at:
             return None
         return self.started_at + self.DURATION
 
     @property
     def remaining_seconds(self):
+        if self.is_free_style:
+            return 0
         if self.status == self.Status.COMPLETED:
             return 0
         expires_at = self.expires_at
@@ -286,12 +294,20 @@ class MockInterviewSession(models.Model):
 
     @property
     def remaining_display(self):
+        if self.is_free_style:
+            return "Free style"
         minutes, seconds = divmod(self.remaining_seconds, 60)
         return f"{minutes}:{seconds:02d}"
 
     @property
     def is_time_expired(self):
+        if self.is_free_style:
+            return False
         return self.remaining_seconds <= 0
+
+    @property
+    def is_free_style(self):
+        return self.mode == self.Mode.FREE
 
     @property
     def display_score(self):

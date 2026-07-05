@@ -40,10 +40,10 @@ class MockInterviewTurnInline(admin.TabularInline):
 
 @admin.register(MockInterviewSession)
 class MockInterviewSessionAdmin(admin.ModelAdmin):
-    list_display = ("topic", "user", "topic_source", "level", "status", "started_at", "ended_at", "updated_at")
-    list_filter = ("topic_source", "level", "status", "created_at", "updated_at")
+    list_display = ("topic", "user", "mode", "topic_source", "level", "status", "started_at", "ended_at", "updated_at")
+    list_filter = ("mode", "topic_source", "level", "status", "created_at", "updated_at")
     search_fields = ("topic", "user__username", "user__email", "transcript_text", "error_message")
-    readonly_fields = ("uuid", "transcript_text", "feedback_json", "error_message", "started_at", "ended_at", "created_at", "updated_at")
+    readonly_fields = ("uuid", "continued_from", "transcript_text", "feedback_json", "error_message", "started_at", "ended_at", "created_at", "updated_at")
     inlines = (MockInterviewTurnInline,)
 
 

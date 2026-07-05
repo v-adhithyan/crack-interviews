@@ -240,7 +240,7 @@ def _validate_score(value, field_name):
         raise ValidationError(f'Analysis JSON must include "{field_name}" as a number from 0 to 100.')
 
 
-def build_mock_interview_instructions(topic, level, transcript_text=""):
+def build_mock_interview_instructions(topic, level, transcript_text="", is_free_style=False):
     transcript_text = (transcript_text or "").strip()
     resume_context = ""
     if transcript_text:
@@ -252,6 +252,13 @@ Conversation so far before this realtime connection was created:
 The candidate has refreshed or reconnected. Continue from the conversation above.
 Do not restart the interview, do not repeat the opening question, and ask the next
 natural interviewer follow-up based on the saved transcript."""
+    mode_context = ""
+    if is_free_style:
+        mode_context = """
+
+This is a free style continuation after a timed mock interview. There is no time
+limit. Continue naturally from the saved transcript and let the candidate explore
+follow-up areas until they manually end the session."""
 
     return f"""You are a realistic system design interviewer for HackerLeap.
 
@@ -261,6 +268,7 @@ Interview topic:
 Candidate level:
 {level}
 {resume_context}
+{mode_context}
 
 Run a live mock system design interview. Follow these rules:
 1. Converse only in English, even if the candidate uses another language.
@@ -293,6 +301,7 @@ def create_mock_interview_realtime_token(user, session):
                 session.topic,
                 session.get_level_display(),
                 transcript_text,
+                session.is_free_style,
             ),
             "audio": {
                 "input": {

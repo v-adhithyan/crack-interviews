@@ -927,11 +927,14 @@ a {
 
 .mock-session-row {
     display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
     gap: 4px;
     padding: 14px;
     border: 1px solid var(--line);
     border-radius: 8px;
     background: #fff;
+    cursor: pointer;
 }
 
 .mock-session-row:hover {
@@ -941,6 +944,33 @@ a {
 .mock-session-row span,
 .empty-state {
     color: var(--muted);
+}
+
+.inline-action-form {
+    display: inline-flex;
+    margin: 0;
+}
+
+.inline-action-form button,
+.table-action-link {
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 12px;
+    border: 1px solid rgba(247, 184, 1, 0.62);
+    border-radius: 7px;
+    background: #fffaf0;
+    color: var(--ink);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 850;
+    white-space: nowrap;
+}
+
+.inline-action-form button:hover,
+.table-action-link:hover {
+    background: #fff1bd;
 }
 
 .mock-room-hero {
@@ -1148,7 +1178,7 @@ a {
 .mock-history-header,
 .mock-history-row {
     display: grid;
-    grid-template-columns: minmax(240px, 1fr) 120px 120px 80px 170px;
+    grid-template-columns: minmax(240px, 1fr) 120px 160px 80px 170px 160px;
     gap: 16px;
     align-items: center;
     padding: 14px 16px;

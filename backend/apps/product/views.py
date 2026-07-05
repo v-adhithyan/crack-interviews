@@ -347,16 +347,52 @@ def mock_interview_room(request, session_uuid):
 
 @product_access_required
 @require_POST
+def mock_interview_continue_free_style(request, session_uuid):
+    source_session = get_visible_mock_interview_or_404(request.user, session_uuid)
+    if source_session.is_free_style or (source_session.status != MockInterviewSession.Status.COMPLETED and not source_session.is_time_expired):
+        messages.error(request, "Free style continuation is available after a timed interview ends.")
+        if source_session.status == MockInterviewSession.Status.COMPLETED:
+            return redirect("mock_interview_feedback", session_uuid=source_session.uuid)
+        return redirect("mock_interview_room", session_uuid=source_session.uuid)
+
+    transcript_text = "\n".join(f"{turn.get_role_display()}: {turn.text}" for turn in source_session.turns.all())
+    if not transcript_text:
+        transcript_text = source_session.transcript_text
+
+    continuation = MockInterviewSession.objects.create(
+        user=source_session.user,
+        continued_from=source_session,
+        mode=MockInterviewSession.Mode.FREE,
+        topic_source=source_session.topic_source,
+        topic=source_session.topic,
+        level=source_session.level,
+        transcript_text=transcript_text,
+    )
+    MockInterviewTurn.objects.bulk_create(
+        MockInterviewTurn(
+            session=continuation,
+            role=turn.role,
+            text=turn.text,
+            occurred_at=turn.occurred_at,
+        )
+        for turn in source_session.turns.all()
+    )
+    messages.success(request, "Free style continuation created. Resume when you are ready.")
+    return redirect("mock_interview_room", session_uuid=continuation.uuid)
+
+
+@product_access_required
+@require_POST
 def mock_interview_token(request, session_uuid):
     session = get_visible_mock_interview_or_404(request.user, session_uuid)
     if session.status == MockInterviewSession.Status.COMPLETED:
         return JsonResponse({"detail": "This interview has already ended."}, status=400)
-    if session.status == MockInterviewSession.Status.ACTIVE and session.is_time_expired:
+    if not session.is_free_style and session.status == MockInterviewSession.Status.ACTIVE and session.is_time_expired:
         return JsonResponse({"detail": "This interview has reached the 60 minute time limit."}, status=400)
 
     should_start_session = session.status == MockInterviewSession.Status.CREATED
     feature_flags = None
-    if should_start_session:
+    if should_start_session and not session.is_free_style:
         feature_flags = get_user_feature_flags(request.user, create=True)
         if not feature_flags.can_run_mock_interview():
             return JsonResponse({"detail": "Daily mock interview limit reached. Please try again after 24 hours."}, status=429)
@@ -377,7 +413,7 @@ def mock_interview_token(request, session_uuid):
         return JsonResponse({"detail": session.error_message}, status=500)
 
     if session.status == MockInterviewSession.Status.CREATED:
-        if feature_flags is None or not feature_flags.consume_mock_interview_quota():
+        if not session.is_free_style and (feature_flags is None or not feature_flags.consume_mock_interview_quota()):
             return JsonResponse({"detail": "Daily mock interview limit reached. Please try again after 24 hours."}, status=429)
         session.status = MockInterviewSession.Status.ACTIVE
         session.started_at = timezone.now()
@@ -390,7 +426,7 @@ def mock_interview_token(request, session_uuid):
 @require_POST
 def mock_interview_turns(request, session_uuid):
     session = get_visible_mock_interview_or_404(request.user, session_uuid)
-    if session.status == MockInterviewSession.Status.COMPLETED or session.is_time_expired:
+    if session.status == MockInterviewSession.Status.COMPLETED or (not session.is_free_style and session.is_time_expired):
         return HttpResponseBadRequest("This interview has ended.")
     try:
         payload = json.loads(request.body.decode("utf-8"))
