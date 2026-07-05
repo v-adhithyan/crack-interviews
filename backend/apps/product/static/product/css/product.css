@@ -1410,6 +1410,54 @@ th {
     text-align: center;
 }
 
+.public-share-shell {
+    width: min(1120px, calc(100% - 36px));
+    margin: 0 auto;
+    padding: 34px 0 46px;
+}
+
+.public-share-meta {
+    margin: 10px 0 0;
+    color: var(--muted);
+    font-weight: 850;
+}
+
+.mock-share-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 16px;
+    align-items: center;
+}
+
+.mock-share-card h2 {
+    margin: 0 0 6px;
+}
+
+.mock-share-card p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.share-link-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+    margin-top: 16px;
+}
+
+.share-link-row input {
+    min-height: 44px;
+    width: 100%;
+    padding: 0 12px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: #fff;
+    color: var(--muted);
+    font-weight: 750;
+}
+
 .empty-history {
     display: grid;
     gap: 8px;
@@ -1668,7 +1716,9 @@ th {
     .analysis-result-grid,
     .source-input-grid,
     .mock-form-grid,
-    .mock-room-grid {
+    .mock-room-grid,
+    .mock-share-card,
+    .share-link-row {
         grid-template-columns: 1fr;
     }
 

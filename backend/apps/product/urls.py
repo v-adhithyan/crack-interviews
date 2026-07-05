@@ -19,6 +19,7 @@ urlpatterns = [
     path("app/mock-interview/<uuid:session_uuid>/turns/", views.mock_interview_turns, name="mock_interview_turns"),
     path("app/mock-interview/<uuid:session_uuid>/finish/", views.mock_interview_finish, name="mock_interview_finish"),
     path("app/mock-interview/<uuid:session_uuid>/feedback/", views.mock_interview_feedback, name="mock_interview_feedback"),
+    path("app/mock-interview/share/<uuid:share_uuid>/", views.mock_interview_public_share, name="mock_interview_public_share"),
     path("user-content/resume/<uuid:resume_uuid>/", views.resume_content, name="resume_content"),
     path("login/", views.ProductLoginView.as_view(), name="login"),
     path("logout/", LogoutView.as_view(), name="logout"),

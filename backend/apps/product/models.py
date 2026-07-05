@@ -1,4 +1,4 @@
-import uuid
+import uuid as uuid_lib
 
 from datetime import timedelta
 from pathlib import Path
@@ -14,7 +14,7 @@ def resume_upload_path(instance, filename):
 
 
 class Resume(models.Model):
-    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    uuid = models.UUIDField(default=uuid_lib.uuid4, unique=True, editable=False)
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="resume")
     file = models.FileField(upload_to=resume_upload_path)
     original_filename = models.CharField(max_length=255)
@@ -40,7 +40,7 @@ class ResumeAnalysis(models.Model):
         FAILED = "failed", "Failed"
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="resume_analyses")
-    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    uuid = models.UUIDField(default=uuid_lib.uuid4, unique=True, editable=False)
     resume = models.ForeignKey(Resume, on_delete=models.CASCADE, related_name="analyses")
     job_description = models.TextField()
     resume_text = models.TextField()
@@ -254,7 +254,8 @@ class MockInterviewSession(models.Model):
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="mock_interview_sessions")
     continued_from = models.ForeignKey("self", on_delete=models.SET_NULL, related_name="free_style_continuations", blank=True, null=True)
-    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    uuid = models.UUIDField(default=uuid_lib.uuid4, unique=True, editable=False)
+    share_uuid = models.UUIDField(default=uuid_lib.uuid4, unique=True, editable=False)
     mode = models.CharField(max_length=12, choices=Mode.choices, default=Mode.TIMED)
     topic_source = models.CharField(max_length=12, choices=TopicSource.choices, default=TopicSource.PRESET)
     topic = models.CharField(max_length=1000)
