@@ -1,13 +1,12 @@
 import json
 import shutil
 import tempfile
+
 from datetime import timedelta
-from io import StringIO
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.core.management import call_command
 from django.test import override_settings
 from django.test import TestCase
 from django.urls import reverse
@@ -454,30 +453,6 @@ class MockInterviewTests(TestCase):
         self.assertContains(response, "Copy Share Link")
         self.assertContains(response, reverse("mock_interview_public_share", kwargs={"share_uuid": session.share_uuid}))
 
-    def test_feedback_page_backfills_missing_share_uuid(self):
-        session = MockInterviewSession.objects.create(
-            user=self.user,
-            topic="URL Shortener",
-            status=MockInterviewSession.Status.COMPLETED,
-            feedback_json={
-                "overall_score": 72,
-                "summary": "Solid clarification start.",
-                "strengths": ["Clarified scale."],
-                "gaps": ["Needs deeper storage design."],
-                "missed_topics": ["Caching"],
-                "better_answer_outline": ["Clarify requirements."],
-                "next_practice_steps": ["Practice data modeling."],
-            },
-        )
-        MockInterviewSession.objects.filter(id=session.id).update(share_uuid=None)
-
-        response = self.client.get(reverse("mock_interview_feedback", kwargs={"session_uuid": session.uuid}))
-
-        session.refresh_from_db()
-        self.assertEqual(response.status_code, 200)
-        self.assertIsNotNone(session.share_uuid)
-        self.assertContains(response, reverse("mock_interview_public_share", kwargs={"share_uuid": session.share_uuid}))
-
     def test_public_share_page_is_available_without_login(self):
         session = MockInterviewSession.objects.create(
             user=self.user,
@@ -511,17 +486,6 @@ class MockInterviewTests(TestCase):
         response = self.client.get(reverse("mock_interview_public_share", kwargs={"share_uuid": session.share_uuid}))
 
         self.assertEqual(response.status_code, 404)
-
-    def test_backfill_mock_interview_share_links_command_repairs_missing_values(self):
-        missing_session = MockInterviewSession.objects.create(user=self.user, topic="Chat Application")
-        MockInterviewSession.objects.filter(id=missing_session.id).update(share_uuid=None)
-        output = StringIO()
-
-        call_command("backfill_mock_interview_share_links", stdout=output)
-
-        missing_session.refresh_from_db()
-        self.assertIsNotNone(missing_session.share_uuid)
-        self.assertIn("Backfilled 1 mock interview share link(s).", output.getvalue())
 
     def test_parse_mock_interview_feedback_json_validates_score(self):
         with self.assertRaises(Exception):

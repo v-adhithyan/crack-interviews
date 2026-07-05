@@ -1,5 +1,4 @@
 import json
-import uuid
 
 from django.conf import settings
 from django.http import FileResponse
@@ -82,14 +81,6 @@ def get_visible_mock_interview_or_404(user, session_uuid):
 def user_display_label(user):
     full_name = (user.get_full_name() or "").strip()
     return full_name or user.email or user.username
-
-
-def ensure_mock_interview_share_uuid(session):
-    if session.share_uuid:
-        return session.share_uuid
-    session.share_uuid = uuid.uuid4()
-    session.save(update_fields=("share_uuid", "updated_at"))
-    return session.share_uuid
 
 
 def is_manual_ai_mode(user):
@@ -507,8 +498,7 @@ def mock_interview_history(request):
 @product_access_required
 def mock_interview_feedback(request, session_uuid):
     session = get_visible_mock_interview_or_404(request.user, session_uuid)
-    share_uuid = ensure_mock_interview_share_uuid(session)
-    share_url = request.build_absolute_uri(reverse("mock_interview_public_share", kwargs={"share_uuid": share_uuid}))
+    share_url = request.build_absolute_uri(reverse("mock_interview_public_share", kwargs={"share_uuid": session.share_uuid}))
     return render(
         request,
         "product/mock_interview_feedback.html",
