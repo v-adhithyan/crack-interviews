@@ -198,9 +198,11 @@ class MockInterviewTests(TestCase):
         response = self.client.get(reverse("mock_interview_room", kwargs={"session_uuid": session.uuid}))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'data-session-status="active"')
+        self.assertContains(response, 'data-interview-status="active"')
+        self.assertNotContains(response, 'data-session-status="active"')
         self.assertContains(response, "Resume Interview")
         self.assertContains(response, "Session paused in this browser")
+        self.assertContains(response, 'data-transcript')
 
     def test_mock_interview_instructions_include_resume_transcript_context(self):
         instructions = build_mock_interview_instructions(

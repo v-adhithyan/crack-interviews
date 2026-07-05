@@ -26,7 +26,7 @@
                 data-turns-url="{% url 'mock_interview_turns' session_uuid=session.uuid %}"
                 data-finish-url="{% url 'mock_interview_finish' session_uuid=session.uuid %}"
                 data-started-at="{% if session.started_at %}{{ session.started_at|date:'c' }}{% endif %}"
-                data-session-status="{{ session.status }}"
+                data-interview-status="{{ session.status }}"
                 data-duration-seconds="{{ duration_seconds|default:3600 }}">
                 <div class="prompt-card mock-status-card">
                     <h2>Session Status</h2>
@@ -111,10 +111,13 @@
         var pauseDeadlineAt = null;
         var audioContext = null;
         var analyser = null;
+        var remoteAudioContext = null;
+        var remoteAnalyser = null;
         var silenceMonitorFrame = null;
+        var remoteAudioMonitorFrame = null;
         var startedAt = root.dataset.startedAt ? new Date(root.dataset.startedAt).getTime() : null;
         var durationSeconds = Number(root.dataset.durationSeconds || 3600);
-        var sessionStatus = root.dataset.sessionStatus || "created";
+        var sessionStatus = root.dataset.interviewStatus || "created";
         var hasAutoEnded = false;
         var isInterviewLive = false;
         var responseInProgress = false;
@@ -125,6 +128,7 @@
         var savedTexts = {};
         var PAUSE_BEFORE_RESPONSE_MS = 20000;
         var SPEECH_LEVEL_THRESHOLD = 0.018;
+        var REMOTE_SPEECH_LEVEL_THRESHOLD = 0.006;
         var SPEECH_DETECTION_DEBOUNCE_MS = 450;
 
         function hydrateSavedTranscriptKeys() {
@@ -352,6 +356,52 @@
             analyser = null;
         }
 
+        function startRemoteAudioMonitor(stream) {
+            if (!stream || remoteAudioContext) {
+                return;
+            }
+            remoteAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+            if (remoteAudioContext.state === "suspended") {
+                remoteAudioContext.resume().catch(function () {});
+            }
+            var source = remoteAudioContext.createMediaStreamSource(stream);
+            remoteAnalyser = remoteAudioContext.createAnalyser();
+            remoteAnalyser.fftSize = 1024;
+            source.connect(remoteAnalyser);
+            var samples = new Uint8Array(remoteAnalyser.fftSize);
+
+            function monitorRemoteAudio() {
+                if (!remoteAnalyser || !isInterviewLive) {
+                    return;
+                }
+                remoteAnalyser.getByteTimeDomainData(samples);
+                var sum = 0;
+                for (var index = 0; index < samples.length; index += 1) {
+                    var normalized = (samples[index] - 128) / 128;
+                    sum += normalized * normalized;
+                }
+                var volume = Math.sqrt(sum / samples.length);
+                if (volume > REMOTE_SPEECH_LEVEL_THRESHOLD) {
+                    pulseInterviewerSpeaking();
+                }
+                remoteAudioMonitorFrame = window.requestAnimationFrame(monitorRemoteAudio);
+            }
+
+            monitorRemoteAudio();
+        }
+
+        function stopRemoteAudioMonitor() {
+            if (remoteAudioMonitorFrame) {
+                window.cancelAnimationFrame(remoteAudioMonitorFrame);
+                remoteAudioMonitorFrame = null;
+            }
+            if (remoteAudioContext) {
+                remoteAudioContext.close();
+                remoteAudioContext = null;
+            }
+            remoteAnalyser = null;
+        }
+
         function appendTurn(role, text) {
             var empty = document.querySelector("[data-empty-transcript]");
             if (empty) {
@@ -477,6 +527,7 @@
                 audio.autoplay = true;
                 peerConnection.ontrack = function (event) {
                     audio.srcObject = event.streams[0];
+                    startRemoteAudioMonitor(event.streams[0]);
                 };
                 localStream.getTracks().forEach(function (track) {
                     peerConnection.addTrack(track, localStream);
@@ -533,6 +584,7 @@
             setInterviewerSpeaking(false);
             setManualNudgeEnabled(false);
             stopSilenceMonitor();
+            stopRemoteAudioMonitor();
             if (dataChannel) {
                 dataChannel.close();
                 dataChannel = null;
