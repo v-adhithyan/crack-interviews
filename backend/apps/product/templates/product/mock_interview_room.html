@@ -24,10 +24,29 @@
             <section class="mock-room-grid" data-session-root
                 data-token-url="{% url 'mock_interview_token' session_uuid=session.uuid %}"
                 data-turns-url="{% url 'mock_interview_turns' session_uuid=session.uuid %}"
-                data-finish-url="{% url 'mock_interview_finish' session_uuid=session.uuid %}">
+                data-finish-url="{% url 'mock_interview_finish' session_uuid=session.uuid %}"
+                data-started-at="{% if session.started_at %}{{ session.started_at|date:'c' }}{% endif %}">
                 <div class="prompt-card mock-status-card">
                     <h2>Session Status</h2>
                     <p data-session-status>Ready. Click start and allow microphone access.</p>
+                    <div class="mock-speaking-panel" aria-label="Speaking activity">
+                        <div class="mock-speaker" data-candidate-speaker>
+                            <span>Candidate</span>
+                            <div class="mock-wave" aria-hidden="true">
+                                <b></b><b></b><b></b><b></b>
+                            </div>
+                        </div>
+                        <div class="mock-speaker" data-interviewer-speaker>
+                            <span>Interviewer</span>
+                            <div class="mock-wave" aria-hidden="true">
+                                <b></b><b></b><b></b><b></b>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mock-nudge-panel">
+                        <span data-nudge-countdown>Speak to start the 20 second nudge timer.</span>
+                        <button class="outline-small" type="button" data-manual-nudge disabled>Ask interviewer now</button>
+                    </div>
                     {% if session.error_message %}
                         <p class="field-error">{{ session.error_message }}</p>
                     {% endif %}
@@ -67,23 +86,31 @@
 
         var startButton = document.querySelector("[data-start-interview]");
         var endButton = document.querySelector("[data-end-interview]");
+        var manualNudgeButton = document.querySelector("[data-manual-nudge]");
         var statusNode = document.querySelector("[data-session-status]");
         var transcriptNode = document.querySelector("[data-transcript]");
         var timerNode = document.querySelector("[data-mock-timer]");
+        var nudgeCountdownNode = document.querySelector("[data-nudge-countdown]");
+        var candidateSpeakerNode = document.querySelector("[data-candidate-speaker]");
+        var interviewerSpeakerNode = document.querySelector("[data-interviewer-speaker]");
         var csrfToken = document.querySelector("[name=csrfmiddlewaretoken]") ? document.querySelector("[name=csrfmiddlewaretoken]").value : "{{ csrf_token }}";
         var peerConnection = null;
         var dataChannel = null;
         var localStream = null;
         var timerInterval = null;
         var pauseTimeout = null;
+        var nudgeCountdownInterval = null;
+        var pauseDeadlineAt = null;
         var audioContext = null;
         var analyser = null;
         var silenceMonitorFrame = null;
-        var startedAt = null;
+        var startedAt = root.dataset.startedAt ? new Date(root.dataset.startedAt).getTime() : null;
         var isInterviewLive = false;
         var responseInProgress = false;
         var candidateHasSpokenSinceLastResponse = false;
         var lastSpeechDetectedAt = 0;
+        var candidateSpeakingTimeout = null;
+        var interviewerSpeakingTimeout = null;
         var savedTexts = {};
         var PAUSE_BEFORE_RESPONSE_MS = 20000;
         var SPEECH_LEVEL_THRESHOLD = 0.018;
@@ -93,13 +120,66 @@
             statusNode.textContent = message;
         }
 
-        function startTimer() {
-            startedAt = Date.now();
+        function setSpeaking(node, isSpeaking) {
+            if (node) {
+                node.classList.toggle("is-speaking", isSpeaking);
+            }
+        }
+
+        function pulseCandidateSpeaking() {
+            setSpeaking(candidateSpeakerNode, true);
+            if (candidateSpeakingTimeout) {
+                window.clearTimeout(candidateSpeakingTimeout);
+            }
+            candidateSpeakingTimeout = window.setTimeout(function () {
+                setSpeaking(candidateSpeakerNode, false);
+            }, 900);
+        }
+
+        function setInterviewerSpeaking(isSpeaking) {
+            setSpeaking(interviewerSpeakerNode, isSpeaking);
+            if (!isSpeaking && interviewerSpeakingTimeout) {
+                window.clearTimeout(interviewerSpeakingTimeout);
+                interviewerSpeakingTimeout = null;
+            }
+        }
+
+        function pulseInterviewerSpeaking() {
+            setInterviewerSpeaking(true);
+            if (interviewerSpeakingTimeout) {
+                window.clearTimeout(interviewerSpeakingTimeout);
+            }
+            interviewerSpeakingTimeout = window.setTimeout(function () {
+                if (!responseInProgress) {
+                    setInterviewerSpeaking(false);
+                }
+            }, 1400);
+        }
+
+        function formatElapsed(seconds) {
+            var minutes = Math.floor(seconds / 60);
+            var remainingSeconds = String(seconds % 60).padStart(2, "0");
+            return minutes + ":" + remainingSeconds;
+        }
+
+        function renderInterviewTimer() {
+            var elapsed = startedAt ? Math.max(0, Math.floor((Date.now() - startedAt) / 1000)) : 0;
+            timerNode.textContent = formatElapsed(elapsed);
+        }
+
+        function startTimer(startedAtOverride) {
+            if (startedAtOverride) {
+                startedAt = startedAtOverride;
+            }
+            if (!startedAt) {
+                startedAt = Date.now();
+            }
+            if (timerInterval) {
+                window.clearInterval(timerInterval);
+            }
+            renderInterviewTimer();
             timerInterval = window.setInterval(function () {
-                var elapsed = Math.floor((Date.now() - startedAt) / 1000);
-                var minutes = Math.floor(elapsed / 60);
-                var seconds = String(elapsed % 60).padStart(2, "0");
-                timerNode.textContent = minutes + ":" + seconds;
+                renderInterviewTimer();
             }, 500);
         }
 
@@ -110,16 +190,39 @@
             }
         }
 
-        function requestInterviewerResponse(reason) {
+        function setManualNudgeEnabled(isEnabled) {
+            if (manualNudgeButton) {
+                manualNudgeButton.disabled = !isEnabled;
+            }
+        }
+
+        function setNudgeCountdown(message) {
+            if (nudgeCountdownNode) {
+                nudgeCountdownNode.textContent = message;
+            }
+        }
+
+        function updateNudgeCountdown() {
+            if (!pauseDeadlineAt) {
+                setNudgeCountdown("Speak to start the 20 second nudge timer.");
+                return;
+            }
+            var remainingSeconds = Math.max(0, Math.ceil((pauseDeadlineAt - Date.now()) / 1000));
+            setNudgeCountdown("Interviewer nudge in " + remainingSeconds + "s");
+        }
+
+        function requestInterviewerResponse(reason, force) {
             if (!isInterviewLive || responseInProgress || !dataChannel || dataChannel.readyState !== "open") {
                 return;
             }
-            if (!candidateHasSpokenSinceLastResponse) {
+            if (!force && !candidateHasSpokenSinceLastResponse) {
                 return;
             }
             clearPauseTimer();
             candidateHasSpokenSinceLastResponse = false;
             responseInProgress = true;
+            setInterviewerSpeaking(true);
+            setManualNudgeEnabled(false);
             setStatus(reason || "Asking interviewer for the next prompt...");
             dataChannel.send(JSON.stringify({ type: "response.create" }));
         }
@@ -129,6 +232,12 @@
                 window.clearTimeout(pauseTimeout);
                 pauseTimeout = null;
             }
+            if (nudgeCountdownInterval) {
+                window.clearInterval(nudgeCountdownInterval);
+                nudgeCountdownInterval = null;
+            }
+            pauseDeadlineAt = null;
+            setNudgeCountdown(isInterviewLive ? "Listening. Speak to start the next nudge timer." : "Speak to start the 20 second nudge timer.");
         }
 
         function schedulePauseResponse() {
@@ -136,6 +245,9 @@
             if (!isInterviewLive || responseInProgress || !candidateHasSpokenSinceLastResponse) {
                 return;
             }
+            pauseDeadlineAt = Date.now() + PAUSE_BEFORE_RESPONSE_MS;
+            updateNudgeCountdown();
+            nudgeCountdownInterval = window.setInterval(updateNudgeCountdown, 250);
             pauseTimeout = window.setTimeout(function () {
                 requestInterviewerResponse("Candidate paused for 20 seconds. Getting interviewer nudge...");
             }, PAUSE_BEFORE_RESPONSE_MS);
@@ -146,6 +258,7 @@
                 return;
             }
             candidateHasSpokenSinceLastResponse = true;
+            setManualNudgeEnabled(true);
             schedulePauseResponse();
             if (statusMessage) {
                 setStatus(statusMessage);
@@ -176,6 +289,7 @@
                 var volume = Math.sqrt(sum / samples.length);
                 if (volume > SPEECH_LEVEL_THRESHOLD && Date.now() - lastSpeechDetectedAt > SPEECH_DETECTION_DEBOUNCE_MS) {
                     lastSpeechDetectedAt = Date.now();
+                    pulseCandidateSpeaking();
                     markCandidateActivity("Listening. The interviewer will respond after a 20 second pause.");
                 }
                 silenceMonitorFrame = window.requestAnimationFrame(monitor);
@@ -244,7 +358,9 @@
             if (event.type === "response.output_audio_transcript.done" || event.type === "response.audio_transcript.done") {
                 saveTurn("interviewer", event.transcript);
                 responseInProgress = false;
+                setInterviewerSpeaking(false);
                 clearPauseTimer();
+                setManualNudgeEnabled(true);
                 setStatus("Listening. Speak when you are ready.");
             }
             if (
@@ -253,15 +369,28 @@
                 event.type === "input_audio_buffer.transcription_completed"
             ) {
                 saveTurn("user", event.transcript);
+                pulseCandidateSpeaking();
                 markCandidateActivity("Candidate answer captured. Waiting for a 20 second pause.");
+            }
+            if (
+                event.type === "response.audio.delta" ||
+                event.type === "response.output_audio.delta" ||
+                event.type === "response.audio_transcript.delta" ||
+                event.type === "response.output_audio_transcript.delta"
+            ) {
+                pulseInterviewerSpeaking();
             }
             if (event.type === "response.done" || event.type === "response.cancelled") {
                 responseInProgress = false;
+                setInterviewerSpeaking(false);
                 clearPauseTimer();
+                setManualNudgeEnabled(true);
                 setStatus("Listening. Speak when you are ready.");
             }
             if (event.type === "error") {
                 responseInProgress = false;
+                setInterviewerSpeaking(false);
+                setManualNudgeEnabled(true);
                 setStatus(event.error && event.error.message ? event.error.message : "Realtime session error.");
             }
         }
@@ -315,6 +444,8 @@
                 dataChannel.addEventListener("open", function () {
                     isInterviewLive = true;
                     candidateHasSpokenSinceLastResponse = false;
+                    setManualNudgeEnabled(true);
+                    setNudgeCountdown("Speak to start the 20 second nudge timer, or ask for a manual nudge.");
                     setStatus("Interview is live. Start speaking; the interviewer responds after you pause for 20 seconds.");
                     startSilenceMonitor();
                 });
@@ -344,7 +475,7 @@
                     sdp: await sdpResponse.text()
                 });
                 endButton.disabled = false;
-                startTimer();
+                startTimer(startedAt || Date.now());
             } catch (error) {
                 startButton.disabled = false;
                 cleanupConnection();
@@ -357,6 +488,9 @@
             isInterviewLive = false;
             responseInProgress = false;
             candidateHasSpokenSinceLastResponse = false;
+            setSpeaking(candidateSpeakerNode, false);
+            setInterviewerSpeaking(false);
+            setManualNudgeEnabled(false);
             stopSilenceMonitor();
             if (dataChannel) {
                 dataChannel.close();
@@ -396,7 +530,15 @@
         }
 
         startButton.addEventListener("click", startInterview);
+        manualNudgeButton.addEventListener("click", function () {
+            requestInterviewerResponse("Manual interviewer nudge requested.", true);
+        });
         endButton.addEventListener("click", endInterview);
+        if (startedAt) {
+            startTimer(startedAt);
+        } else {
+            renderInterviewTimer();
+        }
         window.addEventListener("beforeunload", cleanupConnection);
     })();
 </script>
