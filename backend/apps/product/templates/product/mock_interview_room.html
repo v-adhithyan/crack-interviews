@@ -30,6 +30,7 @@
                 data-started-at="{% if session.started_at %}{{ session.started_at|date:'c' }}{% endif %}"
                 data-interview-status="{{ session.status }}"
                 data-interview-mode="{{ session.mode }}"
+                data-user-label="{{ mock_interview_user_label }}"
                 data-duration-seconds="{{ duration_seconds|default:3600 }}">
                 <div class="prompt-card mock-status-card">
                     <h2>Session Status</h2>
@@ -42,7 +43,7 @@
                     </p>
                     <div class="mock-speaking-panel" aria-label="Speaking activity">
                         <div class="mock-speaker" data-candidate-speaker>
-                            <span>Candidate</span>
+                            <span>{{ mock_interview_user_label }}</span>
                             <div class="mock-wave" aria-hidden="true">
                                 <b></b><b></b><b></b><b></b>
                             </div>
@@ -72,7 +73,7 @@
                     <div class="mock-transcript" data-transcript>
                         {% for turn in session.turns.all %}
                             <article class="mock-turn mock-turn-{{ turn.role }}">
-                                <span>{{ turn.get_role_display }}</span>
+                                <span>{% if turn.role == 'user' %}{{ mock_interview_user_label }}{% else %}{{ turn.get_role_display }}{% endif %}</span>
                                 <p>{{ turn.text }}</p>
                             </article>
                         {% empty %}
@@ -122,6 +123,7 @@
         var durationSeconds = Number(root.dataset.durationSeconds || 3600);
         var sessionStatus = root.dataset.interviewStatus || "created";
         var isFreeStyle = root.dataset.interviewMode === "free";
+        var userLabel = root.dataset.userLabel || "You";
         var hasAutoEnded = false;
         var isInterviewLive = false;
         var responseInProgress = false;
@@ -312,7 +314,7 @@
             updateNudgeCountdown();
             nudgeCountdownInterval = window.setInterval(updateNudgeCountdown, 250);
             pauseTimeout = window.setTimeout(function () {
-                requestInterviewerResponse("Candidate paused for 20 seconds. Getting interviewer nudge...");
+                requestInterviewerResponse(userLabel + " paused for 20 seconds. Getting interviewer nudge...");
             }, PAUSE_BEFORE_RESPONSE_MS);
         }
 
@@ -428,7 +430,7 @@
             var article = document.createElement("article");
             article.className = "mock-turn mock-turn-" + role;
             var label = document.createElement("span");
-            label.textContent = role === "user" ? "User" : "Interviewer";
+            label.textContent = role === "user" ? userLabel : "Interviewer";
             var paragraph = document.createElement("p");
             paragraph.textContent = text;
             article.appendChild(label);
@@ -479,7 +481,7 @@
             ) {
                 saveTurn("user", event.transcript);
                 pulseCandidateSpeaking();
-                markCandidateActivity("Candidate answer captured. Waiting for a 20 second pause.");
+                markCandidateActivity("Answer captured. Waiting for a 20 second pause.");
             }
             if (
                 event.type === "response.audio.delta" ||

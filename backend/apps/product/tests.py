@@ -204,6 +204,29 @@ class MockInterviewTests(TestCase):
         self.assertContains(response, "Session paused in this browser")
         self.assertContains(response, 'data-transcript')
 
+    def test_room_uses_email_for_candidate_label_when_name_missing(self):
+        session = MockInterviewSession.objects.create(user=self.user, topic="URL Shortener")
+        MockInterviewTurn.objects.create(session=session, role=MockInterviewTurn.Role.USER, text="I will clarify requirements first.")
+
+        response = self.client.get(reverse("mock_interview_room", kwargs={"session_uuid": session.uuid}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-user-label="mock@example.com"')
+        self.assertContains(response, "<span>mock@example.com</span>", html=True)
+        self.assertNotContains(response, "<span>Candidate</span>", html=True)
+
+    def test_room_prefers_full_name_for_candidate_label(self):
+        self.user.first_name = "Adhi"
+        self.user.last_name = "Kumar"
+        self.user.save(update_fields=("first_name", "last_name"))
+        session = MockInterviewSession.objects.create(user=self.user, topic="URL Shortener")
+
+        response = self.client.get(reverse("mock_interview_room", kwargs={"session_uuid": session.uuid}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-user-label="Adhi Kumar"')
+        self.assertContains(response, "<span>Adhi Kumar</span>", html=True)
+
     def test_mock_interview_instructions_include_resume_transcript_context(self):
         instructions = build_mock_interview_instructions(
             "URL Shortener",

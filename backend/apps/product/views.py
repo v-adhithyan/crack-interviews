@@ -78,6 +78,11 @@ def get_visible_mock_interview_or_404(user, session_uuid):
     return get_object_or_404(user_mock_interview_queryset(user), uuid=session_uuid)
 
 
+def user_display_label(user):
+    full_name = (user.get_full_name() or "").strip()
+    return full_name or user.email or user.username
+
+
 def is_manual_ai_mode(user):
     return get_effective_resume_analysis_mode(user) == "manual"
 
@@ -341,6 +346,7 @@ def mock_interview_room(request, session_uuid):
             "active_nav": "mock_interview",
             "duration_seconds": int(MockInterviewSession.DURATION.total_seconds()),
             "remaining_seconds": session.remaining_seconds,
+            "mock_interview_user_label": user_display_label(session.user),
         },
     )
 
