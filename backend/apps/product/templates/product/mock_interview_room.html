@@ -15,7 +15,9 @@
                     <h1 id="room-title">{{ session.topic }}</h1>
                 </div>
                 <div class="mock-room-controls">
-                    <span class="mock-timer" data-mock-timer>{{ session.remaining_display }}</span>
+                    {% if not session.is_free_style %}
+                        <span class="mock-timer" data-mock-timer>{{ session.remaining_display }}</span>
+                    {% endif %}
                     <button type="button" data-start-interview>Start Interview</button>
                     <button class="outline-small" type="button" data-end-interview disabled>End Interview</button>
                 </div>
@@ -209,8 +211,10 @@
 
         function renderInterviewTimer() {
             if (isFreeStyle) {
-                timerNode.textContent = "Free style";
-                timerNode.classList.remove("is-ending");
+                if (timerNode) {
+                    timerNode.remove();
+                    timerNode = null;
+                }
                 return;
             }
             var remainingSeconds = remainingInterviewSeconds();

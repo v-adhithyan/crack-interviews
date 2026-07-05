@@ -326,6 +326,19 @@ class MockInterviewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(session.turns.get().text, "I want to go deeper on caching.")
 
+    def test_free_style_room_does_not_show_timer_pill(self):
+        session = MockInterviewSession.objects.create(
+            user=self.user,
+            topic="URL Shortener",
+            mode=MockInterviewSession.Mode.FREE,
+        )
+
+        response = self.client.get(reverse("mock_interview_room", kwargs={"session_uuid": session.uuid}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Free style")
+        self.assertNotContains(response, "<span class=\"mock-timer\"", html=False)
+
     def test_turn_endpoint_saves_transcript_turn(self):
         session = MockInterviewSession.objects.create(user=self.user, topic="Notification System")
 
