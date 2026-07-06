@@ -3,6 +3,12 @@ const AUTH_TOKEN_KEY = "hackerleap-code-admin-token";
 
 export type Language = "java" | "python";
 
+export type Tag = {
+  id: number;
+  name: string;
+  slug: string;
+};
+
 export type QuestionListItem = {
   id: number;
   title: string;
@@ -11,6 +17,7 @@ export type QuestionListItem = {
   solved: boolean;
   revision_marked: boolean;
   test_case_count: number;
+  tags: Tag[];
 };
 
 export type QuestionDetail = QuestionListItem & {
@@ -85,6 +92,29 @@ export type RevisionSubmission = {
   execution_time_ms: number;
   memory_kb: number;
   created_at: string;
+};
+
+export type TrackQuestion = QuestionListItem & {
+  track_order: number;
+  is_required: boolean;
+  recommended_time_minutes: number;
+  pattern_note: string;
+};
+
+export type TrackSection = {
+  id: number;
+  title: string;
+  description: string;
+  order: number;
+  questions: TrackQuestion[];
+};
+
+export type TrackDetail = {
+  id: number;
+  title: string;
+  slug: string;
+  description: string;
+  sections: TrackSection[];
 };
 
 export type AuthUser = {
@@ -192,6 +222,10 @@ export async function logoutAdmin() {
 
 export function getQuestions() {
   return request<QuestionListItem[]>("/questions/");
+}
+
+export function getTrack(slug: string) {
+  return request<TrackDetail>(`/tracks/${slug}/`);
 }
 
 export function getQuestion(slug: string) {

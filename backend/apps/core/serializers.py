@@ -1,22 +1,30 @@
 from rest_framework import serializers
 
-from .models import Question, Submission, TestCaseResult
+from .models import Question, Submission, Tag, TestCaseResult, Track
+
+
+class TagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tag
+        fields = ["id", "name", "slug"]
 
 
 class QuestionListSerializer(serializers.ModelSerializer):
     solved = serializers.BooleanField()
     revision_marked = serializers.BooleanField()
     test_case_count = serializers.IntegerField()
+    tags = TagSerializer(many=True, read_only=True)
 
     class Meta:
         model = Question
-        fields = ["id", "title", "slug", "difficulty", "solved", "revision_marked", "test_case_count"]
+        fields = ["id", "title", "slug", "difficulty", "solved", "revision_marked", "test_case_count", "tags"]
 
 
 class QuestionDetailSerializer(serializers.ModelSerializer):
     solved = serializers.BooleanField()
     revision_marked = serializers.BooleanField()
     has_reference_solution = serializers.SerializerMethodField()
+    tags = TagSerializer(many=True, read_only=True)
 
     def get_has_reference_solution(self, obj):
         return bool(obj.java_reference_solution.strip() or obj.python_reference_solution.strip())
@@ -37,7 +45,45 @@ class QuestionDetailSerializer(serializers.ModelSerializer):
             "solved",
             "revision_marked",
             "has_reference_solution",
+            "tags",
         ]
+
+
+class TrackDetailSerializer(serializers.ModelSerializer):
+    sections = serializers.SerializerMethodField()
+
+    def get_sections(self, obj):
+        questions_by_id = {
+            question.id: question
+            for question in self.context.get("questions", [])
+        }
+        sections = []
+        for section in obj.sections.all():
+            items = []
+            for entry in section.track_questions.all():
+                question = questions_by_id.get(entry.question_id)
+                if not question:
+                    continue
+                data = QuestionListSerializer(question).data
+                data["track_order"] = entry.order
+                data["is_required"] = entry.is_required
+                data["recommended_time_minutes"] = entry.recommended_time_minutes
+                data["pattern_note"] = entry.pattern_note
+                items.append(data)
+            sections.append(
+                {
+                    "id": section.id,
+                    "title": section.title,
+                    "description": section.description,
+                    "order": section.order,
+                    "questions": items,
+                }
+            )
+        return sections
+
+    class Meta:
+        model = Track
+        fields = ["id", "title", "slug", "description", "sections"]
 
 
 class QuestionReferenceSolutionSerializer(serializers.ModelSerializer):

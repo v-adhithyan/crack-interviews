@@ -2,7 +2,7 @@ import json
 from types import SimpleNamespace
 
 from django.contrib.auth import authenticate, get_user_model
-from django.db.models import Count, Exists, OuterRef
+from django.db.models import Count, Exists, OuterRef, Prefetch
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import api_view
@@ -13,7 +13,7 @@ from apps.product.services import user_has_coding_platform_access
 from .auth import admin_api_required
 from .auth import user_from_authorization_header
 from .executor import run_submission
-from .models import AdminApiToken, Question, Submission
+from .models import AdminApiToken, Question, Submission, Track, TrackQuestion
 from .serializers import (
     QuestionDetailSerializer,
     QuestionListSerializer,
@@ -21,6 +21,7 @@ from .serializers import (
     RevisionSubmissionSerializer,
     SubmissionListSerializer,
     SubmissionSerializer,
+    TrackDetailSerializer,
 )
 
 
@@ -35,6 +36,7 @@ def questions_with_solved_flag(user):
     return (
         Question.objects.filter(is_active=True)
         .annotate(solved=Exists(accepted), revision_marked=Exists(revision_marked), test_case_count=Count("test_cases"))
+        .prefetch_related("tags")
         .order_by("title")
     )
 
@@ -104,6 +106,28 @@ def auth_me(request):
 @admin_api_required
 def question_list(request):
     serializer = QuestionListSerializer(questions_with_solved_flag(request.admin_api_user), many=True)
+    return Response(serializer.data)
+
+
+@api_view(["GET"])
+@admin_api_required
+def track_detail(request, slug):
+    track = get_object_or_404(
+        Track.objects.filter(is_active=True).prefetch_related(
+            Prefetch(
+                "sections__track_questions",
+                queryset=TrackQuestion.objects.select_related("question").order_by("order", "id"),
+            )
+        ),
+        slug=slug,
+    )
+    question_ids = [
+        entry.question_id
+        for section in track.sections.all()
+        for entry in section.track_questions.all()
+    ]
+    questions = questions_with_solved_flag(request.admin_api_user).filter(id__in=question_ids)
+    serializer = TrackDetailSerializer(track, context={"questions": questions})
     return Response(serializer.data)
 
 

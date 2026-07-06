@@ -62,6 +62,7 @@ class Question(models.Model):
     python_starter_code = models.TextField(default=PYTHON_STARTER_CODE)
     java_reference_solution = models.TextField(blank=True)
     python_reference_solution = models.TextField(blank=True)
+    tags = models.ManyToManyField("Tag", related_name="questions", blank=True)
     execution_mode = models.CharField(max_length=20, choices=ExecutionMode.choices, default=ExecutionMode.STDIN)
     function_name = models.CharField(max_length=80, blank=True, default="")
     is_active = models.BooleanField(default=True)
@@ -78,6 +79,72 @@ class Question(models.Model):
         if not self.slug:
             self.slug = slugify(self.title)
         super().save(*args, **kwargs)
+
+
+class Tag(models.Model):
+    name = models.CharField(max_length=80, unique=True)
+    slug = models.SlugField(max_length=100, unique=True, blank=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+
+class Track(models.Model):
+    title = models.CharField(max_length=160)
+    slug = models.SlugField(max_length=180, unique=True, blank=True)
+    description = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["title"]
+
+    def __str__(self):
+        return self.title
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.title)
+        super().save(*args, **kwargs)
+
+
+class TrackSection(models.Model):
+    track = models.ForeignKey(Track, related_name="sections", on_delete=models.CASCADE)
+    title = models.CharField(max_length=160)
+    description = models.TextField(blank=True)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "id"]
+        unique_together = [["track", "title"]]
+
+    def __str__(self):
+        return f"{self.track.title} - {self.title}"
+
+
+class TrackQuestion(models.Model):
+    section = models.ForeignKey(TrackSection, related_name="track_questions", on_delete=models.CASCADE)
+    question = models.ForeignKey(Question, related_name="track_entries", on_delete=models.CASCADE)
+    order = models.PositiveIntegerField(default=0)
+    is_required = models.BooleanField(default=True)
+    recommended_time_minutes = models.PositiveIntegerField(default=30)
+    pattern_note = models.CharField(max_length=240, blank=True)
+
+    class Meta:
+        ordering = ["section__order", "order", "id"]
+        unique_together = [["section", "question"]]
+
+    def __str__(self):
+        return f"{self.section} - {self.question.title}"
 
 
 class TestCase(models.Model):

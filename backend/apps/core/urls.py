@@ -8,6 +8,7 @@ urlpatterns = [
     path("auth/logout/", views.auth_logout, name="auth-logout"),
     path("auth/me/", views.auth_me, name="auth-me"),
     path("questions/", views.question_list, name="question-list"),
+    path("tracks/<slug:slug>/", views.track_detail, name="track-detail"),
     path("questions/<slug:slug>/", views.question_detail, name="question-detail"),
     path("questions/<slug:slug>/reference-solution/", views.question_reference_solution, name="question-reference-solution"),
     path("questions/<slug:slug>/revision/", views.mark_question_for_revision, name="mark-question-revision"),

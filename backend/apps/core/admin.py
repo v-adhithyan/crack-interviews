@@ -11,7 +11,7 @@ from django.shortcuts import redirect, render
 from django.urls import path
 from django.utils.html import format_html
 
-from .models import AdminApiToken, Question, Submission, TestCase, TestCaseResult
+from .models import AdminApiToken, Question, Submission, Tag, TestCase, TestCaseResult, Track, TrackQuestion, TrackSection
 
 
 class CsvImportForm(forms.Form):
@@ -111,14 +111,15 @@ class TestCaseInline(admin.TabularInline):
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):
     list_display = ["title", "difficulty", "execution_mode", "function_name", "is_active", "test_case_count", "test_case_csv", "created_at"]
-    list_filter = ["difficulty", "execution_mode", "is_active"]
+    list_filter = ["difficulty", "execution_mode", "is_active", "tags"]
     search_fields = ["title", "description"]
     prepopulated_fields = {"slug": ("title",)}
+    filter_horizontal = ["tags"]
     inlines = [TestCaseInline]
     change_form_template = "admin/core/question/change_form.html"
     change_list_template = "admin/core/question/change_list.html"
     fieldsets = (
-        (None, {"fields": ("title", "slug", "description", "difficulty", "is_active")}),
+        (None, {"fields": ("title", "slug", "description", "difficulty", "tags", "is_active")}),
         ("Execution", {"fields": ("execution_mode", "function_name")}),
         ("Starter code", {"fields": ("starter_code", "java_starter_code", "python_starter_code")}),
         ("Reference solutions", {"fields": ("java_reference_solution", "python_reference_solution"), "classes": ("collapse",)}),
@@ -256,6 +257,54 @@ class QuestionAdmin(admin.ModelAdmin):
             form = CsvImportForm()
 
         return render(request, "admin/core/question/import_test_cases.html", {"form": form, "question": question})
+
+
+@admin.register(Tag)
+class TagAdmin(admin.ModelAdmin):
+    list_display = ["name", "slug"]
+    prepopulated_fields = {"slug": ("name",)}
+    search_fields = ["name", "slug"]
+
+
+class TrackQuestionInline(admin.TabularInline):
+    model = TrackQuestion
+    extra = 1
+    autocomplete_fields = ["question"]
+    fields = ["question", "order", "is_required", "recommended_time_minutes", "pattern_note"]
+
+
+@admin.register(TrackSection)
+class TrackSectionAdmin(admin.ModelAdmin):
+    list_display = ["track", "title", "order"]
+    list_filter = ["track"]
+    search_fields = ["title", "track__title"]
+    inlines = [TrackQuestionInline]
+
+
+class TrackSectionInline(admin.TabularInline):
+    model = TrackSection
+    extra = 1
+    fields = ["title", "description", "order"]
+
+
+@admin.register(Track)
+class TrackAdmin(admin.ModelAdmin):
+    list_display = ["title", "slug", "is_active", "section_count", "created_at"]
+    list_filter = ["is_active"]
+    search_fields = ["title", "description", "slug"]
+    prepopulated_fields = {"slug": ("title",)}
+    inlines = [TrackSectionInline]
+
+    def section_count(self, obj):
+        return obj.sections.count()
+
+
+@admin.register(TrackQuestion)
+class TrackQuestionAdmin(admin.ModelAdmin):
+    list_display = ["section", "question", "order", "is_required", "recommended_time_minutes"]
+    list_filter = ["section__track", "is_required"]
+    search_fields = ["question__title", "section__title", "section__track__title"]
+    autocomplete_fields = ["question"]
 
 
 @admin.register(TestCase)
