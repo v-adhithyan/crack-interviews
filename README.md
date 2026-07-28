@@ -1,4 +1,4 @@
-# Crack Interviews
+# Crack Interviews (Hackerleap)
 
 [![Django tests](https://github.com/v-adhithyan/crack-interviews/actions/workflows/django-ci.yml/badge.svg)](https://github.com/v-adhithyan/crack-interviews/actions/workflows/django-ci.yml)
 [![Deploy backend to PythonAnywhere](https://github.com/v-adhithyan/crack-interviews/actions/workflows/deploy-backend-pythonanywhere.yml/badge.svg)](https://github.com/v-adhithyan/crack-interviews/actions/workflows/deploy-backend-pythonanywhere.yml)
