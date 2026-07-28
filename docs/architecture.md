@@ -6,54 +6,22 @@ plane for identity, authorization, product state, persistence, quotas, and AI jo
 orchestration. The Next.js application provides the interactive coding workspace.
 
 ```mermaid
-flowchart TB
-    user["Candidate browser"]
+flowchart LR
+    user["Candidate"] --> web["Web app<br/>Django pages + Next.js"]
+    web --> backend["Django backend<br/>API and product logic"]
 
-    subgraph frontend["Frontend"]
-        django_ui["Django templates<br/>Resume analysis and mock interviews"]
-        next_ui["Next.js / React<br/>Monaco coding workspace"]
-    end
+    backend --> db[("MySQL<br/>Users, sessions and results")]
+    backend --> worker["Background worker"]
+    worker --> text_ai["OpenAI text API<br/>Analysis and feedback"]
+    backend --> runner["Code runner<br/>Java and Python"]
 
-    subgraph backend["Django backend"]
-        product["Product application<br/>Auth, feature flags, quotas, session state"]
-        api["Django REST Framework<br/>Questions, tracks, submissions"]
-        ai_service["AI service layer<br/>Prompt construction and JSON validation"]
-        job_queue["Django-Q<br/>Background analysis jobs"]
-        executor["Code executor<br/>Java 17 and Python 3"]
-    end
-
-    subgraph data["Persistence"]
-        database[("MySQL production<br/>SQLite development")]
-        media[("Resume PDF storage")]
-    end
-
-    subgraph openai["OpenAI"]
-        text_model["Text model<br/>Resume analysis and interview feedback"]
-        realtime["Realtime API<br/>Voice interviewer and transcription"]
-    end
-
-    user --> django_ui
-    user --> next_ui
-
-    django_ui --> product
-    next_ui --> api
-
-    product --> database
-    product --> media
-    api --> database
-    api --> executor
-
-    product -->|"Queue analysis"| job_queue
-    job_queue --> ai_service
-    product -->|"Generate final feedback"| ai_service
-    ai_service -->|"Structured request"| text_model
-    text_model -->|"JSON response"| ai_service
-    ai_service -->|"Validated result"| database
-
-    product -->|"Issue short-lived client secret"| realtime
-    user <-->|"WebRTC audio and events"| realtime
-    user -->|"Persist transcript turns"| product
+    backend -.->|"Short-lived token"| voice_ai["OpenAI Realtime API"]
+    user <-->|"WebRTC voice"| voice_ai
 ```
+
+Django remains the control plane: it owns authentication, quotas, state, and saved
+results. Text AI work runs in the background, while realtime voice travels directly
+between the candidate's browser and OpenAI using a short-lived credential.
 
 ## Key request flows
 
