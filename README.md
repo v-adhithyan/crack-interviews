@@ -6,6 +6,9 @@
 
 A personal HackerRank/LeetCode-style practice platform built with Django and Next.js.
 
+See [the architecture overview](docs/architecture.md) for system, AI, request-flow,
+and deployment diagrams.
+
 ## Stack
 
 - Backend: Django, Django REST Framework, SQLite
