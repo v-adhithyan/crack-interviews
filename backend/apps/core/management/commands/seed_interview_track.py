@@ -308,14 +308,18 @@ FUNCTION_CASES.update(UNORDERED_CASES)
 
 
 def function_signature_text(title):
-    params = ", ".join(name for _, name in FUNCTION_SIGNATURES[title])
+    if title in NODE_TITLES:
+        params = ", ".join(f"{name}: {param_type}" for param_type, name in FUNCTION_SIGNATURES[title])
+    else:
+        params = ", ".join(name for _, name in FUNCTION_SIGNATURES[title])
     return f"solve({params})"
 
 
 def build_python_starter(title):
-    params = ", ".join(name for _, name in FUNCTION_SIGNATURES[title])
     if title in NODE_TITLES:
+        params = ", ".join(f"{name}: {param_type}" for param_type, name in FUNCTION_SIGNATURES[title])
         return build_node_python_starter(title, params)
+    params = ", ".join(name for _, name in FUNCTION_SIGNATURES[title])
     return f"def solve({params}):\n    # Write your solution here.\n    pass\n"
 
 

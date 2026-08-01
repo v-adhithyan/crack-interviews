@@ -20,6 +20,9 @@ class InterviewNodeQuestionTests(TestCase):
                 node_type = "ListNode" if question.title in LINKED_LIST_TITLES else "TreeNode"
                 self.assertIn(f"class {node_type}", question.java_starter_code)
                 self.assertIn(f"class {node_type}", question.python_starter_code)
+                parameter_name = "head" if question.title in LINKED_LIST_TITLES else "root"
+                self.assertIn(f"{node_type} {parameter_name}", question.java_starter_code)
+                self.assertIn(f"{parameter_name}: {node_type}", question.python_starter_code)
                 self.assertEqual(question.test_cases.count(), 10)
                 self.assertEqual(question.test_cases.filter(is_sample=True, is_hidden=False).count(), 2)
                 self.assertEqual(question.test_cases.filter(is_sample=False, is_hidden=True).count(), 8)
