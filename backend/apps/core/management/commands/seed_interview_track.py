@@ -4,7 +4,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils.text import slugify
 
-from apps.core.interview_node_questions import LINKED_LIST_TITLES, NODE_CASES, NODE_TITLES
+from apps.core.interview_node_questions import LINKED_LIST_TITLES, NODE_CASES, NODE_TITLES, PYTHON_RETURN_TYPES
 from apps.core.interview_node_questions import build_java_reference as build_node_java_reference
 from apps.core.interview_node_questions import build_java_starter as build_node_java_starter
 from apps.core.interview_node_questions import build_python_reference as build_node_python_reference
@@ -310,6 +310,7 @@ FUNCTION_CASES.update(UNORDERED_CASES)
 def function_signature_text(title):
     if title in NODE_TITLES:
         params = ", ".join(f"{name}: {param_type}" for param_type, name in FUNCTION_SIGNATURES[title])
+        return f"solve({params}) -> {PYTHON_RETURN_TYPES[title]}"
     else:
         params = ", ".join(name for _, name in FUNCTION_SIGNATURES[title])
     return f"solve({params})"

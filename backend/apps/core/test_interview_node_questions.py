@@ -2,7 +2,7 @@ from django.core.management import call_command
 from django.test import TestCase
 
 from .executor import run_submission
-from .interview_node_questions import LINKED_LIST_TITLES, NODE_TITLES
+from .interview_node_questions import JAVA_RETURN_TYPES, LINKED_LIST_TITLES, NODE_TITLES, PYTHON_RETURN_TYPES
 from .models import Question, Submission
 
 
@@ -23,6 +23,8 @@ class InterviewNodeQuestionTests(TestCase):
                 parameter_name = "head" if question.title in LINKED_LIST_TITLES else "root"
                 self.assertIn(f"{node_type} {parameter_name}", question.java_starter_code)
                 self.assertIn(f"{parameter_name}: {node_type}", question.python_starter_code)
+                self.assertIn(f"public {JAVA_RETURN_TYPES[question.title]} solve(", question.java_starter_code)
+                self.assertIn(f") -> {PYTHON_RETURN_TYPES[question.title]}:", question.python_starter_code)
                 self.assertEqual(question.test_cases.count(), 10)
                 self.assertEqual(question.test_cases.filter(is_sample=True, is_hidden=False).count(), 2)
                 self.assertEqual(question.test_cases.filter(is_sample=False, is_hidden=True).count(), 8)

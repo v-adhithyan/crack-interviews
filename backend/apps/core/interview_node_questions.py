@@ -29,6 +29,18 @@ JAVA_RETURN_TYPES = {
     "Binary Tree Right Side View": "List<Integer>",
 }
 
+PYTHON_RETURN_TYPES = {
+    "Reverse Linked List": "ListNode",
+    "Delete the Middle Node of a Linked List": "ListNode",
+    "Odd Even Linked List": "ListNode",
+    "Maximum Twin Sum of a Linked List": "int",
+    "Maximum Depth of Binary Tree": "int",
+    "Count Good Nodes in Binary Tree": "int",
+    "Path Sum III": "int",
+    "Lowest Common Ancestor of a Binary Tree": "TreeNode",
+    "Binary Tree Right Side View": "list[int]",
+}
+
 JAVA_LIST_NODE = """class ListNode {
     int val;
     ListNode next;
@@ -395,7 +407,8 @@ def build_java_starter(title, params):
 
 def build_python_starter(title, params):
     node_definition = PYTHON_LIST_NODE if title in LINKED_LIST_TITLES else PYTHON_TREE_NODE
-    return f"{node_definition}\n\ndef solve({params}):\n    # Write your solution here.\n    pass\n"
+    return_type = PYTHON_RETURN_TYPES[title]
+    return f"{node_definition}\n\ndef solve({params}) -> {return_type}:\n    # Write your solution here.\n    pass\n"
 
 
 def build_java_reference(title):
