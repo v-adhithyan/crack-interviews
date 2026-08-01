@@ -79,5 +79,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(seed_interview_track, reverse_code=hide_interview_track_and_questions),
+        migrations.RunPython(migrations.RunPython.noop, migrations.RunPython.noop),
     ]

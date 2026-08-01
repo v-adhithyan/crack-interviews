@@ -9,6 +9,9 @@ from apps.core.interview_node_questions import build_java_reference as build_nod
 from apps.core.interview_node_questions import build_java_starter as build_node_java_starter
 from apps.core.interview_node_questions import build_python_reference as build_node_python_reference
 from apps.core.interview_node_questions import build_python_starter as build_node_python_starter
+from apps.core.interview_unordered_questions import JAVA_REFERENCE_SOLUTIONS as UNORDERED_JAVA_SOLUTIONS
+from apps.core.interview_unordered_questions import OUTPUT_ORDER_NOTES, PYTHON_REFERENCE_SOLUTIONS as UNORDERED_PYTHON_SOLUTIONS
+from apps.core.interview_unordered_questions import UNORDERED_CASES, UNORDERED_COMPARISON_MODES
 from apps.core.models import Question, Tag, TestCase, Track, TrackQuestion, TrackSection
 
 
@@ -301,6 +304,7 @@ FUNCTION_CASES = {
 }
 
 FUNCTION_CASES.update(NODE_CASES)
+FUNCTION_CASES.update(UNORDERED_CASES)
 
 
 def function_signature_text(title):
@@ -335,12 +339,15 @@ def build_description(title, difficulty, tag_slugs):
             f" The platform constructs the {structure} from the value/level-order array shown in each test case."
             " Implement the node-based function signature directly; do not parse the array yourself."
         )
+    output_order_note = OUTPUT_ORDER_NOTES.get(title, "")
+    if output_order_note:
+        output_order_note = f"\n\n## Output Ordering\n\n{output_order_note}"
     return (
         f"## {title}\n\n"
         f"{PROBLEM_BRIEFS[title]}\n\n"
         f"Function signature:\n`{function_signature_text(title)}`\n\n"
         f"Write a solution that handles the sample cases and hidden edge cases efficiently.{node_input_note}\n\n"
-        f"{example_text}\n\n"
+        f"{example_text}{output_order_note}\n\n"
         "## Constraints\n\n"
         "- Input sizes are chosen to require the intended data-structure or algorithmic pattern.\n"
         "- Values fit within standard 32-bit signed integer ranges unless the statement implies strings or collections.\n"
@@ -356,6 +363,8 @@ def build_description(title, difficulty, tag_slugs):
 def build_reference_solution(title, language):
     if title in NODE_TITLES:
         return build_node_python_reference(title) if language == "python" else build_node_java_reference(title)
+    if title in UNORDERED_COMPARISON_MODES:
+        return UNORDERED_PYTHON_SOLUTIONS[title] if language == "python" else UNORDERED_JAVA_SOLUTIONS[title]
     comment = "#" if language == "python" else "//"
     return (
         f"{comment} Reference solution for {title}\n"
@@ -417,6 +426,7 @@ class Command(BaseCommand):
                     "python_reference_solution": build_reference_solution(title, "python"),
                     "execution_mode": Question.ExecutionMode.FUNCTION,
                     "function_name": "solve",
+                    "comparison_mode": UNORDERED_COMPARISON_MODES.get(title, Question.ComparisonMode.ORDERED),
                     "is_active": True,
                 }
                 if question is None and create_missing:
@@ -457,7 +467,7 @@ class Command(BaseCommand):
                                 "order": case_order,
                             },
                         )
-                    if title in NODE_TITLES:
+                    if title in NODE_TITLES or title in UNORDERED_COMPARISON_MODES:
                         question.test_cases.exclude(name__in=expected_case_names).delete()
                 section = sections[section_title]
                 TrackQuestion.objects.update_or_create(

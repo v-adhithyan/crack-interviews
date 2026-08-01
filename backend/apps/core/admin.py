@@ -89,6 +89,9 @@ class QuestionJsonImportForm(forms.Form):
             raise ValidationError("Question difficulty must be easy, medium, or hard.")
         if question["execution_mode"] not in Question.ExecutionMode.values:
             raise ValidationError("Question execution_mode must be stdin or function.")
+        comparison_mode = question.get("comparison_mode", Question.ComparisonMode.ORDERED)
+        if comparison_mode not in Question.ComparisonMode.values:
+            raise ValidationError("Question comparison_mode is invalid.")
 
         required_case_fields = {"name", "expected_output", "is_sample", "is_hidden", "order"}
         for index, test_case in enumerate(payload["test_cases"], start=1):
@@ -120,7 +123,7 @@ class QuestionAdmin(admin.ModelAdmin):
     change_list_template = "admin/core/question/change_list.html"
     fieldsets = (
         (None, {"fields": ("title", "slug", "description", "difficulty", "tags", "is_active")}),
-        ("Execution", {"fields": ("execution_mode", "function_name")}),
+        ("Execution", {"fields": ("execution_mode", "function_name", "comparison_mode")}),
         ("Starter code", {"fields": ("starter_code", "java_starter_code", "python_starter_code")}),
         ("Reference solutions", {"fields": ("java_reference_solution", "python_reference_solution"), "classes": ("collapse",)}),
     )
@@ -168,6 +171,7 @@ class QuestionAdmin(admin.ModelAdmin):
                     "difficulty": question_data["difficulty"],
                     "execution_mode": question_data["execution_mode"],
                     "function_name": question_data.get("function_name", ""),
+                    "comparison_mode": question_data.get("comparison_mode", Question.ComparisonMode.ORDERED),
                     "is_active": question_data.get("is_active", True),
                     "starter_code": question_data["starter_code"],
                     "java_starter_code": question_data["java_starter_code"],

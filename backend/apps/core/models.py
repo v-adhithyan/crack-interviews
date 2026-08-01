@@ -53,6 +53,11 @@ class Question(models.Model):
         STDIN = "stdin", "Standard input"
         FUNCTION = "function", "Function call"
 
+    class ComparisonMode(models.TextChoices):
+        ORDERED = "ordered", "Order matters"
+        UNORDERED_LIST = "unordered_list", "List order does not matter"
+        UNORDERED_NESTED_LISTS = "unordered_nested_lists", "Outer and inner list order does not matter"
+
     title = models.CharField(max_length=200)
     slug = models.SlugField(max_length=220, unique=True, blank=True)
     description = models.TextField()
@@ -65,6 +70,7 @@ class Question(models.Model):
     tags = models.ManyToManyField("Tag", related_name="questions", blank=True)
     execution_mode = models.CharField(max_length=20, choices=ExecutionMode.choices, default=ExecutionMode.STDIN)
     function_name = models.CharField(max_length=80, blank=True, default="")
+    comparison_mode = models.CharField(max_length=32, choices=ComparisonMode.choices, default=ComparisonMode.ORDERED)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

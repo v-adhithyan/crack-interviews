@@ -391,6 +391,25 @@ def expected_value_for_test(test_case):
         return test_case.expected_output
 
 
+def canonical_json(value):
+    return json.dumps(value, separators=(",", ":"), sort_keys=True)
+
+
+def values_match(question, actual_value, expected_value):
+    mode = question.comparison_mode
+    if mode == question.ComparisonMode.ORDERED:
+        return actual_value == expected_value
+    if not isinstance(actual_value, list) or not isinstance(expected_value, list):
+        return False
+    if mode == question.ComparisonMode.UNORDERED_LIST:
+        return sorted(actual_value, key=canonical_json) == sorted(expected_value, key=canonical_json)
+    if mode == question.ComparisonMode.UNORDERED_NESTED_LISTS:
+        actual_groups = [sorted(group, key=canonical_json) if isinstance(group, list) else group for group in actual_value]
+        expected_groups = [sorted(group, key=canonical_json) if isinstance(group, list) else group for group in expected_value]
+        return sorted(actual_groups, key=canonical_json) == sorted(expected_groups, key=canonical_json)
+    return False
+
+
 def function_args_for_test(test_case):
     if test_case.function_args is not None:
         return test_case.function_args
@@ -719,7 +738,7 @@ def run_submission(submission, test_cases):
                     except json.JSONDecodeError:
                         status = Submission.Status.WRONG_ANSWER
                     else:
-                        status = Submission.Status.ACCEPTED if actual_value == expected_value else Submission.Status.WRONG_ANSWER
+                        status = Submission.Status.ACCEPTED if values_match(submission.question, actual_value, expected_value) else Submission.Status.WRONG_ANSWER
                         passed_count += int(status == Submission.Status.ACCEPTED)
                 elif normalize_output(stdout) == normalize_output(test_case.expected_output):
                     status = Submission.Status.ACCEPTED
