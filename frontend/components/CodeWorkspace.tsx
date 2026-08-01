@@ -30,6 +30,7 @@ type SubmittedCode = {
 type SavedDraft = {
   code: string;
   updatedAt: string;
+  starterCode?: string;
 };
 
 type SavedTimer = {
@@ -152,9 +153,13 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
 
     window.localStorage.setItem(
       draftStorageKey(question.slug, language),
-      JSON.stringify({ code, updatedAt: new Date().toISOString() } satisfies SavedDraft),
+      JSON.stringify({
+        code,
+        updatedAt: new Date().toISOString(),
+        starterCode: starterCodeFor(language, question),
+      } satisfies SavedDraft),
     );
-  }, [code, language, question.slug]);
+  }, [code, language, question]);
 
   useEffect(() => {
     setRevisionMarked(question.revision_marked);
@@ -849,7 +854,7 @@ function starterCodeFor(language: Language, question: QuestionDetail) {
 }
 
 function codeForLanguage(language: Language, question: QuestionDetail, latestSubmittedCode: Partial<Record<Language, SubmittedCode>>) {
-  const savedDraft = readSavedDraft(question.slug, language);
+  const savedDraft = readSavedDraft(question, language);
   const submittedCode = latestSubmittedCode[language];
 
   if (savedDraft && (!submittedCode || new Date(savedDraft.updatedAt) > new Date(submittedCode.submittedAt))) {
@@ -877,7 +882,7 @@ function chooseRestoredLanguage(
 ): Language {
   const candidates = (["java", "python"] as const)
     .map((language) => {
-      const savedDraft = readSavedDraft(slug, language);
+      const savedDraft = readSavedDraftForSlug(slug, language);
       const submittedCode = latestSubmittedCode[language];
       const savedAt = savedDraft ? new Date(savedDraft.updatedAt).getTime() : 0;
       const submittedAt = submittedCode ? new Date(submittedCode.submittedAt).getTime() : 0;
@@ -964,7 +969,27 @@ function clearSavedTimer(slug: string) {
   window.localStorage.removeItem(timerStorageKey(slug));
 }
 
-function readSavedDraft(slug: string, language: Language): SavedDraft | null {
+function readSavedDraft(question: QuestionDetail, language: Language): SavedDraft | null {
+  const draft = readSavedDraftForSlug(question.slug, language);
+  if (!draft) {
+    return null;
+  }
+
+  const currentStarter = starterCodeFor(language, question);
+  if (draft.starterCode !== undefined && draft.starterCode !== currentStarter) {
+    return null;
+  }
+
+  // Drafts saved before starter versioning should not hide newly introduced
+  // ListNode/TreeNode definitions required by the execution harness.
+  if (draft.starterCode === undefined && nodeDefinitionMissing(draft.code, currentStarter, language)) {
+    return null;
+  }
+
+  return draft;
+}
+
+function readSavedDraftForSlug(slug: string, language: Language): SavedDraft | null {
   if (typeof window === "undefined") {
     return null;
   }
@@ -978,10 +1003,22 @@ function readSavedDraft(slug: string, language: Language): SavedDraft | null {
     if (typeof draft.code !== "string" || typeof draft.updatedAt !== "string") {
       return null;
     }
-    return { code: draft.code, updatedAt: draft.updatedAt };
+    return { code: draft.code, updatedAt: draft.updatedAt, starterCode: draft.starterCode };
   } catch {
     return null;
   }
+}
+
+function nodeDefinitionMissing(code: string, starter: string, language: Language) {
+  if (starter.includes("class ListNode")) {
+    return !code.includes("class ListNode") || (language === "java" ? !/ListNode\s+next\s*;/.test(code) : !/self\.next\s*=/.test(code));
+  }
+  if (starter.includes("class TreeNode")) {
+    return !code.includes("class TreeNode") || (language === "java"
+      ? !/TreeNode\s+left\s*;/.test(code) || !/TreeNode\s+right\s*;/.test(code)
+      : !/self\.left\s*=/.test(code) || !/self\.right\s*=/.test(code));
+  }
+  return false;
 }
 
 function looksLikeJava(code: string) {

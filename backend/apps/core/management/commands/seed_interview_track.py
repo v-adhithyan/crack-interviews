@@ -334,11 +334,22 @@ def build_description(title, difficulty, tag_slugs):
     )
     node_input_note = ""
     if title in NODE_TITLES:
-        structure = "linked list" if title in LINKED_LIST_TITLES else "binary tree"
-        node_input_note = (
-            f" The platform constructs the {structure} from the value/level-order array shown in each test case."
-            " Implement the node-based function signature directly; do not parse the array yourself."
-        )
+        if title in LINKED_LIST_TITLES:
+            node_input_note = (
+                "\n\n## Linked List Representation\n\n"
+                "Each node has an integer `val` and a `next` pointer (`ListNode next` in Java; "
+                "`self.next` in Python). The platform converts the array shown in each test case into a linked "
+                "list and passes its head to `solve`. Implement the node-based signature directly; do not parse "
+                "the array yourself. Return a `ListNode` when the function signature requires one."
+            )
+        else:
+            node_input_note = (
+                "\n\n## Binary Tree Representation\n\n"
+                "Each node has an integer `val` plus `left` and `right` child pointers (`TreeNode left/right` "
+                "in Java; `self.left`/`self.right` in Python). Test-case arrays use level-order traversal, with "
+                "`null` for a missing child. The platform constructs the tree and passes its root to `solve`; "
+                "do not parse the array yourself. Return a `TreeNode` when the function signature requires one."
+            )
     output_order_note = OUTPUT_ORDER_NOTES.get(title, "")
     if output_order_note:
         output_order_note = f"\n\n## Output Ordering\n\n{output_order_note}"
