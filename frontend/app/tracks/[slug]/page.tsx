@@ -151,7 +151,7 @@ function TrackDetailPage({ slug }: { slug: string }) {
                       {section.questions.map((question) => (
                         <Link
                           key={question.id}
-                          href={`/questions/${question.slug}`}
+                          href={`/questions/${question.slug}?from=${encodeURIComponent(slug)}`}
                           onClick={(event) => handleQuestionClick(event, question.slug)}
                           className="grid gap-2 border-b border-line px-4 py-4 transition last:border-0 hover:bg-[#fffaf0] md:grid-cols-[1fr_170px_130px_120px] md:items-center md:gap-0"
                         >

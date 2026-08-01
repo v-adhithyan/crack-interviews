@@ -3,11 +3,14 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { AppHeader } from "@/components/AppHeader";
 import { AuthGate } from "@/components/AuthGate";
 import { SubmittedCodeViewer } from "@/components/SubmittedCodeViewer";
 import { getQuestionReferenceSolution, type Language, type QuestionReferenceSolution } from "@/lib/api";
 import { usePageTitle } from "@/lib/usePageTitle";
+import { TrackReturnOverlay } from "@/components/TrackReturnOverlay";
+import { getTrackContext, withTrackContext } from "@/lib/trackContext";
 
 export default function ReferenceSolutionPage({ params }: { params: { slug: string } }) {
   return (
@@ -18,6 +21,8 @@ export default function ReferenceSolutionPage({ params }: { params: { slug: stri
 }
 
 function ReferenceSolutionContent({ slug, isStaff }: { slug: string; isStaff: boolean }) {
+  const searchParams = useSearchParams();
+  const trackSlug = getTrackContext(searchParams);
   const [solution, setSolution] = useState<QuestionReferenceSolution | null>(null);
   const [language, setLanguage] = useState<Language>("java");
   const [isLoading, setIsLoading] = useState(true);
@@ -60,6 +65,7 @@ function ReferenceSolutionContent({ slug, isStaff }: { slug: string; isStaff: bo
 
   return (
     <main className="min-h-screen bg-paper text-ink">
+      <TrackReturnOverlay trackSlug={trackSlug} />
       <AppHeader
         rightSlot={
           <div className="inline-flex rounded-[7px] border border-line bg-white p-0.5">
@@ -82,7 +88,7 @@ function ReferenceSolutionContent({ slug, isStaff }: { slug: string; isStaff: bo
 
       <section className="mx-auto max-w-6xl px-6 py-8">
         <div className="mb-5">
-          <Link href={`/questions/${solution.slug}`} className="mb-2 inline-flex items-center gap-2 text-sm font-bold text-muted hover:text-[#d08a00]">
+          <Link href={withTrackContext(`/questions/${solution.slug}`, trackSlug)} className="mb-2 inline-flex items-center gap-2 text-sm font-bold text-muted hover:text-[#d08a00]">
             <ArrowLeft size={16} />
             Back to question
           </Link>

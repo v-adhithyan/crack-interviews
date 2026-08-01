@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { AuthGate } from "@/components/AuthGate";
 import { CodeWorkspace } from "@/components/CodeWorkspace";
 import { getQuestion, getSubmission, getSubmissions, type Language, type QuestionDetail, type SubmissionListItem } from "@/lib/api";
 import { usePageTitle } from "@/lib/usePageTitle";
+import { getTrackContext } from "@/lib/trackContext";
 
 export default function QuestionPage({ params }: { params: { slug: string } }) {
   return (
@@ -15,6 +17,8 @@ export default function QuestionPage({ params }: { params: { slug: string } }) {
 }
 
 function QuestionWorkspaceLoader({ slug }: { slug: string }) {
+  const searchParams = useSearchParams();
+  const trackSlug = getTrackContext(searchParams);
   const [question, setQuestion] = useState<QuestionDetail | null>(null);
   const [submissions, setSubmissions] = useState<SubmissionListItem[]>([]);
   const [latestSubmittedCode, setLatestSubmittedCode] = useState<Partial<Record<Language, { code: string; submittedAt: string }>>>({});
@@ -76,6 +80,7 @@ function QuestionWorkspaceLoader({ slug }: { slug: string }) {
       latestSubmittedCode={latestSubmittedCode}
       firstSubmissionSolveTimeSeconds={firstSubmission?.solve_time_seconds ?? null}
       hasSubmitted={submissions.length > 0}
+      trackSlug={trackSlug}
     />
   );
 }
