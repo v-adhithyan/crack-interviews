@@ -4,6 +4,11 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils.text import slugify
 
+from apps.core.interview_node_questions import LINKED_LIST_TITLES, NODE_CASES, NODE_TITLES
+from apps.core.interview_node_questions import build_java_reference as build_node_java_reference
+from apps.core.interview_node_questions import build_java_starter as build_node_java_starter
+from apps.core.interview_node_questions import build_python_reference as build_node_python_reference
+from apps.core.interview_node_questions import build_python_starter as build_node_python_starter
 from apps.core.models import Question, Tag, TestCase, Track, TrackQuestion, TrackSection
 
 
@@ -197,8 +202,8 @@ FUNCTION_SIGNATURES = {
     "Find Pivot Index": [("int[]", "nums")],
     "Unique Number of Occurrences": [("int[]", "arr")],
     "Valid Parentheses": [("String", "s")],
-    "Reverse Linked List": [("int[]", "head")],
-    "Maximum Depth of Binary Tree": [("Integer[]", "root")],
+    "Reverse Linked List": [("ListNode", "head")],
+    "Maximum Depth of Binary Tree": [("TreeNode", "root")],
     "Counting Bits": [("int", "n")],
     "Product of Array Except Self": [("int[]", "nums")],
     "Group Anagrams": [("String[]", "strs")],
@@ -216,14 +221,14 @@ FUNCTION_SIGNATURES = {
     "Daily Temperatures": [("int[]", "temperatures")],
     "Koko Eating Bananas": [("int[]", "piles"), ("int", "h")],
     "Search in Rotated Sorted Array": [("int[]", "nums"), ("int", "target")],
-    "Delete the Middle Node of a Linked List": [("int[]", "head")],
-    "Odd Even Linked List": [("int[]", "head")],
-    "Maximum Twin Sum of a Linked List": [("int[]", "head")],
+    "Delete the Middle Node of a Linked List": [("ListNode", "head")],
+    "Odd Even Linked List": [("ListNode", "head")],
+    "Maximum Twin Sum of a Linked List": [("ListNode", "head")],
     "LRU Cache": [("int", "capacity"), ("String[]", "operations"), ("int[][]", "values")],
-    "Count Good Nodes in Binary Tree": [("Integer[]", "root")],
-    "Path Sum III": [("Integer[]", "root"), ("int", "targetSum")],
-    "Lowest Common Ancestor of a Binary Tree": [("Integer[]", "root"), ("int", "p"), ("int", "q")],
-    "Binary Tree Right Side View": [("Integer[]", "root")],
+    "Count Good Nodes in Binary Tree": [("TreeNode", "root")],
+    "Path Sum III": [("TreeNode", "root"), ("int", "targetSum")],
+    "Lowest Common Ancestor of a Binary Tree": [("TreeNode", "root"), ("int", "p"), ("int", "q")],
+    "Binary Tree Right Side View": [("TreeNode", "root")],
     "Number of Provinces": [("int[][]", "isConnected")],
     "Rotting Oranges": [("int[][]", "grid")],
     "Course Schedule": [("int", "numCourses"), ("int[][]", "prerequisites")],
@@ -295,6 +300,8 @@ FUNCTION_CASES = {
     "Edit Distance": [(["horse", "ros"], 3), (["intention", "execution"], 5)],
 }
 
+FUNCTION_CASES.update(NODE_CASES)
+
 
 def function_signature_text(title):
     params = ", ".join(name for _, name in FUNCTION_SIGNATURES[title])
@@ -303,11 +310,15 @@ def function_signature_text(title):
 
 def build_python_starter(title):
     params = ", ".join(name for _, name in FUNCTION_SIGNATURES[title])
+    if title in NODE_TITLES:
+        return build_node_python_starter(title, params)
     return f"def solve({params}):\n    # Write your solution here.\n    pass\n"
 
 
 def build_java_starter(title):
     params = ", ".join(f"{java_type} {name}" for java_type, name in FUNCTION_SIGNATURES[title])
+    if title in NODE_TITLES:
+        return build_node_java_starter(title, params)
     return "import java.util.*;\n\nclass Solution {\n    public Object solve(" + params + ") {\n        // Write your solution here.\n        return null;\n    }\n}\n"
 
 
@@ -317,11 +328,18 @@ def build_description(title, difficulty, tag_slugs):
         f"Example {index}:\nInput: {input_text}\nOutput: {output_text}"
         for index, (input_text, output_text) in enumerate(examples, start=1)
     )
+    node_input_note = ""
+    if title in NODE_TITLES:
+        structure = "linked list" if title in LINKED_LIST_TITLES else "binary tree"
+        node_input_note = (
+            f" The platform constructs the {structure} from the value/level-order array shown in each test case."
+            " Implement the node-based function signature directly; do not parse the array yourself."
+        )
     return (
         f"## {title}\n\n"
         f"{PROBLEM_BRIEFS[title]}\n\n"
         f"Function signature:\n`{function_signature_text(title)}`\n\n"
-        "Write a solution that handles the sample cases and hidden edge cases efficiently.\n\n"
+        f"Write a solution that handles the sample cases and hidden edge cases efficiently.{node_input_note}\n\n"
         f"{example_text}\n\n"
         "## Constraints\n\n"
         "- Input sizes are chosen to require the intended data-structure or algorithmic pattern.\n"
@@ -336,6 +354,8 @@ def build_description(title, difficulty, tag_slugs):
 
 
 def build_reference_solution(title, language):
+    if title in NODE_TITLES:
+        return build_node_python_reference(title) if language == "python" else build_node_java_reference(title)
     comment = "#" if language == "python" else "//"
     return (
         f"{comment} Reference solution for {title}\n"
@@ -419,20 +439,26 @@ class Command(BaseCommand):
 
                 question.tags.add(*(tags[tag_slug] for tag_slug in tag_slugs))
                 if create_missing:
+                    expected_case_names = set()
                     for case_order, (function_args, expected_value) in enumerate(FUNCTION_CASES.get(title, []), start=1):
+                        is_sample = case_order <= 2
+                        case_name = f"Sample {case_order}" if is_sample else f"Hidden {case_order - 2}"
+                        expected_case_names.add(case_name)
                         TestCase.objects.update_or_create(
                             question=question,
-                            name=f"Sample {case_order}",
+                            name=case_name,
                             defaults={
                                 "stdin": "",
                                 "function_args": function_args,
                                 "expected_value": expected_value,
                                 "expected_output": json.dumps(expected_value, separators=(",", ":")),
-                                "is_sample": case_order == 1,
-                                "is_hidden": case_order != 1,
+                                "is_sample": is_sample,
+                                "is_hidden": not is_sample,
                                 "order": case_order,
                             },
                         )
+                    if title in NODE_TITLES:
+                        question.test_cases.exclude(name__in=expected_case_names).delete()
                 section = sections[section_title]
                 TrackQuestion.objects.update_or_create(
                     section=section,

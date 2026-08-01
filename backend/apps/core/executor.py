@@ -46,7 +46,7 @@ public class Harness {
             convertedArgs[i] = convertValue(callArgs.get(i), parameterTypes[i]);
         }
         Object result = target.invoke(instance, convertedArgs);
-        System.out.print(toJson(result));
+        System.out.print(serializeResult(result, target.getReturnType()));
     }
 
     static String readInput() throws IOException {
@@ -62,6 +62,12 @@ public class Harness {
     static Object convertValue(Object value, Class<?> targetType) {
         if (value == null) {
             return null;
+        }
+        if (targetType.getSimpleName().equals("ListNode") && value instanceof List) {
+            return buildListNode((List<?>) value, targetType);
+        }
+        if (targetType.getSimpleName().equals("TreeNode") && value instanceof List) {
+            return buildTreeNode((List<?>) value, targetType);
         }
         if (targetType == int.class || targetType == Integer.class) {
             return ((Number) value).intValue();
@@ -93,6 +99,86 @@ public class Harness {
         return value;
     }
 
+    static Object newNode(Class<?> nodeType, int value) {
+        try {
+            Constructor<?> constructor = nodeType.getDeclaredConstructor(int.class);
+            constructor.setAccessible(true);
+            return constructor.newInstance(value);
+        } catch (ReflectiveOperationException ignored) {
+            try {
+                Constructor<?> constructor = nodeType.getDeclaredConstructor();
+                constructor.setAccessible(true);
+                Object node = constructor.newInstance();
+                Field valueField = nodeType.getDeclaredField("val");
+                valueField.setAccessible(true);
+                valueField.set(node, value);
+                return node;
+            } catch (ReflectiveOperationException error) {
+                throw new RuntimeException("ListNode/TreeNode must provide a no-argument or int constructor and a val field.", error);
+            }
+        }
+    }
+
+    static Object buildListNode(List<?> values, Class<?> nodeType) {
+        Object head = null;
+        Object tail = null;
+        try {
+            Field nextField = nodeType.getDeclaredField("next");
+            nextField.setAccessible(true);
+            for (Object value : values) {
+                if (value == null) {
+                    continue;
+                }
+                Object node = newNode(nodeType, ((Number) value).intValue());
+                if (head == null) {
+                    head = node;
+                } else {
+                    nextField.set(tail, node);
+                }
+                tail = node;
+            }
+            return head;
+        } catch (ReflectiveOperationException error) {
+            throw new RuntimeException("ListNode must expose a next field.", error);
+        }
+    }
+
+    static Object buildTreeNode(List<?> values, Class<?> nodeType) {
+        if (values.isEmpty() || values.get(0) == null) {
+            return null;
+        }
+        try {
+            Field leftField = nodeType.getDeclaredField("left");
+            Field rightField = nodeType.getDeclaredField("right");
+            leftField.setAccessible(true);
+            rightField.setAccessible(true);
+            Object root = newNode(nodeType, ((Number) values.get(0)).intValue());
+            Queue<Object> queue = new ArrayDeque<>();
+            queue.add(root);
+            int index = 1;
+            while (!queue.isEmpty() && index < values.size()) {
+                Object parent = queue.remove();
+                Object leftValue = values.get(index++);
+                if (leftValue != null) {
+                    Object left = newNode(nodeType, ((Number) leftValue).intValue());
+                    leftField.set(parent, left);
+                    queue.add(left);
+                }
+                if (index < values.size()) {
+                    Object rightValue = values.get(index++);
+                    if (rightValue != null) {
+                        Object right = newNode(nodeType, ((Number) rightValue).intValue());
+                        rightField.set(parent, right);
+                        queue.add(right);
+                    }
+                }
+            }
+            return root;
+        } catch (ReflectiveOperationException error) {
+            throw new RuntimeException("TreeNode must expose left and right fields.", error);
+        }
+    }
+
     static String toJson(Object value) {
         if (value == null) {
             return "null";
@@ -102,6 +188,12 @@ public class Harness {
         }
         if (value instanceof CharSequence || value instanceof Character) {
             return quote(String.valueOf(value));
+        }
+        if (value.getClass().getSimpleName().equals("ListNode")) {
+            return listNodeToJson(value);
+        }
+        if (value.getClass().getSimpleName().equals("TreeNode")) {
+            return treeNodeValueToJson(value);
         }
         Class<?> valueClass = value.getClass();
         if (valueClass.isArray()) {
@@ -120,6 +212,41 @@ public class Harness {
             return "[" + String.join(",", parts) + "]";
         }
         return quote(String.valueOf(value));
+    }
+
+    static String serializeResult(Object value, Class<?> returnType) {
+        if (value == null && returnType.getSimpleName().equals("ListNode")) {
+            return "[]";
+        }
+        return toJson(value);
+    }
+
+    static String listNodeToJson(Object head) {
+        List<String> values = new ArrayList<>();
+        Object current = head;
+        try {
+            Field valueField = head.getClass().getDeclaredField("val");
+            Field nextField = head.getClass().getDeclaredField("next");
+            valueField.setAccessible(true);
+            nextField.setAccessible(true);
+            while (current != null) {
+                values.add(toJson(valueField.get(current)));
+                current = nextField.get(current);
+            }
+            return "[" + String.join(",", values) + "]";
+        } catch (ReflectiveOperationException error) {
+            throw new RuntimeException("ListNode must expose val and next fields.", error);
+        }
+    }
+
+    static String treeNodeValueToJson(Object node) {
+        try {
+            Field valueField = node.getClass().getDeclaredField("val");
+            valueField.setAccessible(true);
+            return toJson(valueField.get(node));
+        } catch (ReflectiveOperationException error) {
+            throw new RuntimeException("TreeNode must expose a val field.", error);
+        }
     }
 
     static String quote(String value) {
@@ -415,15 +542,61 @@ def compile_java_function(code, function_name):
 def python_function_wrapper(code, function_name):
     return (
         "import json\n"
+        "import inspect\n"
         "import sys\n\n"
         f"{code}\n\n"
+        "def __ci_list_node(values):\n"
+        "    dummy = ListNode(0)\n"
+        "    tail = dummy\n"
+        "    for value in values:\n"
+        "        tail.next = ListNode(value)\n"
+        "        tail = tail.next\n"
+        "    return dummy.next\n\n"
+        "def __ci_tree_node(values):\n"
+        "    if not values or values[0] is None:\n"
+        "        return None\n"
+        "    root = TreeNode(values[0])\n"
+        "    queue = [root]\n"
+        "    index = 1\n"
+        "    while queue and index < len(values):\n"
+        "        node = queue.pop(0)\n"
+        "        if values[index] is not None:\n"
+        "            node.left = TreeNode(values[index])\n"
+        "            queue.append(node.left)\n"
+        "        index += 1\n"
+        "        if index < len(values) and values[index] is not None:\n"
+        "            node.right = TreeNode(values[index])\n"
+        "            queue.append(node.right)\n"
+        "        index += 1\n"
+        "    return root\n\n"
+        "def __ci_serialize(value, parameter_names):\n"
+        "    if value is None and 'ListNode' in globals() and 'head' in parameter_names:\n"
+        "        return []\n"
+        "    if 'ListNode' in globals() and isinstance(value, ListNode):\n"
+        "        result = []\n"
+        "        while value is not None:\n"
+        "            result.append(value.val)\n"
+        "            value = value.next\n"
+        "        return result\n"
+        "    if 'TreeNode' in globals() and isinstance(value, TreeNode):\n"
+        "        return value.val\n"
+        "    return value\n\n"
         "def __ci_main():\n"
         "    raw_args = sys.stdin.read().strip()\n"
         "    args = json.loads(raw_args) if raw_args else []\n"
         "    if not isinstance(args, list):\n"
         "        args = [args]\n"
-        f"    result = {function_name}(*args)\n"
-        "    print(json.dumps(result, separators=(',', ':'), sort_keys=True))\n\n"
+        f"    parameter_names = list(inspect.signature({function_name}).parameters)\n"
+        "    converted = []\n"
+        "    for index, value in enumerate(args):\n"
+        "        name = parameter_names[index] if index < len(parameter_names) else ''\n"
+        "        if name == 'head' and 'ListNode' in globals() and isinstance(value, list):\n"
+        "            value = __ci_list_node(value)\n"
+        "        elif name == 'root' and 'TreeNode' in globals() and isinstance(value, list):\n"
+        "            value = __ci_tree_node(value)\n"
+        "        converted.append(value)\n"
+        f"    result = {function_name}(*converted)\n"
+        "    print(json.dumps(__ci_serialize(result, parameter_names), separators=(',', ':'), sort_keys=True))\n\n"
         "__ci_main()\n"
     )
 
