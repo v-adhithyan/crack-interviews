@@ -9,6 +9,7 @@ from apps.core.interview_node_questions import build_java_reference as build_nod
 from apps.core.interview_node_questions import build_java_starter as build_node_java_starter
 from apps.core.interview_node_questions import build_python_reference as build_node_python_reference
 from apps.core.interview_node_questions import build_python_starter as build_node_python_starter
+from apps.core.interview_question_content import DIAGRAMS, EXPLANATIONS, TASKS
 from apps.core.interview_unordered_questions import JAVA_REFERENCE_SOLUTIONS as UNORDERED_JAVA_SOLUTIONS
 from apps.core.interview_unordered_questions import OUTPUT_ORDER_NOTES, PYTHON_REFERENCE_SOLUTIONS as UNORDERED_PYTHON_SOLUTIONS
 from apps.core.interview_unordered_questions import UNORDERED_CASES, UNORDERED_COMPARISON_MODES
@@ -334,7 +335,13 @@ def build_java_starter(title):
 def build_description(title, difficulty, tag_slugs):
     examples = SAMPLE_CASES.get(title, [])
     example_text = "\n\n".join(
-        f"Example {index}:\nInput: {input_text}\nOutput: {output_text}"
+        (
+            f"### Example {index}\n\n"
+            f"**Input**\n\n```text\n{input_text}\n```\n\n"
+            f"**Output**\n\n```text\n{output_text}\n```"
+            + (f"\n\n**Why:** {EXPLANATIONS[title]}" if index == 1 else "")
+            + (f"\n\n{DIAGRAMS[title]}" if index == 1 and title in DIAGRAMS else "")
+        )
         for index, (input_text, output_text) in enumerate(examples, start=1)
     )
     node_input_note = ""
@@ -359,20 +366,17 @@ def build_description(title, difficulty, tag_slugs):
     if output_order_note:
         output_order_note = f"\n\n## Output Ordering\n\n{output_order_note}"
     return (
-        f"## {title}\n\n"
-        f"{PROBLEM_BRIEFS[title]}\n\n"
-        f"Function signature:\n`{function_signature_text(title)}`\n\n"
-        f"Write a solution that handles the sample cases and hidden edge cases efficiently.{node_input_note}\n\n"
+        "## Problem\n\n"
+        f"{TASKS[title]}\n\n"
+        "## Function\n\n"
+        f"Implement `{function_signature_text(title)}`.{node_input_note}\n\n"
+        "## Examples\n\n"
         f"{example_text}{output_order_note}\n\n"
         "## Constraints\n\n"
-        "- Input sizes are chosen to require the intended data-structure or algorithmic pattern.\n"
-        "- Values fit within standard 32-bit signed integer ranges unless the statement implies strings or collections.\n"
-        f"- Target difficulty: {difficulty.title()}.\n"
-        f"- Focus tags: {', '.join(tag_slugs)}.\n\n"
-        "## Expected Approach\n\n"
-        "Use the listed tags as the primary hint. Aim for the usual interview-grade time complexity for this pattern, "
-        "and avoid brute force when a hash map, stack, two-pointer scan, heap, graph traversal, or dynamic-programming "
-        "state gives a better bound."
+        "- Inputs follow the types shown in the function signature.\n"
+        "- Unless stated otherwise, integer values fit in a signed 32-bit integer.\n"
+        "- Your solution should handle empty and single-item inputs when they are valid for this problem.\n"
+        "- Hidden tests include larger inputs, so avoid unnecessary repeated work."
     )
 
 
