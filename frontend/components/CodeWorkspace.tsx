@@ -98,6 +98,10 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
   }, [timerRunning]);
 
   const formattedElapsed = useMemo(() => formatDuration(elapsedSeconds), [elapsedSeconds]);
+  const problemDescription = useMemo(
+    () => withoutRepeatedTitle(question.description, question.title),
+    [question.description, question.title],
+  );
   const functionParameters = useMemo(
     () => parseFunctionParameters(code, language, question.function_name || "solve"),
     [code, language, question.function_name],
@@ -599,7 +603,7 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
             ) : null}
           </div>
           <div className="problem-copy rounded-lg border border-[rgba(15,23,42,0.08)] bg-white/90 p-5 text-[15px] shadow-product">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{question.description}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{problemDescription}</ReactMarkdown>
           </div>
         </article>
 
@@ -1023,6 +1027,25 @@ function nodeDefinitionMissing(code: string, starter: string, language: Language
 
 function looksLikeJava(code: string) {
   return /\bclass\s+\w+/.test(code) || /\bpublic\s+static\s+void\s+main\s*\(/.test(code);
+}
+
+function withoutRepeatedTitle(description: string, title: string) {
+  const lines = description.split(/\r?\n/);
+  const headingIndex = lines.findIndex((line) => line.trim().length > 0);
+  if (headingIndex === -1) {
+    return description;
+  }
+
+  const heading = lines[headingIndex].match(/^\s*#{1,6}\s+(.+?)\s*#*\s*$/);
+  if (!heading || heading[1].trim().toLocaleLowerCase() !== title.trim().toLocaleLowerCase()) {
+    return description;
+  }
+
+  lines.splice(0, headingIndex + 1);
+  while (lines[0]?.trim() === "") {
+    lines.shift();
+  }
+  return lines.join("\n");
 }
 
 function parseFunctionParameters(code: string, language: Language, functionName: string) {
