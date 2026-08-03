@@ -52,6 +52,54 @@ class InterviewNodeQuestionTests(TestCase):
                     )
                     self.assertEqual(submission.passed_count, 10)
 
+    def test_tree_run_and_submit_convert_arrays_without_user_defined_tree_node(self):
+        question = Question.objects.get(title="Maximum Depth of Binary Tree")
+        code = """def solve(root):
+    def depth(node):
+        if node is None:
+            return 0
+        return 1 + max(depth(node.left), depth(node.right))
+    return depth(root)
+"""
+
+        self.assert_run_and_submit_accepted(question, code)
+
+    def test_linked_list_run_and_submit_convert_arrays_without_user_defined_list_node(self):
+        question = Question.objects.get(title="Reverse Linked List")
+        code = """def solve(head):
+    previous = None
+    while head is not None:
+        next_node = head.next
+        head.next = previous
+        previous = head
+        head = next_node
+    return previous
+"""
+
+        self.assert_run_and_submit_accepted(question, code)
+
+    def assert_run_and_submit_accepted(self, question, code):
+        for kind, test_cases, expected_count in (
+            (Submission.Kind.RUN, question.test_cases.filter(is_sample=True), 2),
+            (Submission.Kind.SUBMIT, question.test_cases.all(), 10),
+        ):
+            with self.subTest(question=question.slug, kind=kind):
+                submission = Submission.objects.create(
+                    question=question,
+                    language=Submission.Language.PYTHON,
+                    code=code,
+                    kind=kind,
+                )
+                run_submission(submission, test_cases)
+                submission.refresh_from_db()
+                self.assertEqual(
+                    submission.status,
+                    Submission.Status.ACCEPTED,
+                    submission.stderr or submission.stdout,
+                )
+                self.assertEqual(submission.passed_count, expected_count)
+                self.assertEqual(submission.total_count, expected_count)
+
     def test_lru_cache_keeps_operation_based_signature(self):
         question = Question.objects.get(title="LRU Cache")
 
