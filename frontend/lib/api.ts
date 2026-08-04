@@ -272,6 +272,10 @@ export function getRevisionSubmissions() {
   return request<RevisionSubmission[]>("/revision/");
 }
 
+export function getTrackRevisionSubmissions(trackSlug: string) {
+  return request<RevisionSubmission[]>(`/tracks/${trackSlug}/revision/`);
+}
+
 export function getSubmission(id: string) {
   return request<Submission>(`/submissions/${id}/`);
 }

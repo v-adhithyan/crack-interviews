@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, CheckCircle2, Circle, Clock, ListFilter } from "lucide-react";
+import { ArrowLeft, BookOpen, CheckCircle2, Circle, Clock, ListFilter } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { MouseEvent } from "react";
@@ -103,14 +103,27 @@ function TrackDetailPage({ slug }: { slug: string }) {
           </div>
         }
         rightSlot={
-          <Link
-            href="/"
-            aria-label="Back to questions"
-            title="Back to questions"
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-[7px] border border-line bg-white text-sm font-bold hover:bg-[#fffaf0]"
-          >
-            <ArrowLeft size={16} />
-          </Link>
+          <>
+            {slug === INTERVIEW_PREPARATION_TRACK ? (
+              <Link
+                href={`/tracks/${slug}/revise`}
+                aria-label="Revise solved interview questions"
+                title="Revise solved interview questions"
+                className="inline-flex h-10 items-center gap-2 rounded-[7px] border border-line bg-white px-3 text-sm font-bold hover:bg-[#fffaf0]"
+              >
+                <BookOpen size={16} />
+                <span className="hidden sm:inline">Revise solved</span>
+              </Link>
+            ) : null}
+            <Link
+              href="/"
+              aria-label="Back to questions"
+              title="Back to questions"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-[7px] border border-line bg-white text-sm font-bold hover:bg-[#fffaf0]"
+            >
+              <ArrowLeft size={16} />
+            </Link>
+          </>
         }
       />
 

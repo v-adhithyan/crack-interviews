@@ -2,7 +2,7 @@ import json
 from types import SimpleNamespace
 
 from django.contrib.auth import authenticate, get_user_model
-from django.db.models import Count, Exists, OuterRef, Prefetch
+from django.db.models import Count, Exists, OuterRef, Prefetch, Subquery
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import api_view
@@ -372,6 +372,34 @@ def revision_list(request):
         )
         .select_related("question")
         .order_by("question__title", "-created_at")
+    )
+    serializer = RevisionSubmissionSerializer(submissions, many=True)
+    return Response(serializer.data)
+
+
+@api_view(["GET"])
+@admin_api_required
+def track_revision_list(request, slug):
+    track = get_object_or_404(Track, slug=slug, is_active=True)
+    track_question_ids = TrackQuestion.objects.filter(section__track=track).values("question_id")
+    latest_accepted_id = (
+        Submission.objects.filter(
+            user=request.admin_api_user,
+            question_id=OuterRef("question_id"),
+            kind=Submission.Kind.SUBMIT,
+            status=Submission.Status.ACCEPTED,
+        )
+        .order_by("-created_at", "-id")
+        .values("id")[:1]
+    )
+    submissions = (
+        Submission.objects.filter(
+            id=Subquery(latest_accepted_id),
+            question_id__in=track_question_ids,
+            question__is_active=True,
+        )
+        .select_related("question")
+        .order_by("question__title")
     )
     serializer = RevisionSubmissionSerializer(submissions, many=True)
     return Response(serializer.data)

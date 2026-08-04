@@ -12,6 +12,7 @@ from .models import AdminApiToken
 from .models import Question
 from .models import Submission
 from .models import TestCase as QuestionTestCase
+from .models import Track, TrackQuestion
 
 
 class FunctionModeSubmissionTests(TestCase):
@@ -379,6 +380,37 @@ class FunctionModeSubmissionTests(TestCase):
         response = self.api_post("mark-question-revision", {"marked": True}, kwargs={"slug": question.slug})
 
         self.assertEqual(response.status_code, 400)
+
+    def test_track_revision_automatically_lists_latest_accepted_solutions(self):
+        solved_question = self.create_function_question()
+        outside_question = Question.objects.create(title="Outside", slug="outside", description="Outside")
+        track = Track.objects.get(slug="interview-preparation")
+        section = track.sections.order_by("order").first()
+        self.assertIsNotNone(section)
+        TrackQuestion.objects.create(section=section, question=solved_question, order=1)
+
+        payload = {"language": Submission.Language.PYTHON, "code": "def solve(a, b):\n    return a + b\n"}
+        first = self.api_post("submit-code", payload, kwargs={"slug": solved_question.slug})
+        latest = self.api_post(
+            "submit-code",
+            {**payload, "code": payload["code"] + "# latest\n"},
+            kwargs={"slug": solved_question.slug},
+        )
+        Submission.objects.create(
+            user=self.admin_user,
+            question=outside_question,
+            kind=Submission.Kind.SUBMIT,
+            language=Submission.Language.PYTHON,
+            code="outside",
+            status=Submission.Status.ACCEPTED,
+        )
+
+        response = self.api_get("track-revision-list", kwargs={"slug": track.slug})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([item["id"] for item in response.data], [latest.data["id"]])
+        self.assertNotEqual(response.data[0]["id"], first.data["id"])
+        self.assertFalse(Submission.objects.get(pk=latest.data["id"]).marked_for_revision)
 
     def test_question_api_requires_admin_token(self):
         self.create_function_question()
