@@ -9,7 +9,7 @@ from apps.core.interview_node_questions import build_java_reference as build_nod
 from apps.core.interview_node_questions import build_java_starter as build_node_java_starter
 from apps.core.interview_node_questions import build_python_reference as build_node_python_reference
 from apps.core.interview_node_questions import build_python_starter as build_node_python_starter
-from apps.core.interview_question_content import DIAGRAMS, EXPLANATIONS, TASKS
+from apps.core.interview_question_content import DIAGRAMS, EXPLANATIONS, IMPORTANT_NOTES, SECOND_EXPLANATIONS, TASKS
 from apps.core.interview_unordered_questions import JAVA_REFERENCE_SOLUTIONS as UNORDERED_JAVA_SOLUTIONS
 from apps.core.interview_unordered_questions import OUTPUT_ORDER_NOTES, PYTHON_REFERENCE_SOLUTIONS as UNORDERED_PYTHON_SOLUTIONS
 from apps.core.interview_unordered_questions import UNORDERED_CASES, UNORDERED_COMPARISON_MODES
@@ -333,16 +333,16 @@ def build_java_starter(title):
 
 
 def build_description(title, difficulty, tag_slugs):
-    examples = SAMPLE_CASES.get(title, [])
+    examples = FUNCTION_CASES.get(title, [])[:2]
     example_text = "\n\n".join(
         (
             f"### Example {index}\n\n"
-            f"**Input**\n\n```text\n{input_text}\n```\n\n"
-            f"**Output**\n\n```text\n{output_text}\n```"
-            + (f"\n\n**Why:** {EXPLANATIONS[title]}" if index == 1 else "")
+            f"**Input**\n\n```text\n{format_example_input(title, function_args)}\n```\n\n"
+            f"**Output**\n\n```text\n{format_example_value(expected_value)}\n```"
+            + f"\n\n**Explanation:** {example_explanation(title, index)}"
             + (f"\n\n{DIAGRAMS[title]}" if index == 1 and title in DIAGRAMS else "")
         )
-        for index, (input_text, output_text) in enumerate(examples, start=1)
+        for index, (function_args, expected_value) in enumerate(examples, start=1)
     )
     node_input_note = ""
     if title in NODE_TITLES:
@@ -370,6 +370,8 @@ def build_description(title, difficulty, tag_slugs):
         f"{TASKS[title]}\n\n"
         "## Function\n\n"
         f"Implement `{function_signature_text(title)}`.{node_input_note}\n\n"
+        "## Important details\n\n"
+        f"- {IMPORTANT_NOTES[title]}\n\n"
         "## Examples\n\n"
         f"{example_text}{output_order_note}\n\n"
         "## Constraints\n\n"
@@ -378,6 +380,24 @@ def build_description(title, difficulty, tag_slugs):
         "- Your solution should handle empty and single-item inputs when they are valid for this problem.\n"
         "- Hidden tests include larger inputs, so avoid unnecessary repeated work."
     )
+
+
+def format_example_input(title, function_args):
+    parameter_names = [name for _, name in FUNCTION_SIGNATURES[title]]
+    return "\n".join(
+        f"{name} = {format_example_value(value)}"
+        for name, value in zip(parameter_names, function_args)
+    )
+
+
+def format_example_value(value):
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+
+
+def example_explanation(title, index):
+    if index == 1:
+        return EXPLANATIONS[title]
+    return SECOND_EXPLANATIONS[title]
 
 
 def build_reference_solution(title, language):
