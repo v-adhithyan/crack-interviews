@@ -18,7 +18,7 @@ export default function QuestionPage({ params }: { params: { slug: string } }) {
 
 function QuestionWorkspaceLoader({ slug }: { slug: string }) {
   const searchParams = useSearchParams();
-  const trackSlug = getTrackContext(searchParams);
+  const trackContext = getTrackContext(searchParams);
   const [question, setQuestion] = useState<QuestionDetail | null>(null);
   const [submissions, setSubmissions] = useState<SubmissionListItem[]>([]);
   const [latestSubmittedCode, setLatestSubmittedCode] = useState<Partial<Record<Language, { code: string; submittedAt: string }>>>({});
@@ -80,7 +80,7 @@ function QuestionWorkspaceLoader({ slug }: { slug: string }) {
       latestSubmittedCode={latestSubmittedCode}
       firstSubmissionSolveTimeSeconds={firstSubmission?.solve_time_seconds ?? null}
       hasSubmitted={submissions.length > 0}
-      trackSlug={trackSlug}
+      trackContext={trackContext}
     />
   );
 }

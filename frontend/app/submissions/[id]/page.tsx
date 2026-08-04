@@ -23,7 +23,7 @@ export default function SubmissionDetailPage({ params }: { params: { id: string 
 
 function SubmissionDetailContent({ id }: { id: string }) {
   const searchParams = useSearchParams();
-  const trackSlug = getTrackContext(searchParams);
+  const trackContext = getTrackContext(searchParams);
   const [submission, setSubmission] = useState<Submission | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -59,11 +59,11 @@ function SubmissionDetailContent({ id }: { id: string }) {
   return (
     <main className="min-h-screen bg-paper text-ink">
       <AppHeader rightSlot={<StatusBadge status={submission.status} />} />
-      <TrackReturnOverlay trackSlug={trackSlug} />
+      <TrackReturnOverlay trackContext={trackContext} />
       <section className="mx-auto max-w-7xl px-6 py-8">
         <div className="mb-5 flex items-end justify-between gap-4">
           <div>
-            <Link href={withTrackContext(`/questions/${submission.question_slug}`, trackSlug)} className="mb-2 inline-flex items-center gap-2 text-sm font-bold text-muted hover:text-[#d08a00]">
+            <Link href={withTrackContext(`/questions/${submission.question_slug}`, trackContext)} className="mb-2 inline-flex items-center gap-2 text-sm font-bold text-muted hover:text-[#d08a00]">
               <ArrowLeft size={16} />
               Back to question
             </Link>

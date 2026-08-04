@@ -1,19 +1,19 @@
 import { ArrowLeft, ListChecks } from "lucide-react";
 import Link from "next/link";
-import { INTERVIEW_PREPARATION_TRACK } from "@/lib/trackContext";
+import { trackReturnPath, type TrackContext } from "@/lib/trackContext";
 
 type Props = {
-  trackSlug?: string | null;
+  trackContext?: TrackContext | null;
 };
 
-export function TrackReturnOverlay({ trackSlug }: Props) {
-  if (trackSlug !== INTERVIEW_PREPARATION_TRACK) {
+export function TrackReturnOverlay({ trackContext }: Props) {
+  if (!trackContext) {
     return null;
   }
 
   return (
     <Link
-      href={`/tracks/${INTERVIEW_PREPARATION_TRACK}`}
+      href={trackReturnPath(trackContext)}
       aria-label="Back to Interview Preparation track"
       className="group fixed bottom-5 right-5 z-40 flex max-w-[calc(100vw-2.5rem)] items-center gap-3 rounded-lg border border-[rgba(247,184,1,0.55)] bg-white/95 px-3 py-2.5 shadow-product backdrop-blur transition hover:-translate-y-0.5 hover:bg-[#fffaf0] focus:outline-none focus:ring-2 focus:ring-gold"
     >

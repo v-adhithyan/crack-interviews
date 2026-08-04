@@ -12,14 +12,14 @@ import { AppHeader } from "@/components/AppHeader";
 import { markQuestionForRevision, runCode, runCustomCode, submitCode, type Language, type QuestionDetail, type Submission } from "@/lib/api";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TrackReturnOverlay } from "@/components/TrackReturnOverlay";
-import { withTrackContext } from "@/lib/trackContext";
+import { withTrackContext, type TrackContext } from "@/lib/trackContext";
 
 type Props = {
   question: QuestionDetail;
   latestSubmittedCode?: Partial<Record<Language, SubmittedCode>>;
   firstSubmissionSolveTimeSeconds?: number | null;
   hasSubmitted?: boolean;
-  trackSlug?: string | null;
+  trackContext?: TrackContext | null;
 };
 
 type SubmittedCode = {
@@ -55,7 +55,7 @@ const MIN_RESULT_PANEL_HEIGHT = 160;
 const MAX_RESULT_PANEL_HEIGHT = 520;
 const DEFAULT_RESULT_PANEL_HEIGHT = 220;
 
-export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmissionSolveTimeSeconds = null, hasSubmitted = false, trackSlug = null }: Props) {
+export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmissionSolveTimeSeconds = null, hasSubmitted = false, trackContext = null }: Props) {
   const router = useRouter();
   const initialLanguage = latestSubmittedLanguage(latestSubmittedCode);
   const initialTimerLocked = hasSubmitted || firstSubmissionSolveTimeSeconds !== null;
@@ -237,7 +237,7 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
         setHasAnySubmission(true);
       }
       if (mode === "submit") {
-        router.push(withTrackContext(`/submissions/${response.id}`, trackSlug));
+        router.push(withTrackContext(`/submissions/${response.id}`, trackContext));
       }
     } catch (err) {
       await minimumFeedback;
@@ -502,7 +502,7 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
             </button>
           </div>
           <Link
-            href={withTrackContext(`/questions/${question.slug}/submissions`, trackSlug)}
+            href={withTrackContext(`/questions/${question.slug}/submissions`, trackContext)}
             aria-label="Submissions"
             title="Submissions"
             className="inline-flex h-10 shrink-0 items-center gap-2 rounded-[7px] border border-line bg-white px-3 text-sm font-bold hover:bg-[#fffaf0]"
@@ -539,7 +539,7 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
           ) : null}
           {question.has_reference_solution ? (
             <Link
-              href={withTrackContext(`/questions/${question.slug}/reference-solution`, trackSlug)}
+              href={withTrackContext(`/questions/${question.slug}/reference-solution`, trackContext)}
               target="_blank"
               rel="noreferrer"
               aria-label="Reference solution"
@@ -554,7 +554,7 @@ export function CodeWorkspace({ question, latestSubmittedCode = {}, firstSubmiss
         }
       />
 
-      <TrackReturnOverlay trackSlug={trackSlug} />
+      <TrackReturnOverlay trackContext={trackContext} />
 
       {isRunning ? (
         <div

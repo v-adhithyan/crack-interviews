@@ -22,7 +22,7 @@ export default function ProblemSubmissionsPage({ params }: { params: { slug: str
 
 function ProblemSubmissionsContent({ slug }: { slug: string }) {
   const searchParams = useSearchParams();
-  const trackSlug = getTrackContext(searchParams);
+  const trackContext = getTrackContext(searchParams);
   const [question, setQuestion] = useState<QuestionDetail | null>(null);
   const [submissions, setSubmissions] = useState<SubmissionListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -55,10 +55,10 @@ function ProblemSubmissionsContent({ slug }: { slug: string }) {
   return (
     <main className="min-h-screen bg-paper text-ink">
       <AppHeader />
-      <TrackReturnOverlay trackSlug={trackSlug} />
+      <TrackReturnOverlay trackContext={trackContext} />
       <section className="mx-auto max-w-6xl px-6 py-8">
         <div className="mb-5">
-          <Link href={withTrackContext(`/questions/${question.slug}`, trackSlug)} className="mb-2 inline-flex items-center gap-2 text-sm font-bold text-muted hover:text-[#d08a00]">
+          <Link href={withTrackContext(`/questions/${question.slug}`, trackContext)} className="mb-2 inline-flex items-center gap-2 text-sm font-bold text-muted hover:text-[#d08a00]">
             <ArrowLeft size={16} />
             Back to question
           </Link>
@@ -80,7 +80,7 @@ function ProblemSubmissionsContent({ slug }: { slug: string }) {
               </div>
               {submissions.map((submission) => (
                 <Link
-                  href={withTrackContext(`/submissions/${submission.id}`, trackSlug)}
+                  href={withTrackContext(`/submissions/${submission.id}`, trackContext)}
                   key={submission.id}
                   className="grid grid-cols-[80px_130px_minmax(130px,1fr)_110px_110px_110px_170px] items-center gap-4 border-b border-line px-4 py-4 last:border-0 hover:bg-[#fffaf0]"
                 >

@@ -22,7 +22,7 @@ export default function ReferenceSolutionPage({ params }: { params: { slug: stri
 
 function ReferenceSolutionContent({ slug, isStaff }: { slug: string; isStaff: boolean }) {
   const searchParams = useSearchParams();
-  const trackSlug = getTrackContext(searchParams);
+  const trackContext = getTrackContext(searchParams);
   const [solution, setSolution] = useState<QuestionReferenceSolution | null>(null);
   const [language, setLanguage] = useState<Language>("java");
   const [isLoading, setIsLoading] = useState(true);
@@ -65,7 +65,7 @@ function ReferenceSolutionContent({ slug, isStaff }: { slug: string; isStaff: bo
 
   return (
     <main className="min-h-screen bg-paper text-ink">
-      <TrackReturnOverlay trackSlug={trackSlug} />
+      <TrackReturnOverlay trackContext={trackContext} />
       <AppHeader
         rightSlot={
           <div className="inline-flex rounded-[7px] border border-line bg-white p-0.5">
@@ -88,7 +88,7 @@ function ReferenceSolutionContent({ slug, isStaff }: { slug: string; isStaff: bo
 
       <section className="mx-auto max-w-6xl px-6 py-8">
         <div className="mb-5">
-          <Link href={withTrackContext(`/questions/${solution.slug}`, trackSlug)} className="mb-2 inline-flex items-center gap-2 text-sm font-bold text-muted hover:text-[#d08a00]">
+          <Link href={withTrackContext(`/questions/${solution.slug}`, trackContext)} className="mb-2 inline-flex items-center gap-2 text-sm font-bold text-muted hover:text-[#d08a00]">
             <ArrowLeft size={16} />
             Back to question
           </Link>

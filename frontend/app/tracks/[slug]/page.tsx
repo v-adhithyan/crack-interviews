@@ -2,11 +2,13 @@
 
 import { ArrowLeft, CheckCircle2, Circle, Clock, ListFilter } from "lucide-react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { MouseEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { AuthGate } from "@/components/AuthGate";
 import { getTrack, type TrackDetail } from "@/lib/api";
+import { INTERVIEW_PREPARATION_TRACK, normalizedTag, withTrackContext } from "@/lib/trackContext";
 import { usePageTitle } from "@/lib/usePageTitle";
 
 const difficultyStyles = {
@@ -20,10 +22,13 @@ export default function TrackPage({ params }: { params: { slug: string } }) {
 }
 
 function TrackDetailPage({ slug }: { slug: string }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [track, setTrack] = useState<TrackDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-  const [selectedTag, setSelectedTag] = useState("all");
+  const [selectedTag, setSelectedTag] = useState(() => normalizedTag(searchParams.get("tag")) ?? "all");
   const [openingSlug, setOpeningSlug] = useState("");
   usePageTitle(track?.title ?? "Track");
 
@@ -39,6 +44,10 @@ function TrackDetailPage({ slug }: { slug: string }) {
     }
     loadTrack();
   }, [slug]);
+
+  useEffect(() => {
+    setSelectedTag(normalizedTag(searchParams.get("tag")) ?? "all");
+  }, [searchParams]);
 
   const questions = useMemo(() => track?.sections.flatMap((section) => section.questions) ?? [], [track]);
   const solvedCount = questions.filter((question) => question.solved).length;
@@ -66,6 +75,18 @@ function TrackDetailPage({ slug }: { slug: string }) {
       return;
     }
     setOpeningSlug(questionSlug);
+  }
+
+  function updateSelectedTag(tag: string) {
+    setSelectedTag(tag);
+    const params = new URLSearchParams(searchParams.toString());
+    if (tag === "all") {
+      params.delete("tag");
+    } else {
+      params.set("tag", tag);
+    }
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   }
 
   return (
@@ -120,7 +141,7 @@ function TrackDetailPage({ slug }: { slug: string }) {
             <div className="mb-5 flex flex-wrap items-center gap-3">
               <label className="inline-flex h-10 items-center gap-2 rounded-[7px] border border-line bg-white px-3 text-sm font-bold">
                 <ListFilter size={15} />
-                <select value={selectedTag} onChange={(event) => setSelectedTag(event.target.value)} className="bg-transparent outline-none" aria-label="Filter track by tag">
+                <select value={selectedTag} onChange={(event) => updateSelectedTag(event.target.value)} className="bg-transparent outline-none" aria-label="Filter track by tag">
                   <option value="all">All tags</option>
                   {availableTags.map(([tagSlug, name]) => (
                     <option key={tagSlug} value={tagSlug}>
@@ -151,7 +172,12 @@ function TrackDetailPage({ slug }: { slug: string }) {
                       {section.questions.map((question) => (
                         <Link
                           key={question.id}
-                          href={`/questions/${question.slug}?from=${encodeURIComponent(slug)}`}
+                          href={withTrackContext(
+                            `/questions/${question.slug}`,
+                            slug === INTERVIEW_PREPARATION_TRACK
+                              ? { slug: INTERVIEW_PREPARATION_TRACK, tag: normalizedTag(selectedTag) }
+                              : null,
+                          )}
                           onClick={(event) => handleQuestionClick(event, question.slug)}
                           className="grid gap-2 border-b border-line px-4 py-4 transition last:border-0 hover:bg-[#fffaf0] md:grid-cols-[1fr_170px_130px_120px] md:items-center md:gap-0"
                         >
