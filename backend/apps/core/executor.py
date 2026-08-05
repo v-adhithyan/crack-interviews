@@ -16,8 +16,6 @@ from .models import Submission, TestCaseResult
 CLASS_PATTERN = re.compile(r"(?:public\s+)?class\s+([A-Za-z_][A-Za-z0-9_]*)")
 PUBLIC_CLASS_PATTERN = re.compile(r"public\s+class\s+([A-Za-z_][A-Za-z0-9_]*)")
 MEMORY_MARKER = "__HACKERLEAP_MEMORY_KB__:"
-USER_MEMORY_MARKER = "__HACKERLEAP_USER_MEMORY_KB__:"
-USER_MEMORY_PATTERN = re.compile(r"^__HACKERLEAP_USER_MEMORY_KB__:(\d+)\s*$", re.MULTILINE)
 MACOS_MEMORY_PATTERN = re.compile(r"^\s*(\d+)\s+maximum resident set size", re.MULTILINE)
 JAVA_FUNCTION_HARNESS = r"""
 import java.io.*;
@@ -47,34 +45,8 @@ public class Harness {
         for (int i = 0; i < parameterTypes.length; i++) {
             convertedArgs[i] = convertValue(callArgs.get(i), parameterTypes[i]);
         }
-        long allocatedBefore = currentThreadAllocatedBytes();
-        Object result;
-        try {
-            result = target.invoke(instance, convertedArgs);
-        } finally {
-            long allocatedAfter = currentThreadAllocatedBytes();
-            if (allocatedBefore >= 0 && allocatedAfter >= allocatedBefore) {
-                long allocatedKb = (allocatedAfter - allocatedBefore + 1023L) / 1024L;
-                System.err.println("__HACKERLEAP_USER_MEMORY_KB__:" + allocatedKb);
-            }
-        }
+        Object result = target.invoke(instance, convertedArgs);
         System.out.print(serializeResult(result, target.getReturnType()));
-    }
-
-    static long currentThreadAllocatedBytes() {
-        try {
-            java.lang.management.ThreadMXBean baseBean = java.lang.management.ManagementFactory.getThreadMXBean();
-            if (!(baseBean instanceof com.sun.management.ThreadMXBean)) {
-                return -1L;
-            }
-            com.sun.management.ThreadMXBean bean = (com.sun.management.ThreadMXBean) baseBean;
-            if (!bean.isThreadAllocatedMemoryEnabled()) {
-                bean.setThreadAllocatedMemoryEnabled(true);
-            }
-            return bean.getThreadAllocatedBytes(Thread.currentThread().getId());
-        } catch (Throwable ignored) {
-            return -1L;
-        }
     }
 
     static String readInput() throws IOException {
@@ -512,25 +484,11 @@ def run_measured_process(command, input_value):
             timeout=settings.CODE_TIMEOUT_SECONDS,
             check=False,
         )
-        process_memory_kb = parse_memory_output(memory_file.name, measurement_mode)
-        user_memory_kb, cleaned_stderr = extract_user_memory(completed.stderr)
-        completed.stderr = cleaned_stderr
-        if user_memory_kb is not None:
-            memory_kb = user_memory_kb
-        elif process_memory_kb:
-            memory_kb = process_memory_kb
-        else:
+        memory_kb = parse_memory_output(memory_file.name, measurement_mode)
+        if not memory_kb:
             after_usage_kb = child_memory_usage_kb()
             memory_kb = max(0, after_usage_kb - before_usage_kb) or after_usage_kb
         return completed, memory_kb
-
-
-def extract_user_memory(stderr):
-    match = USER_MEMORY_PATTERN.search(stderr or "")
-    if match is None:
-        return None, stderr
-    cleaned_stderr = USER_MEMORY_PATTERN.sub("", stderr).strip()
-    return int(match.group(1)), cleaned_stderr
 
 
 def child_memory_usage_kb():
@@ -604,8 +562,7 @@ def python_function_wrapper(code, function_name):
     return (
         "import json\n"
         "import inspect\n"
-        "import sys\n"
-        "import tracemalloc\n\n"
+        "import sys\n\n"
         "class ListNode:\n"
         "    def __init__(self, val=0, next=None):\n"
         "        self.val = val\n"
@@ -666,13 +623,7 @@ def python_function_wrapper(code, function_name):
         "        elif name == 'root' and 'TreeNode' in globals() and isinstance(value, list):\n"
         "            value = __ci_tree_node(value)\n"
         "        converted.append(value)\n"
-        "    tracemalloc.start()\n"
-        "    try:\n"
-        f"        result = {function_name}(*converted)\n"
-        "    finally:\n"
-        "        _, peak_memory = tracemalloc.get_traced_memory()\n"
-        "        tracemalloc.stop()\n"
-        "        print('__HACKERLEAP_USER_MEMORY_KB__:' + str((peak_memory + 1023) // 1024), file=sys.stderr)\n"
+        f"    result = {function_name}(*converted)\n"
         "    print(json.dumps(__ci_serialize(result, parameter_names), separators=(',', ':'), sort_keys=True))\n\n"
         "__ci_main()\n"
     )

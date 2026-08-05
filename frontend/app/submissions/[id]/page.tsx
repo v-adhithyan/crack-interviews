@@ -79,9 +79,7 @@ function SubmissionDetailContent({ id }: { id: string }) {
           <p className="mb-4 text-sm font-bold">
             Passed {submission.passed_count} of {submission.total_count} tests in {formatRuntime(submission.execution_time_ms)}
           </p>
-          <p className="mb-4 text-sm font-bold text-muted" title="Estimated memory allocated while the submitted solve function runs">
-            Code memory (estimated): {formatMemory(submission.memory_kb)}
-          </p>
+          <p className="mb-4 text-sm font-bold text-muted">Memory: {formatMemory(submission.memory_kb)}</p>
           {submission.solve_time_seconds !== null ? (
             <p className="mb-4 text-sm font-bold text-muted">Solve time: {formatDuration(submission.solve_time_seconds)}</p>
           ) : null}
