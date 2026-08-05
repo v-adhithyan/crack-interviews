@@ -74,7 +74,7 @@ function ProblemSubmissionsContent({ slug }: { slug: string }) {
                 <span>Status</span>
                 <span>Passed</span>
                 <span>Runtime</span>
-                <span>Memory</span>
+                <span title="Estimated memory allocated while the submitted solve function runs">Code memory</span>
                 <span>Solve time</span>
                 <span>Submitted</span>
               </div>

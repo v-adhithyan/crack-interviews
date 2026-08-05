@@ -113,6 +113,9 @@ class FunctionModeSubmissionTests(TestCase):
         self.assertEqual(response.data["total_count"], 2)
         self.assertIn("memory_kb", response.data)
         self.assertIn("memory_kb", response.data["results"][0])
+        self.assertLess(response.data["memory_kb"], 1024)
+        self.assertEqual(response.data["stderr"], "")
+        self.assertEqual(response.data["results"][0]["stderr"], "")
         self.assertEqual(response.data["results"][0]["stdout"].strip(), "3")
         self.assertEqual(response.data["results"][0]["expected_output"], "3")
 
@@ -132,6 +135,24 @@ class FunctionModeSubmissionTests(TestCase):
         self.assertEqual(response.data["status"], Submission.Status.ACCEPTED)
         self.assertEqual(response.data["passed_count"], 1)
         self.assertEqual(response.data["total_count"], 1)
+
+    def test_runtime_error_still_reports_code_memory_without_internal_marker(self):
+        question = self.create_function_question()
+
+        response = self.api_post(
+            "run-code",
+            {
+                "language": Submission.Language.PYTHON,
+                "code": "def solve(a, b):\n    values = [0] * 1000\n    raise RuntimeError('boom')\n",
+            },
+            kwargs={"slug": question.slug},
+        )
+
+        self.assertEqual(response.data["status"], Submission.Status.RUNTIME_ERROR)
+        self.assertGreater(response.data["memory_kb"], 0)
+        self.assertLess(response.data["memory_kb"], 1024)
+        self.assertIn("RuntimeError: boom", response.data["stderr"])
+        self.assertNotIn("__HACKERLEAP_USER_MEMORY_KB__", response.data["stderr"])
 
     def test_python_function_custom_run_uses_custom_json_arguments(self):
         question = self.create_function_question()
@@ -293,6 +314,8 @@ class FunctionModeSubmissionTests(TestCase):
         self.assertEqual(response.data["status"], Submission.Status.ACCEPTED)
         self.assertEqual(response.data["passed_count"], 2)
         self.assertEqual(response.data["total_count"], 2)
+        self.assertLess(response.data["memory_kb"], 1024)
+        self.assertEqual(response.data["stderr"], "")
 
     def test_only_first_submission_records_solve_time(self):
         question = self.create_function_question()
