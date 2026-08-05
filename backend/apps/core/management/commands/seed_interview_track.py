@@ -272,7 +272,18 @@ FUNCTION_CASES = {
     "Max Consecutive Ones III": [([[1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0], 2], 6), ([[0, 0, 1, 1], 1], 3)],
     "Longest Subarray of 1s After Deleting One": [([[1, 1, 0, 1]], 3), ([[1, 1, 1]], 2)],
     "Determine if Two Strings Are Close": [(["abc", "bca"], True), (["a", "aa"], False)],
-    "Equal Row and Column Pairs": [([[[3, 2, 1], [1, 7, 6], [2, 7, 7]]], 1), ([[[1, 2], [2, 1]]], 0)],
+    "Equal Row and Column Pairs": [
+        ([[[3, 2, 1], [1, 7, 6], [2, 7, 7]]], 1),
+        ([[[1, 2], [2, 1]]], 2),
+        ([[[3, 1, 2, 2], [1, 4, 4, 5], [2, 4, 2, 2], [2, 4, 2, 2]]], 3),
+        ([[[1]]], 1),
+        ([[[1, 2], [3, 4]]], 0),
+        ([[[7, 7, 7], [7, 7, 7], [7, 7, 7]]], 9),
+        ([[[1, 0, 0], [0, 1, 0], [0, 0, 1]]], 3),
+        ([[[1, 1, 2], [1, 1, 2], [2, 2, 1]]], 5),
+        ([[[-1, 0], [0, -1]]], 2),
+        ([[[1, 2, 1], [2, 1, 2], [1, 2, 1]]], 5),
+    ],
     "Decode String": [(["3[a]2[bc]"], "aaabcbc"), (["3[a2[c]]"], "accaccacc")],
     "Asteroid Collision": [([[5, 10, -5]], [5, 10]), ([[8, -8]], [])],
     "Daily Temperatures": [([[73, 74, 75, 71, 69, 72, 76, 73]], [1, 1, 4, 2, 1, 1, 0, 0]), ([[30, 40, 50, 60]], [1, 1, 1, 0])],
@@ -405,6 +416,35 @@ def build_reference_solution(title, language):
         return build_node_python_reference(title) if language == "python" else build_node_java_reference(title)
     if title in UNORDERED_COMPARISON_MODES:
         return UNORDERED_PYTHON_SOLUTIONS[title] if language == "python" else UNORDERED_JAVA_SOLUTIONS[title]
+    if title == "Equal Row and Column Pairs":
+        if language == "python":
+            return """def solve(grid):
+    row_counts = {}
+    for row in grid:
+        key = tuple(row)
+        row_counts[key] = row_counts.get(key, 0) + 1
+    return sum(row_counts.get(tuple(column), 0) for column in zip(*grid))
+"""
+        return """import java.util.*;
+
+class Solution {
+    public Object solve(int[][] grid) {
+        Map<List<Integer>, Integer> rowCounts = new HashMap<>();
+        for (int[] row : grid) {
+            List<Integer> key = new ArrayList<>();
+            for (int value : row) key.add(value);
+            rowCounts.put(key, rowCounts.getOrDefault(key, 0) + 1);
+        }
+        int pairs = 0;
+        for (int column = 0; column < grid.length; column++) {
+            List<Integer> key = new ArrayList<>();
+            for (int row = 0; row < grid.length; row++) key.add(grid[row][column]);
+            pairs += rowCounts.getOrDefault(key, 0);
+        }
+        return pairs;
+    }
+}
+"""
     comment = "#" if language == "python" else "//"
     return (
         f"{comment} Reference solution for {title}\n"
@@ -507,7 +547,7 @@ class Command(BaseCommand):
                                 "order": case_order,
                             },
                         )
-                    if title in NODE_TITLES or title in UNORDERED_COMPARISON_MODES:
+                    if title in NODE_TITLES or title in UNORDERED_COMPARISON_MODES or title == "Equal Row and Column Pairs":
                         question.test_cases.exclude(name__in=expected_case_names).delete()
                 section = sections[section_title]
                 TrackQuestion.objects.update_or_create(

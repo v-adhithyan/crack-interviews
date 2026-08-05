@@ -153,7 +153,7 @@ SECOND_EXPLANATIONS = {
     "Max Consecutive Ones III": "Flipping one of the leading zeroes joins it to the two existing ones, producing length `3`.",
     "Longest Subarray of 1s After Deleting One": "The array contains only ones, but exactly one element must be deleted, leaving length `2`.",
     "Determine if Two Strings Are Close": "The strings have different lengths and different occurrence counts, so no allowed operations can make them equal.",
-    "Equal Row and Column Pairs": "Neither row equals a column in the same order, so the count is `0`.",
+    "Equal Row and Column Pairs": "The first row `[1,2]` matches the first column, and the second row `[2,1]` matches the second column, giving `2` pairs.",
     "Decode String": "First decode `a2[c]` as `acc`, then repeat it three times.",
     "Asteroid Collision": "The two asteroids have equal size and move toward each other, so both are destroyed.",
     "Daily Temperatures": "Each of the first three days is followed immediately by a warmer day; the final day has none.",
