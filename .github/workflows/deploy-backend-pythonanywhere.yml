@@ -113,6 +113,7 @@ jobs:
           # Always run migrations. They are idempotent, and this prevents a
           # schema repair from being skipped when deploy commits are rebased,
           # manually dispatched, or compared across an incomplete push range.
+          python manage.py repair_mock_interview_schema
           python manage.py migrate --noinput
 
           python manage.py shell -c "from django.db import connection; table='product_mock_interview_session'; cursor=connection.cursor(); columns={column.name for column in connection.introspection.get_table_description(cursor, table)}; cursor.close(); assert 'share_uuid' not in columns, 'Stale share_uuid column still exists'"
