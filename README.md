@@ -197,6 +197,10 @@ CODE_TIMEOUT_SECONDS=2
 
 The MVP executes submitted code using local subprocesses with timeouts. This is suitable for personal local development only. Do not expose it publicly without container isolation, filesystem/network restrictions, and stronger resource limits.
 
+## License
+
+This project is licensed under the [MIT License](LICENSE).
+
 
 ## Always on task in pythonanywhere
 
