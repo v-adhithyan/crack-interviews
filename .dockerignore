@@ -1,0 +1,17 @@
+.git
+.github
+.idea
+.venv
+**/.venv
+**/__pycache__
+**/*.py[cod]
+**/.env
+**/.env.*
+!**/.env.example
+frontend/node_modules
+frontend/.next
+backend/db.sqlite3
+backend/media
+backend/staticfiles
+*.log
+.DS_Store

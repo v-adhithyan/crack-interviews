@@ -1,0 +1,86 @@
+x-backend-environment: &backend-environment
+  DJANGO_SETTINGS_MODULE: config.settings.prod
+  DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-local-development-secret-key-change-before-deploying}
+  DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,backend}
+  DJANGO_CORS_ALLOWED_ORIGINS: ${DJANGO_CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+  DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS:-http://localhost:8000}
+  MYSQL_DATABASE: ${MYSQL_DATABASE:-crack_interviews}
+  MYSQL_USER: ${MYSQL_USER:-crack_interviews}
+  MYSQL_PASSWORD: ${MYSQL_PASSWORD:-crack_interviews_local}
+  MYSQL_HOST: db
+  MYSQL_PORT: "3306"
+  HACKERLEAP_CODE: ${HACKERLEAP_CODE:-http://localhost:3000}
+  HACKERLEAP_AI_MODE: ${HACKERLEAP_AI_MODE:-chatgpt}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+  OPENAI_QUESTION_MAX_TOKENS: ${OPENAI_QUESTION_MAX_TOKENS:-16000}
+  JAVA_RELEASE: "17"
+
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-crack_interviews}
+      MYSQL_USER: ${MYSQL_USER:-crack_interviews}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-crack_interviews_local}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-crack_interviews_root_local}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    environment:
+      <<: *backend-environment
+      RUN_MIGRATIONS: "1"
+      COLLECT_STATIC: "1"
+    ports:
+      - "8000:8000"
+    volumes:
+      - media-data:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    command: ["python", "manage.py", "qcluster"]
+    environment: *backend-environment
+    volumes:
+      - media-data:/app/media
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000/api}
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  mysql-data:
+  media-data:
