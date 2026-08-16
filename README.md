@@ -74,6 +74,40 @@ Open:
 
 Use Django admin to create questions, add test cases manually, import test cases from CSV, and mark questions active or inactive.
 
+## Run with Docker
+
+Docker Compose starts MySQL, the Django API, the Django-Q worker, and the Next.js app:
+
+```bash
+docker compose up --build
+```
+
+The checked-in defaults are intended for local development and do not require an
+OpenAI API key. To customize them, copy `.env.example` to `.env`. Before any public
+deployment, replace the Django and MySQL secrets and store `OPENAI_API_KEY` in your
+platform's secret manager rather than committing it.
+
+Open the frontend at http://localhost:3000 and Django admin at
+http://localhost:8000/admin/. On first startup, migrations run automatically.
+Create an administrator with:
+
+```bash
+docker compose exec backend python manage.py createsuperuser
+```
+
+Optionally load the sample coding questions:
+
+```bash
+docker compose exec backend python manage.py seed_sample
+```
+
+Stop the stack with `docker compose down`. Add `--volumes` only when you also want
+to delete the MySQL database and uploaded media.
+
+For a public deployment, change every URL/host setting in `.env` to the real HTTPS
+domains. `NEXT_PUBLIC_API_BASE_URL` is embedded during the frontend image build, so
+rebuild the frontend after changing it.
+
 ## Test Case CSV Format
 
 Upload test cases from a question's Django admin detail page using this header:
