@@ -76,20 +76,37 @@ Use Django admin to create questions, add test cases manually, import test cases
 
 ## Run with Docker
 
-Docker Compose starts MySQL, the Django API, the Django-Q worker, and the Next.js app:
+### Prerequisites
+
+Install Docker Desktop, or Docker Engine with the Compose plugin. Verify the
+installation with `docker --version` and `docker compose version`.
+
+### Quick start
+
+From the repository root, start MySQL, the Django API, the Django-Q worker, and the
+Next.js frontend:
 
 ```bash
 docker compose up --build
 ```
 
-The checked-in defaults are intended for local development and do not require an
-OpenAI API key. To customize them, copy `.env.example` to `.env`. Before any public
-deployment, replace the Django and MySQL secrets and store `OPENAI_API_KEY` in your
-platform's secret manager rather than committing it.
+To run in the background instead, use:
+
+```bash
+docker compose up --build --detach
+docker compose logs --follow
+```
 
 Open the frontend at http://localhost:3000 and Django admin at
-http://localhost:8000/admin/. On first startup, migrations run automatically.
-Create an administrator with:
+http://localhost:8000/admin/. The API health check is available at
+http://localhost:8000/api/health/. Database migrations and static-file collection
+run automatically when the backend starts. Some endpoints require login. So create a superuser using the below command for login purpose.
+Set your chatgpt api key in compose.yaml to directly interact with
+chatgpt.
+
+### Initial setup
+
+Create an administrator:
 
 ```bash
 docker compose exec backend python manage.py createsuperuser
@@ -101,12 +118,54 @@ Optionally load the sample coding questions:
 docker compose exec backend python manage.py seed_sample
 ```
 
-Stop the stack with `docker compose down`. Add `--volumes` only when you also want
-to delete the MySQL database and uploaded media.
+### Environment configuration
+
+The checked-in defaults are intended for local development and do not require an
+OpenAI API key. To override them:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env`, then rebuild with `docker compose up --build`. Keep
+`HACKERLEAP_AI_MODE=manual` when AI-backed features are not needed. Never commit an
+API key; store `OPENAI_API_KEY` only in the ignored `.env` file or your deployment
+platform's secret manager.
+
+### Common commands
+
+```bash
+# Show service status
+docker compose ps
+
+# Follow one service's logs
+docker compose logs --follow backend
+
+# Run the Django test suite
+docker compose exec backend python manage.py test
+
+# Stop and remove containers while preserving data
+docker compose down
+
+# Delete containers, the MySQL database, and uploaded media
+docker compose down --volumes
+```
+
+MySQL data and uploaded media are stored in named Docker volumes and survive a
+normal `docker compose down`.
+
+### Public deployment
 
 For a public deployment, change every URL/host setting in `.env` to the real HTTPS
 domains. `NEXT_PUBLIC_API_BASE_URL` is embedded during the frontend image build, so
-rebuild the frontend after changing it.
+rebuild the frontend after changing it. Replace the development Django and MySQL
+secrets before deploying.
+
+The backend executes submitted Java and Python programs as local subprocesses.
+Running the backend itself in Docker does not safely isolate each submission. Do
+not expose code execution to untrusted users without disposable sandboxes, disabled
+network access, filesystem isolation, and strict CPU, memory, process, and time
+limits.
 
 ## Test Case CSV Format
 
