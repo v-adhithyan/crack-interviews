@@ -6,6 +6,8 @@
 
 A personal HackerRank/LeetCode-style practice platform built with Django and Next.js.
 
+Demo link is in this linkedin post: [Click to watch demo](https://www.linkedin.com/posts/adhithyan-vijayakumar-7bb10b69_opensource-interviewprep-softwareengineering-ugcPost-7494616881795047424-MwQs/?utm_source=share&utm_medium=member_desktop&rcm=ACoAAA5uqr8B3997AbIoPlIgQIwIbYSNwISTABA)
+
 See [the architecture overview](docs/architecture.md) for system, AI, request-flow,
 and deployment diagrams.
 
