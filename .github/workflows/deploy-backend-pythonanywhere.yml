@@ -53,11 +53,6 @@ jobs:
             else
               echo "run_migrations=false"
             fi
-            if echo "$changed_files" | grep -Eq '^backend/.*/(templates|static)/'; then
-              echo "run_collectstatic=true"
-            else
-              echo "run_collectstatic=false"
-            fi
           } >> "$GITHUB_OUTPUT"
 
       - name: Configure SSH
@@ -82,13 +77,12 @@ jobs:
           PYTHONANYWHERE_VENV: ${{ secrets.PYTHONANYWHERE_VENV }}
           INSTALL_REQUIREMENTS: ${{ steps.changes.outputs.install_requirements }}
           RUN_MIGRATIONS: ${{ steps.changes.outputs.run_migrations }}
-          RUN_COLLECTSTATIC: ${{ steps.changes.outputs.run_collectstatic }}
         run: |
           set -euo pipefail
 
           ssh -i ~/.ssh/pythonanywhere_deploy_key \
             "$PYTHONANYWHERE_USER@$PYTHONANYWHERE_HOST" \
-            "INSTALL_REQUIREMENTS='$INSTALL_REQUIREMENTS' RUN_MIGRATIONS='$RUN_MIGRATIONS' RUN_COLLECTSTATIC='$RUN_COLLECTSTATIC' PYTHONANYWHERE_VENV='${PYTHONANYWHERE_VENV:-hackerleap.pythonanywhere.com}' bash -s" <<'REMOTE_SCRIPT'
+            "INSTALL_REQUIREMENTS='$INSTALL_REQUIREMENTS' RUN_MIGRATIONS='$RUN_MIGRATIONS' PYTHONANYWHERE_VENV='${PYTHONANYWHERE_VENV:-hackerleap.pythonanywhere.com}' bash -s" <<'REMOTE_SCRIPT'
           set -euo pipefail
 
           cd /home/hackerleap/hackerleap.pythonanywhere.com
@@ -118,9 +112,9 @@ jobs:
 
           python manage.py shell -c "from django.db import connection; table='product_mock_interview_session'; cursor=connection.cursor(); columns={column.name for column in connection.introspection.get_table_description(cursor, table)}; cursor.close(); assert 'share_uuid' not in columns, 'Stale share_uuid column still exists'"
 
-          if [[ "$RUN_COLLECTSTATIC" == "true" ]]; then
-            python manage.py collectstatic --noinput
-          fi
+          # Production uses WhiteNoise's manifest storage. Rebuild the manifest
+          # on every deploy so templates never reference a missing hashed asset.
+          python manage.py collectstatic --noinput
           REMOTE_SCRIPT
 
       - name: Reload PythonAnywhere web app
