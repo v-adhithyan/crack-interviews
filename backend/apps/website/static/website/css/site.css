@@ -351,6 +351,21 @@ input {
     font-weight: 700;
 }
 
+.coding-platform-access {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 24px;
+}
+
+.coding-platform-access a:hover {
+    background: var(--gold-strong);
+}
+
+.coding-platform-access a:focus-visible {
+    outline: 2px solid var(--gold-dark);
+    outline-offset: 3px;
+}
+
 .hero-section {
     padding: 64px 0 46px;
 }
