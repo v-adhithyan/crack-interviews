@@ -6,6 +6,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         default-jdk-headless \
+        libpango-1.0-0 \
+        libpangoft2-1.0-0 \
+        fonts-liberation \
         gcc \
         pkg-config \
         default-libmysqlclient-dev \

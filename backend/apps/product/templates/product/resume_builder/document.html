@@ -1,0 +1,22 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; font-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Resume</title><style>
+@page { size:A4; margin:17mm 20mm; }
+* { box-sizing:border-box; } body { font-family:"Liberation Sans",Arial,sans-serif; font-size:10.5pt; line-height:1.25; color:#242424; margin:0; overflow-wrap:anywhere; }
+header { text-align:center; margin-bottom:12pt; } h1 { font-size:22pt; margin:0 0 5pt; padding-bottom:4pt; border-bottom:1px solid #333; }
+h2 { text-align:center; font-size:12pt; margin:12pt 0 4pt; padding-bottom:3pt; border-bottom:1px solid #333; break-after:avoid; }
+p { margin:0 0 4pt; white-space:pre-line; } .skill { margin-bottom:4pt; } .entry { margin-top:8pt; } .entry-head { break-inside:avoid; break-after:avoid; } .row { display:table; width:100%; font-style:italic; } .row span { display:table-cell; width:55%; } .row span:last-child { width:45%; text-align:right; padding-left:8pt; }
+ul { margin:3pt 0 5pt; padding-left:17pt; } li { margin-bottom:3pt; break-inside:avoid; orphans:2; widows:2; } .education { break-inside:avoid; } strong { font-weight:700; }
+@media screen { html { background:#e9e8e4; } body { background:white; width:210mm; min-height:297mm; margin:16px auto; padding:17mm 20mm; box-shadow:0 2px 12px #0002; } }
+</style></head><body>
+<header><h1>{{ resume_data.contact.name|default:"Your name" }}</h1>
+{% if resume_data.contact.headline %}<p>{{ resume_data.contact.headline }}</p>{% endif %}
+{% if resume_data.contact.email %}<p>{{ resume_data.contact.email }}</p>{% endif %}
+{% if resume_data.contact.phone %}<p>{{ resume_data.contact.phone }}</p>{% endif %}
+{% if resume_data.contact.location %}<p>{{ resume_data.contact.location }}</p>{% endif %}
+{% if resume_data.contact.website %}<p>{{ resume_data.contact.website }}</p>{% endif %}</header>
+{% if resume_data.summary %}<section><h2>Professional Summary</h2><p>{{ resume_data.summary }}</p></section>{% endif %}
+{% if resume_data.skills %}<section><h2>Skills</h2>{% for skill in resume_data.skills %}<div class="skill"><strong>{{ skill.label }}</strong><p>{{ skill.items }}</p></div>{% endfor %}</section>{% endif %}
+{% if experience %}<section><h2>Work History</h2>{% for job in experience %}<div class="entry"><div class="entry-head"><div class="row"><span>{{ job.company }}</span><span>{{ job.context }}</span></div><div class="row"><span>{{ job.role }}</span><span>{{ job.dates }}</span></div></div>{% if job.points %}<ul>{% for point in job.points %}<li>{{ point }}</li>{% endfor %}</ul>{% endif %}</div>{% endfor %}</section>{% endif %}
+{% if resume_data.education %}<section><h2>Education</h2>{% for item in resume_data.education %}<div class="entry education"><div class="row"><span>{{ item.school }}</span><span>{{ item.location }}</span></div><div class="row"><span>{{ item.degree }}</span><span>{{ item.dates }}</span></div></div>{% endfor %}</section>{% endif %}
+</body></html>

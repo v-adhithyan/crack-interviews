@@ -2,8 +2,18 @@ from django.contrib.auth.views import LogoutView
 from django.urls import path
 
 from . import views
+from . import resume_builder_views as builder
 
 urlpatterns = [
+    path("app/resume-builder/", builder.draft_list, name="resume_builder_list"),
+    path("app/resume-builder/create/", builder.draft_create, name="resume_builder_create"),
+    path("app/resume-builder/<uuid:draft_uuid>/", builder.draft_edit, name="resume_builder_edit"),
+    path("app/resume-builder/<uuid:draft_uuid>/save/", builder.draft_save, name="resume_builder_save"),
+    path("app/resume-builder/<uuid:draft_uuid>/preview/", builder.draft_preview, name="resume_builder_preview"),
+    path("app/resume-builder/<uuid:draft_uuid>/export/", builder.draft_export, name="resume_builder_export"),
+    path("app/resume-builder/<uuid:draft_uuid>/use/", builder.draft_use, name="resume_builder_use"),
+    path("app/resume-builder/<uuid:draft_uuid>/delete/", builder.draft_delete, name="resume_builder_delete"),
+
     path("app/", views.dashboard, name="product_dashboard"),
     path("app/code/", views.code_platform_redirect, name="code_platform_redirect"),
     path("app/resume/", views.current_resume_content, name="current_resume_content"),

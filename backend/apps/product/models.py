@@ -337,3 +337,17 @@ class MockInterviewTurn(models.Model):
 
     def __str__(self):
         return f"{self.get_role_display()}: {self.text[:80]}"
+
+
+class ResumeDraft(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="resume_drafts")
+    title = models.CharField(max_length=120, default="Untitled resume")
+    template_version = models.PositiveSmallIntegerField(default=1, editable=False)
+    content = models.JSONField(default=dict)
+    revision = models.PositiveIntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
