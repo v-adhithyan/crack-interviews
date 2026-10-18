@@ -7,6 +7,7 @@ import subprocess
 import sys
 import unicodedata
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -67,7 +68,19 @@ def emphasis(value):
 def render_resume(content):
     content = validate_content(content)
     experience = [{**row, "points": [emphasis(line.lstrip('-• ').strip()) for line in row['bullets'].splitlines() if line.strip()]} for row in content['experience']]
-    return render_to_string('product/resume_builder/document.html', {"resume_data": content, "experience": experience})
+    website = content['contact']['website'].strip()
+    linkedin_url = ''
+    candidate = website if '://' in website else 'https://' + website
+    try:
+        parsed = urlsplit(candidate)
+        host = (parsed.hostname or '').lower()
+        if (parsed.scheme in {'https', 'http'} and not parsed.username and not parsed.password
+                and (host == 'linkedin.com' or host.endswith('.linkedin.com'))
+                and not any(char.isspace() for char in website)):
+            linkedin_url = candidate
+    except ValueError:
+        pass
+    return render_to_string('product/resume_builder/document.html', {"resume_data": content, "experience": experience, "linkedin_url": linkedin_url})
 
 
 def pdf_python_executable():
