@@ -16,6 +16,29 @@ from django.utils.html import escape, format_html_join
 
 logger = logging.getLogger(__name__)
 
+FONT_CHOICES = {
+    'default': 'Liberation Sans (default)', 'calibri': 'Calibri', 'arial': 'Arial',
+    'helvetica': 'Helvetica', 'garamond': 'Garamond', 'cambria': 'Cambria', 'georgia': 'Georgia',
+}
+DEFAULT_TYPOGRAPHY = {'font': 'default', 'body_size': 10.5, 'heading_size': 12, 'name_size': 22}
+SIZE_CHOICES = {
+    'body_size': [n / 2 for n in range(18, 29)],
+    'heading_size': [n / 2 for n in range(20, 37)],
+    'name_size': list(range(18, 33)),
+}
+
+
+def validate_typography(value):
+    if not isinstance(value, dict) or set(value) != set(DEFAULT_TYPOGRAPHY):
+        raise ValidationError('Invalid resume font settings.')
+    if not isinstance(value['font'], str) or value['font'] not in FONT_CHOICES:
+        raise ValidationError('Choose a supported resume font.')
+    for key, choices in SIZE_CHOICES.items():
+        if type(value[key]) not in (int, float) or value[key] not in choices:
+            raise ValidationError(f'Choose a supported {key.replace("_", " ")}.')
+    return dict(value)
+
+
 MAX_BODY = 100_000
 CONTACT = {"name": 120, "headline": 180, "email": 254, "phone": 60, "location": 120, "website": 200}
 SECTIONS = {
@@ -26,7 +49,7 @@ SECTIONS = {
 
 
 def blank_content():
-    return {"contact": {key: "" for key in CONTACT}, "summary": "", "skills": [], "experience": [], "education": []}
+    return {"contact": {key: "" for key in CONTACT}, "summary": "", "skills": [], "experience": [], "education": [], "typography": dict(DEFAULT_TYPOGRAPHY)}
 
 
 def fields(value, schema):
@@ -44,7 +67,7 @@ def fields(value, schema):
 
 
 def validate_content(content):
-    if not isinstance(content, dict) or set(content) != {"contact", "summary", *SECTIONS}:
+    if not isinstance(content, dict) or set(content) - {"typography"} != {"contact", "summary", *SECTIONS}:
         raise ValidationError("Invalid resume structure.")
     result = {"contact": fields(content["contact"], CONTACT), **fields({"summary": content["summary"]}, {"summary": 3000})}
     for key, (schema, maximum) in SECTIONS.items():
@@ -52,6 +75,8 @@ def validate_content(content):
         if not isinstance(rows, list) or len(rows) > maximum:
             raise ValidationError(f"Use at most {maximum} {key} entries.")
         result[key] = [fields(row, schema) for row in rows]
+    if 'typography' in content:
+        result['typography'] = validate_typography(content['typography'])
     if len(json.dumps(result, ensure_ascii=False).encode()) > 60000:
         raise ValidationError("Resume content is too long (60 KB maximum).")
     if any(len(row['bullets'].splitlines()) > 30 for row in result['experience']):
@@ -80,7 +105,9 @@ def render_resume(content):
             linkedin_url = candidate
     except ValueError:
         pass
-    return render_to_string('product/resume_builder/document.html', {"resume_data": content, "experience": experience, "linkedin_url": linkedin_url})
+    typography = content.get('typography', DEFAULT_TYPOGRAPHY)
+    typography = {key: format(value, 'g') if key != 'font' else value for key, value in typography.items()}
+    return render_to_string('product/resume_builder/document.html', {"resume_data": content, "experience": experience, "linkedin_url": linkedin_url, "typography": typography})
 
 
 def pdf_python_executable():

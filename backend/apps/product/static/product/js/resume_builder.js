@@ -5,6 +5,7 @@
   if (!root) return;
   const initial = JSON.parse(document.getElementById('resume-initial').textContent);
   let content = initial.content, title = initial.title, revision = initial.revision;
+  content.typography = {...initial.typography_defaults, ...(content.typography || {})};
   let generation = 0, savedGeneration = 0, saving = false, conflict = false;
   let saveTimer, previewTimer, previewSequence = 0, previewController;
   const fields = document.getElementById('resume-fields');
@@ -45,6 +46,26 @@
   function renderFields() {
     fields.replaceChildren();
     input(fields, 'Draft title (not printed)', title, 120, false, value => {title = value;});
+    const typography = section('Font and sizes');
+    function selectSetting(key, label, options) {
+      const wrap = node('label', label, typography);
+      const select = node('select', '', wrap);
+      options.forEach(([value, text]) => {
+        const option = node('option', text, select); option.value = String(value);
+      });
+      select.value = String(content.typography[key]);
+      select.addEventListener('change', () => {
+        content.typography[key] = key === 'font' ? select.value : Number(select.value);
+        changed();
+      });
+    }
+    selectSetting('font', 'Font family', Object.entries(initial.font_choices));
+    [['body_size', 'Body text'], ['heading_size', 'Section headings'], ['name_size', 'Name']].forEach(([key, label]) => {
+      selectSetting(key, `${label} size (pt)`, initial.size_choices[key].map(value => [value, `${value} pt`]));
+    });
+    const note = node('p', 'If the selected font is not installed on the PDF server, a substitute is used. Preview PDF to confirm the final font and page breaks.', typography);
+    note.className = 'rb-hint';
+    button(typography, 'Reset font settings', () => {content.typography = {...initial.typography_defaults}; changed(); renderFields();});
     const contact = section('Contact details');
     const contactFields = {name: ['Full name',120], headline:['Headline / availability',180], email:['Email',254], phone:['Phone',60], location:['Location',120], website:['Website / LinkedIn',200]};
     Object.entries(contactFields).forEach(([key, [label,max]]) => input(contact,label,content.contact[key],max,false,value => {content.contact[key]=value;}));

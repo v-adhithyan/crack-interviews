@@ -17,7 +17,7 @@ from django.contrib import messages
 from .decorators import product_access_required
 from .models import Resume, ResumeDraft
 from .pdf import extract_pdf_text
-from .resume_builder import MAX_BODY, blank_content, fields, render_pdf, render_resume, validate_content
+from .resume_builder import MAX_BODY, blank_content, fields, render_pdf, render_resume, validate_content, DEFAULT_TYPOGRAPHY, FONT_CHOICES, SIZE_CHOICES
 
 
 def draft_for(request, draft_uuid):
@@ -77,7 +77,7 @@ def draft_edit(request, draft_uuid):
     draft = draft_for(request, draft_uuid)
     return render(request, 'product/resume_builder/editor.html', {'draft': draft, 'initial': {'title': draft.title,
                                                                                               'revision': draft.revision,
-                                                                                              'content': draft.content},
+                                                                                              'content': draft.content, 'typography_defaults': DEFAULT_TYPOGRAPHY, 'font_choices': FONT_CHOICES, 'size_choices': SIZE_CHOICES},
                                                                   'active_nav': 'resume_builder'})
 
 

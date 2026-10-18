@@ -2,15 +2,21 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; font-src 'none'; base-uri 'none'; form-action 'none'">
 <title>Resume</title><style>
 @page { size:A4; margin:17mm 20mm; }
-* { box-sizing:border-box; } body { font-family:"Liberation Sans",Arial,sans-serif; font-size:10.5pt; line-height:1.25; color:#242424; margin:0; overflow-wrap:anywhere; }
-header { text-align:center; margin-bottom:12pt; } h1 { font-size:22pt; margin:0 0 5pt; padding-bottom:4pt; border-bottom:1px solid #333; }
+* { box-sizing:border-box; } body { font-family:"Liberation Sans",Arial,sans-serif; font-size:{{ typography.body_size }}pt; line-height:1.25; color:#242424; margin:0; overflow-wrap:anywhere; }
+body.font-calibri { font-family:Calibri,Carlito,"Liberation Sans",Arial,sans-serif; }
+body.font-arial { font-family:Arial,"Liberation Sans",sans-serif; }
+body.font-helvetica { font-family:Helvetica,"Liberation Sans",Arial,sans-serif; }
+body.font-garamond { font-family:Garamond,"EB Garamond","Liberation Serif",serif; }
+body.font-cambria { font-family:Cambria,Caladea,"Liberation Serif",serif; }
+body.font-georgia { font-family:Georgia,"Liberation Serif",serif; }
+header { text-align:center; margin-bottom:12pt; } h1 { font-size:{{ typography.name_size }}pt; margin:0 0 5pt; padding-bottom:4pt; border-bottom:1px solid #333; }
 .linkedin-icon { display:inline-block; margin-left:6pt; vertical-align:middle; width:15pt; height:15pt; border-radius:2pt; background:#0a66c2; color:white; font-family:Arial,sans-serif; font-size:12pt; font-weight:700; line-height:15pt; text-align:center; text-decoration:none; }
 .contact-line { white-space:normal; } .contact-line span { display:inline-block; } .contact-separator { padding:0 7pt; }
-h2 { text-align:center; font-size:12pt; margin:12pt 0 4pt; padding-bottom:3pt; border-bottom:1px solid #333; break-after:avoid; }
+h2 { text-align:center; font-size:{{ typography.heading_size }}pt; margin:12pt 0 4pt; padding-bottom:3pt; border-bottom:1px solid #333; break-after:avoid; }
 p { margin:0 0 4pt; white-space:pre-line; } .skill { margin-bottom:4pt; } .entry { margin-top:8pt; } .entry-head { break-inside:avoid; break-after:avoid; } .row { display:table; width:100%; font-style:italic; } .row span { display:table-cell; width:55%; } .row span:last-child { width:45%; text-align:right; padding-left:8pt; }
 ul { margin:3pt 0 5pt; padding-left:17pt; } li { margin-bottom:3pt; break-inside:avoid; orphans:2; widows:2; } .education { break-inside:avoid; } strong { font-weight:700; }
 @media screen { html { background:#e9e8e4; } body { background:white; width:210mm; min-height:297mm; margin:16px auto; padding:17mm 20mm; box-shadow:0 2px 12px #0002; } }
-</style></head><body>
+</style></head><body class="font-{{ typography.font }}">
 <header><h1>{{ resume_data.contact.name|default:"Your name" }}{% if linkedin_url %}<a class="linkedin-icon" href="{{ linkedin_url }}" aria-label="LinkedIn profile" title="LinkedIn profile" target="_blank" rel="noopener noreferrer">in</a>{% endif %}</h1>
 {% if resume_data.contact.headline %}<p>{{ resume_data.contact.headline }}</p>{% endif %}
 {% if resume_data.contact.email or resume_data.contact.phone %}<p class="contact-line">{% if resume_data.contact.email %}<span>{{ resume_data.contact.email }}</span>{% endif %}{% if resume_data.contact.email and resume_data.contact.phone %}<span class="contact-separator">|</span>{% endif %}{% if resume_data.contact.phone %}<span>{{ resume_data.contact.phone }}</span>{% endif %}</p>{% endif %}

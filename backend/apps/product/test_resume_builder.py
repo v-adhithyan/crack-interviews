@@ -209,3 +209,50 @@ class ResumeBuilderTests(TestCase):
         response = self.client.post(self.url('clone'), follow=True)
         self.assertContains(response, 'You can keep up to 20 resume drafts')
         self.assertEqual(ResumeDraft.objects.count(), 20)
+
+    def test_typography_defaults_and_legacy_drafts(self):
+        from .resume_builder import DEFAULT_TYPOGRAPHY, validate_content
+        self.assertEqual(self.content['typography'], DEFAULT_TYPOGRAPHY)
+        legacy = {key: value for key, value in self.content.items() if key != 'typography'}
+        self.assertEqual(validate_content(legacy), legacy)
+        html = render_resume(legacy)
+        self.assertIn('font-size:10.5pt', html)
+        self.assertIn('font-size:22pt', html)
+        self.assertIn('font-size:12pt', html)
+        self.assertIn('class="font-default"', html)
+
+    def test_typography_saves_previews_and_clones(self):
+        self.content['typography'] = {'font': 'garamond', 'body_size': 11.5, 'heading_size': 14, 'name_size': 26}
+        self.assertEqual(self.save().status_code, 200)
+        self.draft.refresh_from_db()
+        self.assertEqual(self.draft.content['typography'], self.content['typography'])
+        html = render_resume(self.draft.content)
+        self.assertIn('class="font-garamond"', html)
+        for size in ['11.5', '14', '26']:
+            self.assertIn(f'font-size:{size}pt', html)
+        self.client.post(self.url('clone'))
+        self.assertEqual(ResumeDraft.objects.exclude(pk=self.draft.pk).get().content['typography'], self.content['typography'])
+        response = self.client.get(self.url('edit'))
+        self.assertContains(response, 'typography_defaults')
+        for name in ['Calibri', 'Arial', 'Helvetica', 'Garamond', 'Cambria', 'Georgia']:
+            self.assertContains(response, name)
+
+    def test_typography_rejects_css_injection_invalid_sizes_and_types(self):
+        from .resume_builder import validate_content
+        from django.core.exceptions import ValidationError
+        for changes in [{'font': 'Arial; background:url(https://example.com)'}, {'font': []}, {'body_size': True}, {'body_size': '11'}, {'body_size': 100}, {'name_size': 12}, {'heading_size': float('nan')}, {'extra': 'value'}]:
+            content = copy.deepcopy(self.content)
+            content['typography'].update(changes)
+            with self.assertRaises(ValidationError):
+                validate_content(content)
+        with self.assertRaises(ValidationError):
+            validate_content({**self.content, 'typography': {}})
+
+    def test_all_font_choices_generate_readable_pdfs(self):
+        from .resume_builder import FONT_CHOICES
+        for font in FONT_CHOICES:
+            with self.subTest(font=font):
+                content = copy.deepcopy(self.content)
+                content['typography']['font'] = font
+                pdf = render_pdf(content)
+                self.assertIn('Sample Engineer', PdfReader(BytesIO(pdf)).pages[0].extract_text())

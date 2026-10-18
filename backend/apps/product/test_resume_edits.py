@@ -223,3 +223,10 @@ class ResumeEditsTests(TestCase):
         self.analysis.save()
         for group in ['0', 'new']:
             self.assertEqual(self.submit(targets=[], skills=['1'], skill_group=group, confirm_skills='1').status_code, 400)
+
+    def test_regeneration_preserves_typography(self):
+        typography = {'font': 'georgia', 'body_size': 11, 'heading_size': 13, 'name_size': 24}
+        self.analysis.builder_snapshot['content']['typography'] = typography
+        self.analysis.save()
+        self.assertEqual(self.submit().status_code, 302)
+        self.assertEqual(ResumeEditApplication.objects.get().draft.content['typography'], typography)

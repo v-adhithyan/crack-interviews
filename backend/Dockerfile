@@ -9,6 +9,9 @@ RUN apt-get update \
         libpango-1.0-0 \
         libpangoft2-1.0-0 \
         fonts-liberation \
+        fonts-crosextra-carlito \
+        fonts-crosextra-caladea \
+        fonts-ebgaramond \
         gcc \
         pkg-config \
         default-libmysqlclient-dev \

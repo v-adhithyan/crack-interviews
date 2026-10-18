@@ -191,3 +191,17 @@ class ResumePdfJobsTests(TestCase):
             self.assertContains(response, 'role="progressbar"')
             self.assertContains(response, 'aria-valuenow="15"')
             self.assertContains(response, 'Progress reflects completed stages')
+
+    @patch('apps.product.resume_pdf_jobs.render_pdf', return_value=b'%PDF-example')
+    @patch('apps.product.resume_pdf_views.enqueue_background_job')
+    def test_queued_pdf_keeps_selected_font_and_sizes(self, enqueue, renderer):
+        self.content['typography'] = {'font': 'cambria', 'body_size': 12, 'heading_size': 15, 'name_size': 28}
+        self.draft.content = self.content
+        self.draft.save()
+        self.client.post(self.export_url, {'revision': 1})
+        job = ResumePdfJob.objects.get()
+        self.draft.content['typography']['font'] = 'arial'
+        self.draft.save()
+        generate_resume_pdf(job.pk)
+        self.assertEqual(renderer.call_args.args[0]['typography']['font'], 'cambria')
+        self.assertEqual(renderer.call_args.args[0]['typography']['body_size'], 12)

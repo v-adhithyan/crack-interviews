@@ -127,3 +127,26 @@ Deploy both web and Django-Q code, run migrations and collectstatic, reload the 
 and restart the PythonAnywhere always-on qcluster task. Without a running worker, jobs
 remain queued until the five-minute timeout. The existing queue is shared with analysis;
 worker concurrency and hosting memory must be sized for the bounded PDF subprocesses.
+
+## Font and size settings
+
+The editor has a Font and sizes section. Defaults remain Liberation Sans (Arial/sans-serif
+fallback), body 10.5 pt, section headings 12 pt, and name 22 pt. Users can choose Calibri,
+Arial, Helvetica, Garamond, Cambria, or Georgia. Body sizes range from 9–14 pt in half-point
+steps; headings 10–18 pt in half-point steps; names 18–32 pt in whole-point steps.
+Reset font settings restores the defaults. Settings autosave and update the live preview.
+
+An optional `typography` object in content stores the allowlisted font key and numeric
+sizes. Old drafts without it render with defaults. No database migration is required.
+Cloning, analysis snapshots/regeneration, and queued exports preserve these settings.
+Changing typography bumps the draft revision like other edits, so old PDF jobs stay
+bound to the typography they were requested with. CSS values are never accepted as input.
+
+PDF fonts depend on fonts installed on the worker server. Requested names are tried first;
+Docker includes Carlito as the Calibri substitute, Caladea for Cambria, EB Garamond for
+Garamond, Liberation Sans for Arial/Helvetica, and Liberation Serif for Georgia. These
+are substitutes, not the original fonts. Exact original fonts must be installed on the
+worker host with appropriate rights. No proprietary font files are bundled or downloaded
+by the app. On PythonAnywhere, configure fonts for the account running qcluster and reload
+its font cache/restart the worker after installation. Browser fonts may differ from server
+fonts; the editor advises checking Preview PDF for final typography and page breaks.
