@@ -1,4 +1,5 @@
 import json
+import uuid
 from io import BytesIO
 
 from django.contrib.auth import get_user_model
@@ -28,6 +29,7 @@ def payload(request):
     raw = request.read(MAX_BODY + 1)
     if request.content_type != 'application/json' or len(raw) > MAX_BODY:
         raise ValidationError('Send a JSON request smaller than 100 KB.')
+
     def unique(items):
         data = {}
         for key, value in items:
@@ -35,6 +37,7 @@ def payload(request):
                 raise ValueError('Duplicate key')
             data[key] = value
         return data
+
     try:
         data = json.loads(raw, object_pairs_hook=unique)
         if not isinstance(data, dict):
@@ -52,7 +55,8 @@ def error(exc):
 @product_access_required
 @require_GET
 def draft_list(request):
-    return render(request, 'product/resume_builder/list.html', {'drafts': ResumeDraft.objects.filter(user=request.user), 'active_nav': 'resume_builder'})
+    return render(request, 'product/resume_builder/list.html',
+                  {'drafts': ResumeDraft.objects.filter(user=request.user), 'active_nav': 'resume_builder'})
 
 
 @product_access_required
@@ -72,7 +76,10 @@ def draft_create(request):
 @require_GET
 def draft_edit(request, draft_uuid):
     draft = draft_for(request, draft_uuid)
-    return render(request, 'product/resume_builder/editor.html', {'draft': draft, 'initial': {'title': draft.title, 'revision': draft.revision, 'content': draft.content}, 'active_nav': 'resume_builder'})
+    return render(request, 'product/resume_builder/editor.html', {'draft': draft, 'initial': {'title': draft.title,
+                                                                                              'revision': draft.revision,
+                                                                                              'content': draft.content},
+                                                                  'active_nav': 'resume_builder'})
 
 
 @never_cache
@@ -89,9 +96,15 @@ def draft_save(request, draft_uuid):
     except ValidationError as exc:
         return error(exc)
     # Atomic compare-and-swap: never read/check/save in separate database operations.
-    changed = ResumeDraft.objects.filter(pk=draft.pk, user=request.user, revision=data['revision']).update(title=title, content=content, revision=F('revision') + 1, updated_at=timezone.now())
+    changed = ResumeDraft.objects.filter(pk=draft.pk, user=request.user, revision=data['revision']).update(title=title,
+                                                                                                           content=content,
+                                                                                                           revision=F(
+                                                                                                               'revision') + 1,
+                                                                                                           updated_at=timezone.now())
     if not changed:
-        return JsonResponse({'detail': 'This resume changed in another tab. Your edits are still here. Download a recovery copy before loading the latest draft.'}, status=409)
+        return JsonResponse({
+            'detail': 'This resume changed in another tab. Your edits are still here. Download a recovery copy before loading the latest draft.'},
+            status=409)
     return JsonResponse({'revision': data['revision'] + 1})
 
 
@@ -154,13 +167,17 @@ def draft_use(request, draft_uuid):
         latest = ResumeDraft.objects.select_for_update().filter(pk=draft.pk, revision=draft.revision).exists()
         if not latest:
             return HttpResponse('Draft changed during export. Please try again.', status=409)
-        resume, _ = Resume.objects.get_or_create(user=request.user, defaults={'original_filename': 'resume.pdf', 'content_type': 'application/pdf', 'size': len(pdf)})
+        resume, _ = Resume.objects.get_or_create(user=request.user, defaults={'original_filename': 'resume.pdf',
+                                                                              'content_type': 'application/pdf',
+                                                                              'size': len(pdf)})
         old_name = resume.file.name
         storage = resume.file.storage
         resume.original_filename = 'resume.pdf'
         resume.content_type = 'application/pdf'
         resume.size = len(pdf)
-        resume.builder_snapshot = {"draft_uuid": str(draft.uuid), "revision": draft.revision, "template_version": draft.template_version, "title": draft.title, "content": draft.content}
+        resume.builder_snapshot = {"draft_uuid": str(draft.uuid), "revision": draft.revision,
+                                   "template_version": draft.template_version, "title": draft.title,
+                                   "content": draft.content}
         resume.parsed_text = parsed
         resume.file.save('resume.pdf', ContentFile(pdf), save=False)
         resume.save()
@@ -174,7 +191,21 @@ def draft_use(request, draft_uuid):
 @require_POST
 def draft_delete(request, draft_uuid):
     draft = draft_for(request, draft_uuid)
-    deleted, _ = ResumeDraft.objects.filter(pk=draft.pk, revision=request.POST.get('revision', '')).delete() if request.POST.get('revision', '').isdigit() else (0, {})
+    deleted, _ = ResumeDraft.objects.filter(pk=draft.pk,
+                                            revision=request.POST.get('revision', '')).delete() if request.POST.get(
+        'revision', '').isdigit() else (0, {})
     if not deleted:
         return HttpResponse('Draft changed. Reload the list before deleting.', status=409)
+    return redirect('resume_builder_list')
+
+
+@product_access_required
+# @require_POST
+def draft_clone(request, draft_uuid):
+    draft = draft_for(request, draft_uuid)
+    draft.pk = None
+    draft.title += " (clone)"
+    draft.uuid = uuid.uuid4()
+    draft.save()
+    messages.success(request, 'Resume cloned successfully.')
     return redirect('resume_builder_list')
