@@ -45,7 +45,7 @@ class ResumeBuilderTests(TestCase):
 
     def test_owner_only_even_for_staff(self):
         private = ResumeDraft.objects.create(user=self.other, content=self.content)
-        for action in ['edit', 'save', 'preview', 'export', 'use', 'delete']:
+        for action in ['edit', 'save', 'preview', 'export', 'use', 'delete', 'clone']:
             response = self.client.get(self.url(action, private)) if action == 'edit' else self.client.post(self.url(action, private), {})
             self.assertEqual(response.status_code, 404, action)
         self.client.force_login(self.other)
@@ -175,3 +175,53 @@ class ResumeBuilderTests(TestCase):
             with self.assertRaises(RuntimeError):
                 render_pdf(self.content)
         self.assertIn('Traceback', logs.output[0])
+
+    def test_clone_copies_saved_content_without_changing_source(self):
+        self.draft.revision = 4
+        self.draft.save()
+        response = self.client.post(self.url('clone'))
+        self.assertRedirects(response, reverse('resume_builder_list'))
+        clone = ResumeDraft.objects.exclude(pk=self.draft.pk).get()
+        self.assertNotEqual(clone.uuid, self.draft.uuid)
+        self.assertEqual(clone.user, self.user)
+        self.assertEqual(clone.title, 'My resume (clone)')
+        self.assertEqual(clone.template_version, self.draft.template_version)
+        self.assertEqual(clone.content, self.draft.content)
+        self.assertEqual(clone.revision, 1)
+        clone.content['summary'] = 'Changed clone'
+        clone.save()
+        self.draft.refresh_from_db()
+        self.assertEqual(self.draft.content, self.content)
+        self.assertEqual(self.draft.title, 'My resume')
+        self.assertEqual(self.draft.revision, 4)
+
+    def test_clone_requires_post_csrf_and_authentication(self):
+        for method in ('get', 'head', 'put', 'delete'):
+            self.assertEqual(getattr(self.client, method)(self.url('clone')).status_code, 405)
+        csrf_client = Client(enforce_csrf_checks=True)
+        csrf_client.force_login(self.user)
+        self.assertEqual(csrf_client.post(self.url('clone')).status_code, 403)
+        page = csrf_client.get(reverse('resume_builder_list'))
+        self.assertContains(page, 'method="post" action="' + self.url('clone') + '"')
+        token = csrf_client.cookies['csrftoken'].value
+        self.assertEqual(csrf_client.post(self.url('clone'), {'csrfmiddlewaretoken': token}).status_code, 302)
+        self.client.logout()
+        self.assertEqual(self.client.post(self.url('clone')).status_code, 302)
+        self.assertEqual(ResumeDraft.objects.count(), 2)
+
+    def test_clone_staff_cannot_copy_another_users_draft(self):
+        self.client.force_login(self.other)
+        self.assertEqual(self.client.post(self.url('clone')).status_code, 404)
+        self.assertEqual(ResumeDraft.objects.count(), 1)
+
+    def test_clone_respects_draft_limit_and_title_length(self):
+        self.draft.title = 'x' * 120
+        self.draft.save()
+        self.client.post(self.url('clone'))
+        clone = ResumeDraft.objects.exclude(pk=self.draft.pk).get()
+        self.assertEqual(len(clone.title), 120)
+        self.assertTrue(clone.title.endswith(' (clone)'))
+        ResumeDraft.objects.bulk_create([ResumeDraft(user=self.user, content=self.content) for _ in range(18)])
+        response = self.client.post(self.url('clone'), follow=True)
+        self.assertContains(response, 'You can keep up to 20 resume drafts')
+        self.assertEqual(ResumeDraft.objects.count(), 20)

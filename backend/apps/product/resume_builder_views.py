@@ -1,5 +1,4 @@
 import json
-import uuid
 from io import BytesIO
 
 from django.contrib.auth import get_user_model
@@ -200,12 +199,20 @@ def draft_delete(request, draft_uuid):
 
 
 @product_access_required
-# @require_POST
+@require_POST
 def draft_clone(request, draft_uuid):
-    draft = draft_for(request, draft_uuid)
-    draft.pk = None
-    draft.title += " (clone)"
-    draft.uuid = uuid.uuid4()
-    draft.save()
+    with transaction.atomic():
+        get_user_model().objects.select_for_update().get(pk=request.user.pk)
+        draft = draft_for(request, draft_uuid)
+        if ResumeDraft.objects.filter(user=request.user).count() >= 20:
+            messages.error(request, 'You can keep up to 20 resume drafts. Delete an unused draft first.')
+            return redirect('resume_builder_list')
+        suffix = ' (clone)'
+        ResumeDraft.objects.create(
+            user=request.user,
+            title=draft.title[:120 - len(suffix)] + suffix,
+            template_version=draft.template_version,
+            content=draft.content,
+        )
     messages.success(request, 'Resume cloned successfully.')
     return redirect('resume_builder_list')
