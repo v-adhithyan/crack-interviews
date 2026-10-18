@@ -138,3 +138,6 @@ Q_CLUSTER = {
     "bulk": int(os.getenv("DJANGO_Q_BULK", "5")),
     "orm": os.getenv("DJANGO_Q_ORM", "default"),
 }
+
+# Explicit override for PDF subprocesses under embedded servers such as uWSGI.
+RESUME_PDF_PYTHON = os.getenv("RESUME_PDF_PYTHON", "")

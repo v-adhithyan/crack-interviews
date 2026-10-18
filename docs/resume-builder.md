@@ -81,3 +81,19 @@ excluded. This is exact normalized matching, not semantic synonym detection.
 Keyword-only regeneration is supported. Selected keyword IDs are resolved from the
 stored analysis, included in the application key/audit, and checked against the same
 stale-result token and resume size limits as wording edits.
+
+## PythonAnywhere / uWSGI PDF subprocess
+
+Under uWSGI, `sys.executable` can point to `/usr/local/bin/uwsgi` rather than Python.
+The PDF renderer uses `sys.prefix/bin/python` to retain the active virtualenv and
+its WeasyPrint dependencies. It does not resolve the virtualenv executable symlink.
+If the hosting environment does not set `sys.prefix` to the app virtualenv, configure:
+
+```sh
+RESUME_PDF_PYTHON=/home/hackerleap/.virtualenvs/hackerleap.pythonanywhere.com/bin/python
+```
+
+Set this in the web app's environment (or in WSGI configuration before Django loads),
+then reload the web app. The value must be an absolute executable path. This fixes
+`unable to load configuration from .../resume_pdf_worker.py` when the attempted
+command starts with `uwsgi`. Worker exceptions and stderr remain logged.

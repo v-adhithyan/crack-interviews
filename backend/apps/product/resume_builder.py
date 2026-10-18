@@ -1,12 +1,14 @@
 """Structured resume validation and rendering. User text never becomes HTML/CSS."""
 import json
 import logging
+import os
 import re
 import subprocess
 import sys
 import unicodedata
 from pathlib import Path
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.template.loader import render_to_string
 from django.utils.html import escape, format_html_join
@@ -68,13 +70,23 @@ def render_resume(content):
     return render_to_string('product/resume_builder/document.html', {"resume_data": content, "experience": experience})
 
 
+def pdf_python_executable():
+    # Embedded servers (notably uWSGI) expose the server binary as sys.executable.
+    # Keep the venv path intact: resolving its symlink would lose venv packages.
+    configured = getattr(settings, 'RESUME_PDF_PYTHON', '')
+    interpreter = Path(configured) if configured else Path(sys.prefix) / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
+    if not interpreter.is_absolute() or not interpreter.is_file() or not os.access(interpreter, os.X_OK):
+        raise OSError('PDF Python interpreter is unavailable. Set RESUME_PDF_PYTHON to the absolute virtualenv Python path.')
+    return str(interpreter)
+
+
 def render_pdf(content):
     if not validate_content(content)["contact"]["name"]:
         raise ValidationError("Enter your full name before exporting a resume.")
     html = render_resume(content)
     worker = Path(__file__).with_name('resume_pdf_worker.py')
     try:
-        result = subprocess.run([sys.executable, str(worker)], input=html.encode(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20, check=True)
+        result = subprocess.run([pdf_python_executable(), str(worker)], input=html.encode(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20, check=True)
     except (subprocess.SubprocessError, OSError) as exc:
         stderr = getattr(exc, 'stderr', None) or b''
         if isinstance(stderr, bytes):

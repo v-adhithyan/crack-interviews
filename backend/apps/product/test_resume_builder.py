@@ -155,3 +155,23 @@ class ResumeBuilderTests(TestCase):
         response=self.client.post(self.url('export'),{'revision':1})
         self.assertEqual(response.status_code,400)
         self.assertIn('full name',response.content.decode())
+
+    def test_pdf_uses_virtualenv_python_under_uwsgi(self):
+        import sys
+        from pathlib import Path
+        with patch('apps.product.resume_builder.sys.executable', '/usr/local/bin/uwsgi'), patch('apps.product.resume_builder.subprocess.run') as runner:
+            runner.return_value.stdout = b'%PDF-test'
+            self.assertEqual(render_pdf(self.content), b'%PDF-test')
+        self.assertEqual(runner.call_args.args[0][0], str(Path(sys.prefix) / 'bin/python'))
+
+    def test_pdf_interpreter_override_and_missing_interpreter(self):
+        from .resume_builder import pdf_python_executable
+        import sys
+        from pathlib import Path
+        interpreter = str(Path(sys.prefix) / 'bin/python')
+        with override_settings(RESUME_PDF_PYTHON=interpreter):
+            self.assertEqual(pdf_python_executable(), interpreter)
+        with override_settings(RESUME_PDF_PYTHON='/missing/venv/bin/python'), self.assertLogs('apps.product.resume_builder', level='ERROR') as logs:
+            with self.assertRaises(RuntimeError):
+                render_pdf(self.content)
+        self.assertIn('Traceback', logs.output[0])
