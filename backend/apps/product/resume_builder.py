@@ -1,5 +1,6 @@
 """Structured resume validation and rendering. User text never becomes HTML/CSS."""
 import json
+import logging
 import re
 import subprocess
 import sys
@@ -9,6 +10,8 @@ from pathlib import Path
 from django.core.exceptions import ValidationError
 from django.template.loader import render_to_string
 from django.utils.html import escape, format_html_join
+
+logger = logging.getLogger(__name__)
 
 MAX_BODY = 100_000
 CONTACT = {"name": 120, "headline": 180, "email": 254, "phone": 60, "location": 120, "website": 200}
@@ -73,7 +76,12 @@ def render_pdf(content):
     try:
         result = subprocess.run([sys.executable, str(worker)], input=html.encode(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20, check=True)
     except (subprocess.SubprocessError, OSError) as exc:
+        stderr = getattr(exc, 'stderr', None) or b''
+        if isinstance(stderr, bytes):
+            stderr = stderr.decode('utf-8', errors='replace')
+        logger.exception('PDF generation failed. Renderer stderr: %s', stderr[-8000:] or '(unavailable)')
         raise RuntimeError("PDF generation is temporarily unavailable. Your draft is saved; please try again.") from exc
     if not result.stdout.startswith(b'%PDF-') or len(result.stdout) > 5_000_000:
+        logger.error('PDF renderer returned invalid output (size=%d bytes).', len(result.stdout))
         raise RuntimeError("Unable to generate this PDF. Try shortening the resume.")
     return result.stdout

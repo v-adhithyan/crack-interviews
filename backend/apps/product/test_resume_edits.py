@@ -176,3 +176,50 @@ class ResumeEditsTests(TestCase):
         response = self.client.get(reverse('analysis_detail', kwargs={'analysis_uuid': self.analysis.uuid}))
         self.assertNotContains(response, 'Regenerate resume')
         self.assertContains(response, 'Choose a builder resume')
+
+    def prepare_keywords(self):
+        self.analysis.builder_snapshot['content']['skills'] = [{'label': 'Backend', 'items': 'Python, Django'}]
+        self.analysis.ai_response_json['recommended_keywords_to_add_naturally'] = [' python ', 'Redis', 'REDIS', 'PostgreSQL']
+        self.analysis.save()
+
+    def test_recommended_skills_review_and_keyword_only_regeneration(self):
+        self.prepare_keywords()
+        response = self.client.get(self.url('review'))
+        self.assertContains(response, 'already in Skills')
+        self.assertContains(response, 'name="skills" value="1"')
+        self.assertNotContains(response, 'name="skills" value="2"')
+        self.assertNotContains(response, 'checked')
+        first = self.submit(targets=[], skills=['1', '3'], skill_group='0', confirm_skills='1')
+        self.assertEqual(first.status_code, 302)
+        second = self.submit(targets=[], skills=['3', '1'], skill_group='0', confirm_skills='1')
+        self.assertEqual(first.url, second.url)
+        draft = ResumeEditApplication.objects.get().draft
+        self.assertEqual(draft.content['skills'][0]['items'], 'Python, Django, Redis, PostgreSQL')
+        self.assertEqual(draft.content['experience'], self.content['experience'])
+        self.draft.refresh_from_db()
+        self.assertEqual(self.draft.content, self.content)
+
+    def test_keywords_require_confirmation_valid_selection_and_group(self):
+        self.prepare_keywords()
+        for changes in [{'confirm_skills': ''}, {'skills': ['0']}, {'skills': ['2']}, {'skills': ['999']}, {'skills': ['1', '1']}, {'skill_group': '-1'}]:
+            data = {'targets': [], 'skills': ['1'], 'skill_group': '0', 'confirm_skills': '1', **changes}
+            self.assertEqual(self.submit(**data).status_code, 400)
+        self.assertFalse(ResumeEditApplication.objects.exists())
+
+    def test_combined_edits_new_group_and_stale_keyword_plan(self):
+        self.prepare_keywords()
+        token = plan_token(self.analysis)
+        self.analysis.ai_response_json['recommended_keywords_to_add_naturally'].append('Docker')
+        self.analysis.save()
+        self.assertEqual(self.submit(plan_token=token, skills=['1'], skill_group='new', confirm_skills='1').status_code, 409)
+        self.assertEqual(self.submit(skills=['1'], skill_group='new', confirm_skills='1').status_code, 302)
+        draft = ResumeEditApplication.objects.get().draft
+        self.assertEqual(draft.content['skills'][-1], {'label': 'Additional skills', 'items': 'Redis'})
+        self.assertIn('Developed APIs.', draft.content['experience'][0]['bullets'])
+
+    def test_keyword_additions_obey_content_limits(self):
+        self.prepare_keywords()
+        self.analysis.builder_snapshot['content']['skills'] = [{'label': 'Group', 'items': 'x' * 1200} for _ in range(12)]
+        self.analysis.save()
+        for group in ['0', 'new']:
+            self.assertEqual(self.submit(targets=[], skills=['1'], skill_group=group, confirm_skills='1').status_code, 400)

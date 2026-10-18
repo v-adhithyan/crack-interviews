@@ -91,3 +91,55 @@ def apply_edits(analysis, selected):
         replace_target(content, target, rows[target]['replacement'])
     validate_content(content)
     return content
+
+
+def skill_key(value):
+    import unicodedata
+    return ' '.join(unicodedata.normalize('NFKC', value).casefold().split())
+
+
+def recommended_skills(analysis):
+    import re
+    import unicodedata
+    existing = {
+        skill_key(item)
+        for group in analysis.builder_snapshot['content']['skills']
+        for item in re.split(r'[,;\n•|]', group['items']) if item.strip()
+    }
+    raw = analysis.result_data.get('recommended_keywords_to_add_naturally', [])
+    if not isinstance(raw, list):
+        return []
+    rows, seen = [], set()
+    for index, value in enumerate(raw[:100]):
+        if not isinstance(value, str) or not value.strip() or len(value) > 120:
+            continue
+        value = value.strip()
+        if any(unicodedata.category(c).startswith('C') or c in '\n\r,;•|' for c in value):
+            continue
+        key = skill_key(value)
+        if key in seen:
+            continue
+        seen.add(key)
+        rows.append({'id': str(index), 'text': value, 'existing': key in existing})
+    return rows
+
+
+def add_recommended_skills(analysis, content, selected, group, confirmed):
+    if not selected:
+        return content
+    options = {row['id']: row for row in recommended_skills(analysis)}
+    if len(selected) != len(set(selected)) or any(item not in options or options[item]['existing'] for item in selected):
+        raise ValidationError('Select available recommended skills from the review page.')
+    if not confirmed:
+        raise ValidationError('Confirm that the selected skills reflect your experience.')
+    if group == 'new':
+        content['skills'].append({'label': 'Additional skills', 'items': ''})
+        target = content['skills'][-1]
+    elif group in {str(index) for index in range(len(content['skills']))}:
+        target = content['skills'][int(group)]
+    else:
+        raise ValidationError('Choose a valid Skills group.')
+    additions = [options[item]['text'] for item in sorted(selected, key=int)]
+    target['items'] = ', '.join(([target['items']] if target['items'].strip() else []) + additions)
+    validate_content(content)
+    return content

@@ -22,6 +22,21 @@
 {% if row.problem %}<p role="status"><strong>Unavailable:</strong> {{ row.problem }}</p>{% endif %}
 </section>
 {% empty %}<p>No applicable edits were returned. Run a new analysis to request structured edits.</p>{% endfor %}
+{% if skills %}
+<section class="analysis-result-card">
+<h2>Recommended skills</h2>
+<p>Select only skills you actually have. These suggestions may include gaps identified by the analysis.</p>
+{% for skill in skills %}
+<p><label><input type="checkbox" name="skills" value="{{ skill.id }}" {% if skill.existing %}disabled{% endif %}> {{ skill.text }}{% if skill.existing %} — already in Skills{% endif %}</label></p>
+{% endfor %}
+<p><label for="skill-group">Add selected keywords to</label>
+<select id="skill-group" name="skill_group">
+{% for group in skill_groups %}<option value="{{ forloop.counter0 }}">{{ group.label|default:"Skills group" }}</option>{% endfor %}
+{% if skill_groups|length < 12 %}<option value="new">New group: Additional skills</option>{% endif %}
+</select></p>
+<p><label><input type="checkbox" name="confirm_skills" value="1"> I confirm the selected skills reflect my experience.</label></p>
+</section>
+{% endif %}
 {% if has_valid %}<button class="outline-action" type="submit">Create improved resume</button>{% endif %}
 <a class="outline-action" href="{% url 'analysis_detail' analysis_uuid=analysis.uuid %}">Back to analysis</a>
 </form>

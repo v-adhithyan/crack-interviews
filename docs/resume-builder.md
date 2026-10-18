@@ -72,3 +72,12 @@ result to a newer analysis. Existing draft revision checks continue to protect e
 
 Migration: `0018_resume_builder_snapshot_and_more`. Rebuild both backend and worker
 when using Docker Compose; the backend startup applies migrations.
+
+Recommended keywords can also be selected on the review page and added to an existing
+Skills group or a new “Additional skills” group. All selections start unchecked and
+require confirmation of actual experience. Case/Unicode-normalized duplicates and
+keywords already present as comma/semicolon/newline/bullet/pipe-separated skills are
+excluded. This is exact normalized matching, not semantic synonym detection.
+Keyword-only regeneration is supported. Selected keyword IDs are resolved from the
+stored analysis, included in the application key/audit, and checked against the same
+stale-result token and resume size limits as wording edits.
