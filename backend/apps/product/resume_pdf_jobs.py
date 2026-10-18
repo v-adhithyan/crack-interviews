@@ -1,5 +1,6 @@
 """Private, expiring PDF artifacts rendered outside web requests."""
 import logging
+from time import monotonic
 from datetime import timedelta
 
 from django.core.files.base import ContentFile
@@ -33,21 +34,31 @@ def generate_resume_pdf(job_id):
     if job is None:
         return
     saved_name = None
+    stage = 'render'
+    started = monotonic()
+    logger.info('PDF job started job=%s draft=%s revision=%s', job.uuid, job.draft_id, job.revision)
     try:
         pdf = render_pdf(job.content)
+        stage = 'store'
         with transaction.atomic():
             current = ResumePdfJob.objects.select_for_update().filter(pk=job_id, status='processing', expires_at__gt=timezone.now()).first()
             if current is None:
+                logger.warning('PDF job discarded before storage job=%s (deleted, expired or no longer processing)', job.uuid)
                 return
             current.file.save(f'{current.uuid}.pdf', ContentFile(pdf), save=False)
             saved_name = current.file.name
             current.status = ResumePdfJob.Status.READY
             current.content = {}
+            stage = 'persist_ready'
             current.save(update_fields=['file', 'status', 'content'])
+        logger.info('PDF job ready job=%s bytes=%d elapsed_seconds=%.2f', job.uuid, len(pdf), monotonic() - started)
     except Exception:
-        logger.exception('Queued resume PDF generation failed (job %s)', job.uuid)
+        logger.exception('Queued resume PDF generation failed job=%s draft=%s revision=%s stage=%s elapsed_seconds=%.2f', job.uuid, job.draft_id, job.revision, stage, monotonic() - started)
         if saved_name:
-            job.file.storage.delete(saved_name)
+            try:
+                job.file.storage.delete(saved_name)
+            except Exception:
+                logger.exception('PDF artifact cleanup failed job=%s', job.uuid)
         ResumePdfJob.objects.filter(pk=job_id, status='processing').update(
             status='failed', content={}, error='PDF generation failed. Please try again or shorten your resume.')
 

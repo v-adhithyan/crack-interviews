@@ -141,3 +141,21 @@ Q_CLUSTER = {
 
 # Explicit override for PDF subprocesses under embedded servers such as uWSGI.
 RESUME_PDF_PYTHON = os.getenv("RESUME_PDF_PYTHON", "")
+
+# PDF work runs in qcluster: send diagnostics to the worker's stderr/task log.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "pdf": {"format": "{asctime} {levelname} {name} pid={process} {message}", "style": "{"},
+    },
+    "handlers": {
+        "pdf_console": {"class": "logging.StreamHandler", "stream": "ext://sys.stderr", "formatter": "pdf"},
+    },
+    "loggers": {
+        name: {"handlers": ["pdf_console"], "level": "INFO", "propagate": False}
+        for name in (
+            "apps.product.resume_builder", "apps.product.resume_pdf_jobs", "apps.product.resume_pdf_views"
+        )
+    },
+}

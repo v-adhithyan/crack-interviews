@@ -166,3 +166,14 @@ names `LiberationSans`, `LiberationSerif`, `Carlito`, `Caladea`, or `EBGaramond`
 Deploy the font files with the backend, run collectstatic, reload the web app and restart
 the worker. No migration is required. Previously generated PDFs retain their old font
 until the cached export expires or a new saved revision is exported.
+
+## Debugging queued PDF failures
+
+PDF logs are explicitly sent to stderr with timestamp, logger name and process ID.
+For queued exports on PythonAnywhere, inspect the **Always-on qcluster task log**, not
+only the web app error log. Search for the PDF job UUID shown in its progress-page URL.
+`PDF job started` records the draft/revision; `PDF job ready` records output bytes and
+elapsed time. Failures include a traceback and `stage=render`, `store`, or `persist_ready`.
+The renderer logs its Python executable, exit code, timeout and the last 8 KB of stderr.
+Resume content, generated HTML and PDF bytes are not explicitly logged. Keep diagnostic
+logs private. After deploying logging changes, restart qcluster and reproduce once.

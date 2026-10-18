@@ -205,3 +205,16 @@ class ResumePdfJobsTests(TestCase):
         generate_resume_pdf(job.pk)
         self.assertEqual(renderer.call_args.args[0]['typography']['font'], 'cambria')
         self.assertEqual(renderer.call_args.args[0]['typography']['body_size'], 12)
+
+    @patch('apps.product.resume_pdf_jobs.render_pdf', return_value=b'%PDF-example')
+    def test_storage_error_logs_stage_and_marks_job_failed(self, renderer):
+        job = self.job()
+        with patch.object(job.file.storage, 'save', side_effect=OSError('storage unavailable')):
+            with self.assertLogs('apps.product.resume_pdf_jobs', level='ERROR') as logs:
+                generate_resume_pdf(job.pk)
+        self.assertIn('stage=store', logs.output[0])
+        self.assertIn(str(job.uuid), logs.output[0])
+        self.assertIn('Traceback', logs.output[0])
+        self.assertNotIn('Engineer', logs.output[0])
+        job.refresh_from_db()
+        self.assertEqual(job.status, 'failed')

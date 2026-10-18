@@ -6,6 +6,7 @@ import re
 import subprocess
 import sys
 import unicodedata
+from time import monotonic
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -132,15 +133,19 @@ def render_pdf(content):
         raise ValidationError("Enter your full name before exporting a resume.")
     html = render_resume(content, for_pdf=True)
     worker = Path(__file__).with_name('resume_pdf_worker.py')
+    started = monotonic()
+    interpreter = '(not resolved)'
     try:
-        result = subprocess.run([pdf_python_executable(), str(worker)], input=html.encode(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20, check=True)
+        interpreter = pdf_python_executable()
+        logger.info('PDF renderer starting python=%s worker=%s', interpreter, worker)
+        result = subprocess.run([interpreter, str(worker)], input=html.encode(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20, check=True)
     except (subprocess.SubprocessError, OSError) as exc:
         stderr = getattr(exc, 'stderr', None) or b''
         if isinstance(stderr, bytes):
             stderr = stderr.decode('utf-8', errors='replace')
-        logger.exception('PDF generation failed. Renderer stderr: %s', stderr[-8000:] or '(unavailable)')
+        logger.exception('PDF generation failed python=%s returncode=%s timeout=%s elapsed_seconds=%.2f. Renderer stderr: %s', interpreter, getattr(exc, 'returncode', None), getattr(exc, 'timeout', None), monotonic() - started, stderr[-8000:] or '(unavailable)')
         raise RuntimeError("PDF generation is temporarily unavailable. Your draft is saved; please try again.") from exc
     if not result.stdout.startswith(b'%PDF-') or len(result.stdout) > 5_000_000:
-        logger.error('PDF renderer returned invalid output (size=%d bytes).', len(result.stdout))
+        logger.error('PDF renderer returned invalid output python=%s size=%d bytes elapsed_seconds=%.2f stderr=%s', interpreter, len(result.stdout), monotonic() - started, result.stderr.decode('utf-8', errors='replace')[-8000:])
         raise RuntimeError("Unable to generate this PDF. Try shortening the resume.")
     return result.stdout
