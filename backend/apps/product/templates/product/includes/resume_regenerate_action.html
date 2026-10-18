@@ -1,0 +1,11 @@
+{% if analysis.user_id == request.user.id %}
+<div class="analysis-result-section">
+    {% if analysis.builder_snapshot %}
+        <a class="outline-action" href="{% url 'resume_edits_review' analysis_uuid=analysis.uuid %}">Regenerate resume <span aria-hidden="true">→</span></a>
+        <p>Review AI edits and choose which changes to apply to a separate resume draft.</p>
+    {% else %}
+        <p>Regeneration requires a resume-builder draft linked to this analysis. Select your saved draft with “Use for analysis”, then run a new analysis.</p>
+        <a class="outline-action" href="{% url 'resume_builder_list' %}">Choose a builder resume <span aria-hidden="true">→</span></a>
+    {% endif %}
+</div>
+{% endif %}
