@@ -4,8 +4,18 @@
 {% block body %}<div class="product-layout">{% include "product/includes/sidebar.html" %}<div class="product-main-shell">{% include "product/includes/topbar.html" %}<main class="product-main">
 <h1>Resume PDF</h1>
 <p>{{ job.draft.title }} · Saved revision {{ job.revision }}. This export stays tied to that version even if you edit your draft.</p>
-<section id="pdf-job" data-status="{% url 'resume_pdf_status' job.uuid %}" data-file="{% url 'resume_pdf_file' job.uuid %}{% if download %}?download=1{% endif %}">
-<p id="pdf-job-status" role="status" aria-live="polite">Checking PDF status…</p>
+<section class="analysis-progress-card" aria-labelledby="pdf-progress-title" id="pdf-job" data-status="{% url 'resume_pdf_status' job.uuid %}" data-file="{% url 'resume_pdf_file' job.uuid %}{% if download %}?download=1{% endif %}">
+<div class="section-heading"><div>
+<h2 id="pdf-progress-title">{{ progress.label }}</h2>
+<p id="pdf-job-status" role="status" aria-live="polite">{{ progress.stage }}</p>
+</div></div>
+<div id="pdf-progress" {% if progress.progress == None %}hidden{% endif %}>
+<div class="progress-meter" role="progressbar" aria-label="PDF generation stages" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ progress.progress|default_if_none:0 }}" aria-valuetext="{{ progress.stage }}" id="pdf-progress-meter">
+<span id="pdf-progress-bar" style="width: {{ progress.progress|default_if_none:0 }}%"></span>
+</div>
+<div class="progress-meta"><span id="pdf-progress-stage">{{ progress.stage }}</span><strong id="pdf-progress-percent">{{ progress.progress|default_if_none:0 }}%</strong></div>
+<p>Queued → Generating → Ready. Progress reflects completed stages, not elapsed time.</p>
+</div>
 <a id="pdf-ready" class="outline-action" href="{% url 'resume_pdf_file' job.uuid %}{% if download %}?download=1{% endif %}" hidden>{% if download %}Download PDF{% else %}Open PDF{% endif %}</a>
 <button id="pdf-check" type="button" hidden>Check again</button>
 <noscript><p>Refresh this page to check progress: {{ job.get_status_display }}. {{ job.error }}</p>{% if job.status == 'ready' %}<a href="{% url 'resume_pdf_file' job.uuid %}{% if download %}?download=1{% endif %}">Open PDF</a>{% endif %}</noscript>

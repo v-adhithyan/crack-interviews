@@ -60,13 +60,27 @@ def owned_job(request, job_uuid):
     return job
 
 
+def progress_data(job):
+    state = 'expired' if job.expires_at <= timezone.now() else job.status
+    stages = {
+        'queued': ('PDF queued', 15, 'Waiting for a worker'),
+        'processing': ('Generating your PDF', 60, 'Rendering the saved resume'),
+        'ready': ('Your PDF is ready', 100, 'Completed'),
+        'failed': ('PDF generation failed', None, 'Failed'),
+        'expired': ('PDF expired', None, 'Expired'),
+    }
+    label, progress, stage = stages[state]
+    return {'status': state, 'error': job.error, 'revision': job.revision,
+            'label': label, 'progress': progress, 'stage': stage}
+
+
 @never_cache
 @product_access_required
 @require_GET
 def detail(request, job_uuid):
     job = owned_job(request, job_uuid)
     return render(request, 'product/resume_builder/pdf_job.html', {
-        'job': job, 'download': request.GET.get('download') == '1', 'active_nav': 'resume_builder',
+        'job': job, 'progress': progress_data(job), 'download': request.GET.get('download') == '1', 'active_nav': 'resume_builder',
     })
 
 
@@ -75,9 +89,7 @@ def detail(request, job_uuid):
 @require_GET
 def status(request, job_uuid):
     job = owned_job(request, job_uuid)
-    expired = job.expires_at <= timezone.now()
-    return JsonResponse({'status': 'expired' if expired else job.status, 'error': job.error,
-                         'revision': job.revision})
+    return JsonResponse(progress_data(job))
 
 
 @never_cache

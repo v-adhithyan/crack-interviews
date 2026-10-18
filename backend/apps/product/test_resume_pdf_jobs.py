@@ -168,3 +168,26 @@ class ResumePdfJobsTests(TestCase):
         self.assertEqual(self.client.post(self.export_url, {'revision': 1}).status_code, 302)
         enqueue.assert_called_once()
         self.assertEqual(ResumePdfJob.objects.count(), 2)
+
+    def test_pdf_progress_matches_real_job_stages(self):
+        job = self.job()
+        for state, percent in [('queued', 15), ('processing', 60), ('ready', 100), ('failed', None)]:
+            ResumePdfJob.objects.filter(pk=job.pk).update(status=state, started_at=timezone.now())
+            data = self.client.get(self.url('status', job)).json()
+            self.assertEqual(data['status'], state)
+            self.assertEqual(data['progress'], percent)
+            self.assertTrue(data['label'])
+            self.assertTrue(data['stage'])
+        ResumePdfJob.objects.filter(pk=job.pk).update(expires_at=timezone.now() - timedelta(seconds=1))
+        data = self.client.get(self.url('status', job)).json()
+        self.assertEqual(data['status'], 'expired')
+        self.assertIsNone(data['progress'])
+
+    def test_preview_and_download_show_analysis_style_progress(self):
+        job = self.job()
+        for suffix in ['', '?download=1']:
+            response = self.client.get(self.url('detail', job) + suffix)
+            self.assertContains(response, 'class="analysis-progress-card"')
+            self.assertContains(response, 'role="progressbar"')
+            self.assertContains(response, 'aria-valuenow="15"')
+            self.assertContains(response, 'Progress reflects completed stages')
