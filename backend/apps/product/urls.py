@@ -2,10 +2,14 @@ from django.contrib.auth.views import LogoutView
 from django.urls import path
 
 from . import resume_edit_views
+from . import resume_pdf_views
 from . import views
 from . import resume_builder_views as builder
 
 urlpatterns = [
+    path("app/resume-pdf/<uuid:job_uuid>/", resume_pdf_views.detail, name="resume_pdf_detail"),
+    path("app/resume-pdf/<uuid:job_uuid>/status/", resume_pdf_views.status, name="resume_pdf_status"),
+    path("app/resume-pdf/<uuid:job_uuid>/file/", resume_pdf_views.file, name="resume_pdf_file"),
     path("app/analysis/<uuid:analysis_uuid>/resume-edits/", resume_edit_views.review, name="resume_edits_review"),
     path("app/analysis/<uuid:analysis_uuid>/resume-edits/apply/", resume_edit_views.apply, name="resume_edits_apply"),
     path("app/resume-builder/", builder.draft_list, name="resume_builder_list"),
@@ -13,7 +17,7 @@ urlpatterns = [
     path("app/resume-builder/<uuid:draft_uuid>/", builder.draft_edit, name="resume_builder_edit"),
     path("app/resume-builder/<uuid:draft_uuid>/save/", builder.draft_save, name="resume_builder_save"),
     path("app/resume-builder/<uuid:draft_uuid>/preview/", builder.draft_preview, name="resume_builder_preview"),
-    path("app/resume-builder/<uuid:draft_uuid>/export/", builder.draft_export, name="resume_builder_export"),
+    path("app/resume-builder/<uuid:draft_uuid>/export/", resume_pdf_views.export, name="resume_builder_export"),
     path("app/resume-builder/<uuid:draft_uuid>/use/", builder.draft_use, name="resume_builder_use"),
     path("app/resume-builder/<uuid:draft_uuid>/delete/", builder.draft_delete, name="resume_builder_delete"),
     path("app/resume-builder/<uuid:draft_uuid>/clone/", builder.draft_clone, name="resume_builder_clone"),

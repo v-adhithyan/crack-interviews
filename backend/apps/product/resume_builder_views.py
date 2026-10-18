@@ -122,28 +122,6 @@ def draft_preview(request, draft_uuid):
     return JsonResponse({'html': html})
 
 
-@never_cache
-@product_access_required
-@require_POST
-def draft_export(request, draft_uuid):
-    draft = draft_for(request, draft_uuid)
-    # Exports are tied to a saved version, so another tab cannot change what is exported unnoticed.
-    if request.POST.get('revision') != str(draft.revision):
-        return HttpResponse('Draft changed. Return to the editor and save or load the latest version.', status=409)
-    key = f'resume-export:{request.user.pk}'
-    if not cache.add(key, True, timeout=10):
-        return HttpResponse('Please wait a few seconds before exporting again.', status=429)
-    try:
-        pdf = render_pdf(draft.content)
-    except ValidationError as exc:
-        return HttpResponse(' '.join(exc.messages), status=400, content_type='text/plain')
-    except RuntimeError as exc:
-        return HttpResponse(str(exc), status=503, content_type='text/plain')
-    response = HttpResponse(pdf, content_type='application/pdf')
-    disposition = 'attachment' if request.POST.get('download') == '1' else 'inline'
-    response['Content-Disposition'] = f'{disposition}; filename="resume.pdf"'
-    response['X-Content-Type-Options'] = 'nosniff'
-    return response
 
 
 @product_access_required

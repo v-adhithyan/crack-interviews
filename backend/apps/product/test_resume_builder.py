@@ -97,22 +97,6 @@ class ResumeBuilderTests(TestCase):
         self.assertEqual(self.client.post(self.url('delete'),{'revision':1}).status_code,302)
         self.assertFalse(ResumeDraft.objects.filter(pk=self.draft.pk).exists())
 
-    @patch('apps.product.resume_builder_views.render_pdf', return_value=b'%PDF-fake')
-    def test_export_saved_version_headers_and_throttle(self, renderer):
-        response=self.client.post(self.url('export'),{'revision':1,'download':'1'})
-        self.assertEqual(response.status_code,200)
-        self.assertEqual(response['Content-Type'],'application/pdf')
-        self.assertIn('attachment',response['Content-Disposition'])
-        renderer.assert_called_once_with(self.content)
-        self.assertEqual(self.client.post(self.url('export'),{'revision':1}).status_code,429)
-        self.assertEqual(self.client.post(self.url('export'),{'revision':2}).status_code,409)
-        self.assertFalse(Resume.objects.filter(user=self.user).exists())
-
-    @patch('apps.product.resume_builder_views.render_pdf', side_effect=RuntimeError('Unavailable'))
-    def test_export_failure_keeps_draft(self, renderer):
-        self.assertEqual(self.client.post(self.url('export'),{'revision':1}).status_code,503)
-        self.assertTrue(ResumeDraft.objects.filter(pk=self.draft.pk).exists())
-
     def test_renderer_blocks_resources_and_timeout(self):
         for url in ['https://example.com', 'file:///etc/passwd', 'data:text/html,hello']:
             with self.assertRaises(ValueError):deny_resource(url)

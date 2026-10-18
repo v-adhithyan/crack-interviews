@@ -97,3 +97,33 @@ Set this in the web app's environment (or in WSGI configuration before Django lo
 then reload the web app. The value must be an absolute executable path. This fixes
 `unable to load configuration from .../resume_pdf_worker.py` when the attempted
 command starts with `uwsgi`. Worker exceptions and stderr remain logged.
+
+## Queued PDF preview and download
+
+Preview PDF and Download PDF POST to the existing export URL with the saved revision.
+They now redirect immediately to a private progress page. A `ResumePdfJob` stores the
+immutable content snapshot; the Django-Q worker renders it and stores the PDF privately.
+The live HTML preview stays synchronous and lightweight. **Use for analysis still
+renders synchronously**; this change only moves the two PDF export actions to the queue.
+
+Status and file endpoints under `/app/resume-pdf/<uuid>/` require the owning account,
+including for staff. Downloads use FileResponse and never expose a storage URL.
+Artifacts are reusable for preview/download of the same revision for one hour. Polling
+reports queued/processing/ready/failed/expired states; failures offer a new export.
+A queue wait over five minutes or processing over two minutes is marked failed, so a
+lost worker does not leave the UI spinning forever. Duplicate task deliveries cannot
+claim an already-running job. New export requests use a per-user database lock, allow
+one pending export per user, and cap new exports at ten per ten minutes.
+
+Migrations 0020/0021 create jobs and install an hourly Django-Q cleanup schedule.
+Expired PDFs are immediately inaccessible and are deleted on the next cleanup run;
+deleting a draft/account also removes its job files. `python manage.py cleanup_resume_pdfs`
+can run cleanup manually. The worker and web process must share the private MEDIA_ROOT
+(or a common private storage backend). Keep `/media/private/` inaccessible to direct
+public HTTP requests, as with existing resumes. Snapshot content is cleared on success
+or failure. File names are random job UUIDs, and job rows are removed after expiry.
+
+Deploy both web and Django-Q code, run migrations and collectstatic, reload the web app,
+and restart the PythonAnywhere always-on qcluster task. Without a running worker, jobs
+remain queued until the five-minute timeout. The existing queue is shared with analysis;
+worker concurrency and hosting memory must be sized for the bounded PDF subprocesses.

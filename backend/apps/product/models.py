@@ -364,3 +364,22 @@ class ResumeEditApplication(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["analysis", "key"], name="unique_resume_edit_application")]
+
+
+class ResumePdfJob(models.Model):
+    class Status(models.TextChoices):
+        QUEUED = 'queued', 'Queued'
+        PROCESSING = 'processing', 'Generating PDF'
+        READY = 'ready', 'Ready'
+        FAILED = 'failed', 'Failed'
+
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    draft = models.ForeignKey(ResumeDraft, on_delete=models.CASCADE, related_name='pdf_jobs')
+    revision = models.PositiveIntegerField()
+    content = models.JSONField(default=dict)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.QUEUED)
+    file = models.FileField(upload_to='private/resume_exports/', blank=True)
+    error = models.CharField(max_length=250, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(db_index=True)

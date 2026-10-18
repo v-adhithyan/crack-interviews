@@ -1,0 +1,17 @@
+{% extends "product/base.html" %}{% load static %}
+{% block title %}Resume PDF | HackerLeap{% endblock %}
+{% block styles %}<style>#pdf-job [hidden] { display:none; }</style>{% endblock %}
+{% block body %}<div class="product-layout">{% include "product/includes/sidebar.html" %}<div class="product-main-shell">{% include "product/includes/topbar.html" %}<main class="product-main">
+<h1>Resume PDF</h1>
+<p>{{ job.draft.title }} · Saved revision {{ job.revision }}. This export stays tied to that version even if you edit your draft.</p>
+<section id="pdf-job" data-status="{% url 'resume_pdf_status' job.uuid %}" data-file="{% url 'resume_pdf_file' job.uuid %}{% if download %}?download=1{% endif %}">
+<p id="pdf-job-status" role="status" aria-live="polite">Checking PDF status…</p>
+<a id="pdf-ready" class="outline-action" href="{% url 'resume_pdf_file' job.uuid %}{% if download %}?download=1{% endif %}" hidden>{% if download %}Download PDF{% else %}Open PDF{% endif %}</a>
+<button id="pdf-check" type="button" hidden>Check again</button>
+<noscript><p>Refresh this page to check progress: {{ job.get_status_display }}. {{ job.error }}</p>{% if job.status == 'ready' %}<a href="{% url 'resume_pdf_file' job.uuid %}{% if download %}?download=1{% endif %}">Open PDF</a>{% endif %}</noscript>
+</section>
+<p>Files expire after one hour. You can continue editing while the PDF is generated.</p>
+<form method="post" action="{% url 'resume_builder_export' job.draft.uuid %}">{% csrf_token %}<input type="hidden" name="revision" value="{{ job.draft.revision }}">{% if download %}<input type="hidden" name="download" value="1">{% endif %}<button type="submit">Request latest saved PDF</button></form>
+<a class="outline-action" href="{% url 'resume_builder_edit' job.draft.uuid %}">Back to resume</a>
+</main></div></div>{% endblock %}
+{% block scripts %}<script src="{% static 'product/js/resume_pdf_job.js' %}" defer></script>{% endblock %}
