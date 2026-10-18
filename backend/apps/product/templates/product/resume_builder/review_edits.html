@@ -22,7 +22,7 @@
 {% if row.problem %}<p role="status"><strong>Unavailable:</strong> {{ row.problem }}</p>{% endif %}
 </section>
 {% empty %}<p>No applicable edits were returned. Run a new analysis to request structured edits.</p>{% endfor %}
-{% if has_valid %}<button class="primary-action" type="submit">Create improved resume</button>{% endif %}
+{% if has_valid %}<button class="outline-action" type="submit">Create improved resume</button>{% endif %}
 <a class="outline-action" href="{% url 'analysis_detail' analysis_uuid=analysis.uuid %}">Back to analysis</a>
 </form>
 </main></div></div>

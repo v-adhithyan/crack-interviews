@@ -4,16 +4,7 @@
         <p>{{ analysis.ai_response_json.reason }}</p>
     </div>
 {% else %}
-    {% if analysis.user_id == request.user.id %}
-    <div class="analysis-result-section">
-    {% if analysis.builder_snapshot %}
-        <a class="primary-action" href="{% url 'resume_edits_review' analysis_uuid=analysis.uuid %}">Regenerate resume</a>
-        <p>Review AI edits and create a separate improved draft.</p>
-    {% else %}
-        <p>To regenerate a resume, select a saved resume-builder draft and run a new analysis.</p>
-    {% endif %}
-    </div>
-    {% endif %}
+    {% include "product/includes/resume_regenerate_action.html" %}
     <div class="score-summary-grid">
         <div>
             <span>Overall Match</span>
@@ -132,4 +123,5 @@
         <h3>Final Recommendation</h3>
         <p>{{ analysis.ai_response_json.final_recommendation }}</p>
     </div>
+    {% include "product/includes/resume_regenerate_action.html" %}
 {% endif %}

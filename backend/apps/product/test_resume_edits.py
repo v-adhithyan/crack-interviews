@@ -162,3 +162,17 @@ class ResumeEditsTests(TestCase):
         text = ''.join(page.extract_text() for page in PdfReader(BytesIO(pdf)).pages)
         self.assertIn('Developed APIs.', text)
         self.assertIn('Built APIs.', text)
+
+    def test_regenerate_button_visible_above_and_below_results(self):
+        for url in (reverse('product_dashboard'), reverse('analysis_detail', kwargs={'analysis_uuid': self.analysis.uuid})):
+            response = self.client.get(url)
+            self.assertContains(response, 'Regenerate resume', count=2)
+            self.assertContains(response, 'class="outline-action" href="' + self.url('review') + '"', count=2)
+            html = response.content.decode()
+            self.assertLess(html.index('Regenerate resume'), html.index('Final Recommendation'))
+            self.assertGreater(html.rindex('Regenerate resume'), html.index('Final Recommendation'))
+        self.analysis.builder_snapshot = {}
+        self.analysis.save()
+        response = self.client.get(reverse('analysis_detail', kwargs={'analysis_uuid': self.analysis.uuid}))
+        self.assertNotContains(response, 'Regenerate resume')
+        self.assertContains(response, 'Choose a builder resume')
