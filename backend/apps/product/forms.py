@@ -169,6 +169,7 @@ class ResumeUploadForm(forms.Form):
                 "content_type": getattr(resume_file, "content_type", "application/pdf") or "application/pdf",
                 "size": resume_file.size,
                 "parsed_text": self.parsed_text,
+                "builder_snapshot": {},
             },
         )
 

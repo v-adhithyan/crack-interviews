@@ -1,4 +1,5 @@
 import json
+from uuid import UUID
 
 from django.conf import settings
 from django.http import FileResponse
@@ -132,7 +133,8 @@ def dashboard(request):
                             resume=resume,
                             job_description=job_description,
                             resume_text=resume.parsed_text,
-                            generated_prompt=build_resume_match_prompt(job_description, resume.parsed_text),
+                            builder_snapshot=resume.builder_snapshot,
+                            generated_prompt=build_resume_match_prompt(job_description, resume.parsed_text, resume.builder_snapshot),
                             status=ResumeAnalysis.Status.QUEUED,
                             ai_provider=ai_mode,
                         )
@@ -156,6 +158,7 @@ def dashboard(request):
                     analysis_result = run_resume_match_analysis(
                         job_description=job_description,
                         resume_text=resume.parsed_text,
+                        builder_snapshot=resume.builder_snapshot,
                         mode=ai_mode,
                     )
                 except (ImproperlyConfigured, NotImplementedError, ValidationError) as exc:
@@ -170,6 +173,7 @@ def dashboard(request):
                     resume=resume,
                     job_description=job_description,
                     resume_text=resume.parsed_text,
+                    builder_snapshot=resume.builder_snapshot,
                     generated_prompt=analysis_result.generated_prompt,
                     ai_response_json=analysis_result.ai_response_json,
                     status=ResumeAnalysis.Status.RESULT_ADDED if analysis_result.is_complete else ResumeAnalysis.Status.PROMPT_READY,
@@ -185,10 +189,11 @@ def dashboard(request):
             messages.error(request, "Please complete the analysis inputs.")
 
         elif action == "save_analysis_json":
-            if not latest_analysis:
-                messages.error(request, "Generate a prompt before adding analysis JSON.")
-                return redirect("product_dashboard")
-
+            try:
+                submitted_uuid = UUID(request.POST.get("analysis_uuid", ""))
+            except (ValueError, TypeError, AttributeError):
+                return HttpResponseBadRequest("Reload the analysis page before submitting a result.")
+            latest_analysis = get_object_or_404(user_analysis_queryset(request.user), uuid=submitted_uuid)
             result_form = AnalysisResultForm(request.POST)
             if result_form.is_valid():
                 latest_analysis.ai_response_json = result_form.parsed_json

@@ -1,0 +1,29 @@
+{% extends "product/base.html" %}
+{% block title %}Review AI edits | HackerLeap{% endblock %}
+{% block body %}
+<div class="product-layout">
+{% include "product/includes/sidebar.html" %}
+<div class="product-main-shell">
+{% include "product/includes/topbar.html" %}
+<main class="product-main">
+<h1>Review AI edits</h1>
+<p>Create a separate draft from <strong>{{ analysis.builder_snapshot.title }}</strong>, revision {{ analysis.builder_snapshot.revision }}, as saved for this analysis. Later edits to the original draft will not be included.</p>
+<p>Choose the changes you want. Confirm that all claims remain accurate; AI can introduce unsupported details.</p>
+<form method="post" action="{% url 'resume_edits_apply' analysis_uuid=analysis.uuid %}">
+{% csrf_token %}<input type="hidden" name="plan_token" value="{{ plan_token }}">
+{% for row in rows %}
+<section class="analysis-result-card">
+<label><input type="checkbox" name="targets" value="{{ row.target_id }}" {% if row.problem %}disabled{% endif %}> Apply change to {{ row.target_id }}</label>
+<div class="source-input-grid">
+<article><h3>Original</h3><p style="white-space: pre-wrap; overflow-wrap: anywhere">{{ row.original }}</p></article>
+<article><h3>Suggested</h3><p style="white-space: pre-wrap; overflow-wrap: anywhere">{{ row.replacement }}</p></article>
+</div>
+<p>{{ row.reason }}</p>
+{% if row.problem %}<p role="status"><strong>Unavailable:</strong> {{ row.problem }}</p>{% endif %}
+</section>
+{% empty %}<p>No applicable edits were returned. Run a new analysis to request structured edits.</p>{% endfor %}
+{% if has_valid %}<button class="primary-action" type="submit">Create improved resume</button>{% endif %}
+<a class="outline-action" href="{% url 'analysis_detail' analysis_uuid=analysis.uuid %}">Back to analysis</a>
+</form>
+</main></div></div>
+{% endblock %}

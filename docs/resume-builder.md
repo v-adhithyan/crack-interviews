@@ -35,3 +35,40 @@ PDF actions carry the saved revision. Export renders an in-memory snapshot; use-
 `python backend/manage.py test apps.product.test_resume_builder`
 
 Covers optimistic conflict handling, ownership, CSRF, validation, escaped preview, quotas, stale exports/deletes, export cooldown, renderer failure/timeout, and explicit analysis integration. Browser verification also exercises two tabs, retained conflicting text, delayed preview responses, and desktop/mobile layouts. PDF validation includes text extraction and visual inspection of one-page and multi-page samples.
+
+## Apply analysis suggestions
+
+Select a saved builder resume with **Use for analysis**, then run a new analysis.
+The analysis now receives exact summary/bullet targets and may return `resume_edits`
+with `target_id`, `original`, `replacement`, and `reason`. Both manual prompts and
+ChatGPT API requests use this contract (the existing Claude adapter remains unimplemented).
+Older analysis JSON remains readable.
+
+On the analysis result, **Regenerate resume** opens a review page. Select accurate
+suggestions and click **Create improved resume**. This creates a separate draft in
+the same template, ready for editing and PDF download. No AI request is made when
+applying edits. The currently selected analysis resume is not replaced automatically.
+
+`Resume.builder_snapshot` records the selected draft UUID, revision, template version,
+title and content; each `ResumeAnalysis` stores its own copy. Uploading an external PDF
+clears the current resume's builder association. Existing selections must be selected
+again to capture provenance. External PDFs require a separate import workflow and
+cannot be regenerated directly. Later source-draft changes are not merged into the
+analyzed snapshot; the review page explains this explicitly.
+
+GET `/app/analysis/<uuid>/resume-edits/` reviews suggestions. POST to its `apply/`
+subpath accepts `plan_token` plus selected `targets`. Both require ownership, even
+for staff. The POST requires CSRF, verifies a hash of the snapshot/result, validates
+exact originals and allowed targets, rejects duplicate or invalid edits, and validates
+the final content. Text is escaped through the existing renderer. Suggestions do not
+provide a guarantee of factual accuracy: the user reviews the wording before applying.
+
+Application locks the user and analysis briefly in a transaction, enforces the 20-draft
+limit, and records `ResumeEditApplication`. Its unique analysis/application key makes
+identical submissions idempotent. A deleted output produces a conflict rather than
+silently recreating it. No database lock is held during AI calls or PDF rendering.
+Manual JSON submissions identify the analysis UUID so an older tab cannot attach a
+result to a newer analysis. Existing draft revision checks continue to protect editing.
+
+Migration: `0018_resume_builder_snapshot_and_more`. Rebuild both backend and worker
+when using Docker Compose; the backend startup applies migrations.

@@ -1,10 +1,13 @@
 from django.contrib.auth.views import LogoutView
 from django.urls import path
 
+from . import resume_edit_views
 from . import views
 from . import resume_builder_views as builder
 
 urlpatterns = [
+    path("app/analysis/<uuid:analysis_uuid>/resume-edits/", resume_edit_views.review, name="resume_edits_review"),
+    path("app/analysis/<uuid:analysis_uuid>/resume-edits/apply/", resume_edit_views.apply, name="resume_edits_apply"),
     path("app/resume-builder/", builder.draft_list, name="resume_builder_list"),
     path("app/resume-builder/create/", builder.draft_create, name="resume_builder_create"),
     path("app/resume-builder/<uuid:draft_uuid>/", builder.draft_edit, name="resume_builder_edit"),

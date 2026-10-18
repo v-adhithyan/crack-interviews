@@ -957,6 +957,7 @@ class ResumeUploadTests(TestCase):
             reverse("product_dashboard"),
             {
                 "action": "save_analysis_json",
+                "analysis_uuid": str(ResumeAnalysis.objects.filter(user=self.user).first().uuid),
                 "analysis_json": json.dumps(payload),
             },
             follow=True,
@@ -992,6 +993,7 @@ class ResumeUploadTests(TestCase):
             reverse("product_dashboard"),
             {
                 "action": "save_analysis_json",
+                "analysis_uuid": str(ResumeAnalysis.objects.filter(user=self.user).first().uuid),
                 "analysis_json": "not-json",
             },
         )
@@ -1016,6 +1018,7 @@ class ResumeUploadTests(TestCase):
             reverse("product_dashboard"),
             {
                 "action": "save_analysis_json",
+                "analysis_uuid": str(ResumeAnalysis.objects.filter(user=self.user).first().uuid),
                 "analysis_json": json.dumps({"status": "success"}),
             },
         )
@@ -1042,6 +1045,7 @@ class ResumeUploadTests(TestCase):
             reverse("product_dashboard"),
             {
                 "action": "save_analysis_json",
+                "analysis_uuid": str(ResumeAnalysis.objects.filter(user=self.user).first().uuid),
                 "analysis_json": "x" * 100001,
             },
         )
@@ -1220,6 +1224,7 @@ class ResumeUploadTests(TestCase):
             job_description="Python backend role.",
             resume_text="Python Django resume.",
             mode="chatgpt",
+            builder_snapshot={},
         )
         self.assertEqual(analysis.status, ResumeAnalysis.Status.RESULT_ADDED)
         self.assertEqual(analysis.ai_response_json["overall_match_score"], 88)

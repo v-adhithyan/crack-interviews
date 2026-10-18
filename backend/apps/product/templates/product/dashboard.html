@@ -108,6 +108,7 @@
                     <form class="json-result-form" method="post" action="{% url 'product_dashboard' %}">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="save_analysis_json">
+                        <input type="hidden" name="analysis_uuid" value="{{ latest_analysis.uuid }}">
                         <label for="{{ result_form.analysis_json.id_for_label }}">Analysis JSON</label>
                         {{ result_form.analysis_json }}
                         {% for error in result_form.analysis_json.errors %}

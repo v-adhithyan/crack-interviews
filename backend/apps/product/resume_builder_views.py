@@ -160,6 +160,7 @@ def draft_use(request, draft_uuid):
         resume.original_filename = 'resume.pdf'
         resume.content_type = 'application/pdf'
         resume.size = len(pdf)
+        resume.builder_snapshot = {"draft_uuid": str(draft.uuid), "revision": draft.revision, "template_version": draft.template_version, "title": draft.title, "content": draft.content}
         resume.parsed_text = parsed
         resume.file.save('resume.pdf', ContentFile(pdf), save=False)
         resume.save()

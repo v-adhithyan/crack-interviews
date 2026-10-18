@@ -20,6 +20,7 @@ class Resume(models.Model):
     original_filename = models.CharField(max_length=255)
     content_type = models.CharField(max_length=120)
     size = models.PositiveIntegerField()
+    builder_snapshot = models.JSONField(default=dict, blank=True)
     parsed_text = models.TextField(blank=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -42,6 +43,7 @@ class ResumeAnalysis(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="resume_analyses")
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     resume = models.ForeignKey(Resume, on_delete=models.CASCADE, related_name="analyses")
+    builder_snapshot = models.JSONField(default=dict, blank=True)
     job_description = models.TextField()
     resume_text = models.TextField()
     generated_prompt = models.TextField()
@@ -351,3 +353,14 @@ class ResumeDraft(models.Model):
 
     class Meta:
         ordering = ["-updated_at"]
+
+
+class ResumeEditApplication(models.Model):
+    analysis = models.ForeignKey(ResumeAnalysis, on_delete=models.CASCADE, related_name="edit_applications")
+    key = models.CharField(max_length=64)
+    selected_targets = models.JSONField(default=list)
+    draft = models.ForeignKey(ResumeDraft, null=True, on_delete=models.SET_NULL)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["analysis", "key"], name="unique_resume_edit_application")]
