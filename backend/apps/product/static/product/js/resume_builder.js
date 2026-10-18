@@ -63,7 +63,7 @@
     [['body_size', 'Body text'], ['heading_size', 'Section headings'], ['name_size', 'Name']].forEach(([key, label]) => {
       selectSetting(key, `${label} size (pt)`, initial.size_choices[key].map(value => [value, `${value} pt`]));
     });
-    const note = node('p', 'If the selected font is not installed on the PDF server, a substitute is used. Preview PDF to confirm the final font and page breaks.', typography);
+    const note = node('p', 'These bundled open fonts are used in both preview and PDF. Alternative font names are shown in the list. Preview PDF to check exact page breaks.', typography);
     note.className = 'rb-hint';
     button(typography, 'Reset font settings', () => {content.typography = {...initial.typography_defaults}; changed(); renderFields();});
     const contact = section('Contact details');

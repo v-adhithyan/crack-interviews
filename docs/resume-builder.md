@@ -142,11 +142,27 @@ Cloning, analysis snapshots/regeneration, and queued exports preserve these sett
 Changing typography bumps the draft revision like other edits, so old PDF jobs stay
 bound to the typography they were requested with. CSS values are never accepted as input.
 
-PDF fonts depend on fonts installed on the worker server. Requested names are tried first;
-Docker includes Carlito as the Calibri substitute, Caladea for Cambria, EB Garamond for
-Garamond, Liberation Sans for Arial/Helvetica, and Liberation Serif for Georgia. These
-are substitutes, not the original fonts. Exact original fonts must be installed on the
-worker host with appropriate rights. No proprietary font files are bundled or downloaded
-by the app. On PythonAnywhere, configure fonts for the account running qcluster and reload
-its font cache/restart the worker after installation. Browser fonts may differ from server
-fonts; the editor advises checking Preview PDF for final typography and page breaks.
+PDF and live preview now load the same bundled OFL-licensed font files, without system
+font installation. Existing selection keys remain compatible, but the dropdown names
+accurately identify Carlito (Calibri alternative), Liberation Sans (Arial/Helvetica
+alternative), EB Garamond, Caladea (Cambria alternative), and Liberation Serif (Georgia
+alternative). Defaults and sizes are unchanged.
+
+Files and copyright/license notices are in `static/product/fonts/`. `SOURCES.md` records
+provenance and SHA-256 checksums. The files are unmodified; no proprietary fonts are
+bundled. Browser previews use Django static URLs (including hashed manifest URLs).
+WhiteNoise's default cross-origin font support must remain enabled because the preview
+iframe is sandboxed. If static files are served by another service, allow font requests
+with `Access-Control-Allow-Origin: *` for these public font assets.
+
+The PDF worker loads fonts directly from the bundled directory using exact registered
+`resume-font:` identifiers. It never fetches HTTP resources or arbitrary filesystem
+paths. The template declares the selected font's regular/bold/italic faces through
+`@font-face`; a shared WeasyPrint FontConfiguration embeds them. No system font package
+is required for these families (WeasyPrint's Pango/native runtime is still required).
+
+To reuse elsewhere, include `{% static 'product/fonts/fonts.css' %}` and use CSS family
+names `LiberationSans`, `LiberationSerif`, `Carlito`, `Caladea`, or `EBGaramond`.
+Deploy the font files with the backend, run collectstatic, reload the web app and restart
+the worker. No migration is required. Previously generated PDFs retain their old font
+until the cached export expires or a new saved revision is exported.

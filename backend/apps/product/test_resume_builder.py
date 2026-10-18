@@ -256,3 +256,29 @@ class ResumeBuilderTests(TestCase):
                 content['typography']['font'] = font
                 pdf = render_pdf(content)
                 self.assertIn('Sample Engineer', PdfReader(BytesIO(pdf)).pages[0].extract_text())
+
+    def test_bundled_fonts_only_allow_registered_resources(self):
+        from .resume_fonts import FONT_FILES
+        for name in FONT_FILES:
+            resource = deny_resource('resume-font:' + name)
+            self.assertEqual(resource.info().get_content_type(), 'font/ttf')
+            self.assertTrue(resource.read())
+            resource.close()
+        for url in ['resume-font:../secret.ttf', 'resume-font:%2e%2e/secret.ttf', 'resume-font:LiberationSans-Regular.ttf?x=1', 'resume-font:missing.ttf', 'file:///etc/passwd', 'https://example.com/font.ttf']:
+            with self.assertRaises(ValueError):
+                deny_resource(url)
+
+    def test_browser_and_pdf_use_same_bundled_font_faces(self):
+        html = render_resume(self.content)
+        self.assertIn('/static/product/fonts/LiberationSans-Regular.ttf', html)
+        self.assertIn('@font-face', html)
+        pdf_html = render_resume(self.content, for_pdf=True)
+        self.assertIn('resume-font:LiberationSans-Regular.ttf', pdf_html)
+        self.assertNotIn('/static/', pdf_html)
+        pdf = render_pdf(self.content)
+        fonts = PdfReader(BytesIO(pdf)).pages[0]['/Resources']['/Font']
+        from fontTools.ttLib import TTFont
+        for value in fonts.values():
+            descriptor = value.get_object()['/DescendantFonts'][0].get_object()['/FontDescriptor']
+            embedded = TTFont(BytesIO(descriptor['/FontFile2'].get_data()))
+            self.assertIn('Liberation Sans', embedded['name'].getDebugName(1))

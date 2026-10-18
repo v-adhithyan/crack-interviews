@@ -12,13 +12,17 @@ from urllib.parse import urlsplit
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.template.loader import render_to_string
+from django.templatetags.static import static
+
+from .resume_fonts import FAMILIES, faces
 from django.utils.html import escape, format_html_join
 
 logger = logging.getLogger(__name__)
 
 FONT_CHOICES = {
-    'default': 'Liberation Sans (default)', 'calibri': 'Calibri', 'arial': 'Arial',
-    'helvetica': 'Helvetica', 'garamond': 'Garamond', 'cambria': 'Cambria', 'georgia': 'Georgia',
+    'default': 'Liberation Sans (default)', 'calibri': 'Carlito (Calibri alternative)', 'arial': 'Liberation Sans (Arial alternative)',
+    'helvetica': 'Liberation Sans (Helvetica alternative)', 'garamond': 'EB Garamond',
+    'cambria': 'Caladea (Cambria alternative)', 'georgia': 'Liberation Serif (Georgia alternative)',
 }
 DEFAULT_TYPOGRAPHY = {'font': 'default', 'body_size': 10.5, 'heading_size': 12, 'name_size': 22}
 SIZE_CHOICES = {
@@ -90,7 +94,7 @@ def emphasis(value):
     return format_html_join('', '{}', [(format_html_join('', '<strong>{}</strong>', [(part[2:-2],)]) if part.startswith('**') and part.endswith('**') else escape(part),) for part in parts])
 
 
-def render_resume(content):
+def render_resume(content, *, for_pdf=False):
     content = validate_content(content)
     experience = [{**row, "points": [emphasis(line.lstrip('-• ').strip()) for line in row['bullets'].splitlines() if line.strip()]} for row in content['experience']]
     website = content['contact']['website'].strip()
@@ -107,7 +111,10 @@ def render_resume(content):
         pass
     typography = content.get('typography', DEFAULT_TYPOGRAPHY)
     typography = {key: format(value, 'g') if key != 'font' else value for key, value in typography.items()}
-    return render_to_string('product/resume_builder/document.html', {"resume_data": content, "experience": experience, "linkedin_url": linkedin_url, "typography": typography})
+    family = FAMILIES[typography['font']]
+    font_faces = [{'url': 'resume-font:' + name if for_pdf else static('product/fonts/' + name),
+                   'style': style, 'weight': weight} for name, style, weight in faces(family)]
+    return render_to_string('product/resume_builder/document.html', {"resume_data": content, "experience": experience, "linkedin_url": linkedin_url, "typography": typography, "font_faces": font_faces})
 
 
 def pdf_python_executable():
@@ -123,7 +130,7 @@ def pdf_python_executable():
 def render_pdf(content):
     if not validate_content(content)["contact"]["name"]:
         raise ValidationError("Enter your full name before exporting a resume.")
-    html = render_resume(content)
+    html = render_resume(content, for_pdf=True)
     worker = Path(__file__).with_name('resume_pdf_worker.py')
     try:
         result = subprocess.run([pdf_python_executable(), str(worker)], input=html.encode(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20, check=True)

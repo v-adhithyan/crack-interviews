@@ -8,10 +8,6 @@ RUN apt-get update \
         default-jdk-headless \
         libpango-1.0-0 \
         libpangoft2-1.0-0 \
-        fonts-liberation \
-        fonts-crosextra-carlito \
-        fonts-crosextra-caladea \
-        fonts-ebgaramond \
         gcc \
         pkg-config \
         default-libmysqlclient-dev \

@@ -1,0 +1,35 @@
+# Bundled resume fonts
+
+All font files are unmodified SIL Open Font License fonts. Full copyright/license
+notices accompany them. They are not the proprietary fonts they replace.
+
+Liberation Sans/Serif: Debian fonts-liberation, upstream https://github.com/liberationfonts/liberation-fonts
+Carlito: Debian fonts-crosextra-carlito, upstream https://github.com/googlefonts/carlito
+Caladea: Debian fonts-crosextra-caladea, upstream https://github.com/huertatipografica/Caladea
+These files were copied from the project Docker image's Debian packages.
+EB Garamond: https://github.com/google/fonts/tree/f8c1d3d6cc75e30d77130bdcbfbff27e3b6233fe/ofl/ebgaramond
+Variable weight TTFs cover regular and bold; filenames omit [wght], contents unchanged.
+
+## SHA-256
+
+ae3cb2dcbc925809dd29d2a44e9802211cab66be541bacbfc9c08c74b27c3742  Caladea-Bold.ttf
+ccabaa7b7e2fdf253d2b1a5fa699dd8a3df8d835a9eb285ad82631a677eb76c0  Caladea-BoldItalic.ttf
+4359a8e24f748b6447b1ff6d7a174febe70961d29f8bb8634b56dacd740a3deb  Caladea-Italic.ttf
+f1e899278b7b4491aba5b6a8253c4b04c050cc59b21865be5c37559a775153cd  Caladea-Regular.ttf
+bb5d20f79b82599ec72983597437373a80f2d2085fa91fc144fd74e876a594db  Carlito-Bold.ttf
+b32928186c119599e03ca6a1ffc680fdcb7fac95772f4b95d989cf6cd3861517  Carlito-BoldItalic.ttf
+0b019225e58d702bfedcbd35c21696769f8ee115cb6343f84c2f240312450d1c  Carlito-Italic.ttf
+f6418f708baede9789daef5d458c0f53d2a888af9820e8062934e504fedc6595  Carlito-Regular.ttf
+bba2c4499c93c9612b90b9825d32b07da52fce2fe57562a1eb6b833553f93c4e  EBGaramond-Italic.ttf
+ef9512f92f6d579e5dc75af59a5a4b1b8b47d2eda89e00b954d44520e5369027  EBGaramond.ttf
+1b5f2da6f4cadce4c05b9ecebe3a6fcd374eb95ae443605e799f4c3287978939  LiberationSans-Bold.ttf
+352e9dc2be89f210dbd3c0fd5dfaf97135de70e0beb5f22378601861462493a7  LiberationSans-BoldItalic.ttf
+93ff5260834141b6f9d8f2b846d427f3a5dc492dbdce8ebdad406e38a38f34bb  LiberationSans-Italic.ttf
+bade59d822652f76e6941aa87b40a87c13d1cc70db98ededb5011127efafd1d3  LiberationSans-Regular.ttf
+443a4dbd694b6e4689925947b456e0532e10b19c90fa32eb39ea6c2cd9db9ebd  LiberationSerif-Bold.ttf
+4b2635d2ec4d992373dcae577c742a98ecfd841ffc1b8a103b5f10db163dbc7a  LiberationSerif-BoldItalic.ttf
+de18fe26337e03241952dca46398d5b66f3c5738d080bfd284f66e67b926f597  LiberationSerif-Italic.ttf
+9caef765d2e891c10dd73658894f01e660fe0c1c83e0bda7d6edf561d8f623d4  LiberationSerif-Regular.ttf
+
+Debian package versions used: fonts-liberation 1:2.1.5-3,
+fonts-crosextra-carlito 20230309-2, fonts-crosextra-caladea 20200211-2.
