@@ -1,5 +1,6 @@
 {% if analysis.user_id == request.user.id %}
 <div class="analysis-result-section">
+    {% if analysis.status == 'result_added' %}<p><a class="outline-action" href="{% url 'analysis_followup_create' analysis_uuid=analysis.uuid %}">Ask follow-up questions <span aria-hidden="true">→</span></a></p>{% endif %}
     {% if analysis.builder_snapshot %}
         <a class="outline-action" href="{% url 'resume_edits_review' analysis_uuid=analysis.uuid %}">Regenerate resume <span aria-hidden="true">→</span></a>
         <p>Review AI edits and choose which changes to apply to a separate resume draft.</p>

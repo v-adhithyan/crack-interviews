@@ -3,10 +3,14 @@ from django.urls import path
 
 from . import resume_edit_views
 from . import resume_pdf_views
+from . import followup_views
 from . import views
 from . import resume_builder_views as builder
 
 urlpatterns = [
+    path("app/analysis/<uuid:analysis_uuid>/followups/", followup_views.create, name="analysis_followup_create"),
+    path("app/followups/<uuid:job_uuid>/", followup_views.detail, name="analysis_followup_detail"),
+    path("app/followups/<uuid:job_uuid>/status/", followup_views.status, name="analysis_followup_status"),
     path("app/resume-pdf/<uuid:job_uuid>/", resume_pdf_views.detail, name="resume_pdf_detail"),
     path("app/resume-pdf/<uuid:job_uuid>/status/", resume_pdf_views.status, name="resume_pdf_status"),
     path("app/resume-pdf/<uuid:job_uuid>/file/", resume_pdf_views.file, name="resume_pdf_file"),

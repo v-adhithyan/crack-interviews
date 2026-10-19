@@ -177,3 +177,23 @@ elapsed time. Failures include a traceback and `stage=render`, `store`, or `pers
 The renderer logs its Python executable, exit code, timeout and the last 8 KB of stderr.
 Resume content, generated HTML and PDF bytes are not explicitly logged. Keep diagnostic
 logs private. After deploying logging changes, restart qcluster and reproduce once.
+
+
+## Analysis follow-up questions
+
+Completed analyses link to an owner-only follow-up page, including analyses of uploaded PDFs.
+Each batch contains 1–10 questions (1,000 characters each) and an optional cover letter.
+The prompt captures the analysis's original resume text, job description and saved result;
+it never substitutes the user's current resume. Answers and cover letters render as escaped
+plain text with individual copy controls. Prior batches remain accessible from this page.
+
+Direct ChatGPT requests run through Django-Q and share the existing AI quota. Manual mode,
+unsupported direct providers, and exhausted quotas use a copy-prompt/paste-JSON workflow.
+Failed or stalled jobs also allow manual completion. The worker bounds provider time and
+output, validates question IDs and response lengths, and does not log prompt or response text.
+Duplicate batches reuse the saved request without charging quota again. New batches are
+limited to 20 per account per rolling 24 hours. A stalled request is marked failed after five
+minutes when its page/status is visited. AI output must be reviewed before external use.
+
+Deploy migration 0022, collect static files, reload Django, and restart the Django-Q worker.
+No new provider credentials are required; direct generation uses existing OpenAI settings.

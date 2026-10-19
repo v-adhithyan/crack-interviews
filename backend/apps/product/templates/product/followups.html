@@ -1,0 +1,38 @@
+{% extends "product/base.html" %}{% load static %}
+{% block title %}Follow-up questions | HackerLeap{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{% static 'product/css/followups.css' %}">{% endblock %}
+{% block body %}
+<div class="product-layout">{% include "product/includes/sidebar.html" %}<div class="product-main-shell">{% include "product/includes/topbar.html" %}<main class="product-main followups">
+<a href="{% url 'analysis_detail' analysis_uuid=analysis.uuid %}">← Back to analysis</a>
+<h1>Ask follow-up questions</h1><p>{{ analysis.display_title }} · {{ analysis.display_company }}</p>
+{% if error %}<p role="alert" class="followup-error">{{ error }}</p>{% endif %}
+{% if not job %}
+<section class="analysis-result-card">
+<p>Ask 1–10 questions about this opportunity. We’ll include the job description, saved analysis result and the resume used for that analysis.</p>
+<form method="post" id="followup-form">{% csrf_token %}
+<div id="followup-questions">{% for question in questions %}<div class="followup-question"><label>Question <span data-number>{{ forloop.counter }}</span><textarea name="questions" required maxlength="1000" rows="3">{{ question }}</textarea></label><button type="button" class="outline-small" data-remove>Remove question</button></div>{% endfor %}</div>
+<button type="button" class="outline-small" id="add-question">Ask another question</button><p id="question-count" aria-live="polite"></p>
+<label class="followup-cover"><input type="checkbox" name="cover_letter" {% if cover %}checked{% endif %}> Also generate a tailored cover letter</label>
+<p>Direct AI requests use your account’s AI allowance. If direct AI is unavailable, you can copy a prompt into ChatGPT, Claude or Gemini and paste the JSON response here.</p>
+<button type="submit" class="outline-action">Get answers</button>
+</form></section>
+{% if history %}<section class="analysis-result-card"><h2>Previous questions</h2>{% for previous in history %}<p><a href="{% url 'analysis_followup_detail' job_uuid=previous.uuid %}">{{ previous.questions.0|truncatechars:100 }}</a> · {{ previous.created_at|date:"M j, Y H:i" }} · {{ previous.status|title }}</p>{% endfor %}</section>{% endif %}
+{% else %}
+<p><a href="{% url 'analysis_followup_create' analysis_uuid=analysis.uuid %}">Ask a new set of questions</a></p>
+{% if job.status == 'queued' or job.status == 'processing' %}
+<section class="analysis-result-card" data-followup-status="{% url 'analysis_followup_status' job_uuid=job.uuid %}"><h2>Preparing your answers</h2><p id="followup-progress" role="status">{{ job.status|title }}. You can leave this page and return later.</p></section>
+{% elif job.status == 'ready' %}
+{% for item in answers %}<section class="analysis-result-card"><h2>{{ forloop.counter }}. {{ item.question }}</h2><div class="followup-answer" id="answer-{{ forloop.counter }}">{{ item.answer }}</div><button type="button" class="outline-small" data-copy="answer-{{ forloop.counter }}">Copy answer</button></section>{% endfor %}
+{% if job.include_cover_letter %}<section class="analysis-result-card"><h2>Cover letter</h2><div class="followup-answer" id="cover-letter">{{ job.result.cover_letter }}</div><button type="button" class="outline-small" data-copy="cover-letter">Copy cover letter</button></section>{% endif %}
+<p>Review the answers and cover letter for accuracy before using them.</p>
+{% else %}
+<section class="analysis-result-card"><h2>{% if job.status == 'failed' %}AI generation couldn’t finish{% else %}Your prompt is ready{% endif %}</h2>
+<p>Copy the prompt into your preferred AI tool, then paste its JSON response below. The prompt includes your resume, job description, analysis and questions.</p>
+<p><a href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">Open ChatGPT</a> · <a href="https://claude.ai/" target="_blank" rel="noopener noreferrer">Open Claude</a> · <a href="https://gemini.google.com/" target="_blank" rel="noopener noreferrer">Open Gemini</a></p>
+<button type="button" class="outline-small" data-copy="followup-prompt">Copy prompt</button><details><summary>View prompt</summary><textarea readonly id="followup-prompt" rows="12" aria-label="Generated follow-up prompt">{{ job.prompt }}</textarea></details>
+<form method="post">{% csrf_token %}<label>AI JSON response<textarea name="response_json" required maxlength="100000" rows="10">{{ raw }}</textarea></label><button class="outline-action" type="submit">Save answers</button></form></section>
+{% endif %}{% endif %}
+<p id="copy-status" role="status" aria-live="polite"></p>
+</main></div></div>
+{% endblock %}
+{% block scripts %}<script src="{% static 'product/js/followups.js' %}"></script>{% endblock %}

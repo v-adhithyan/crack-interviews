@@ -383,3 +383,20 @@ class ResumePdfJob(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     started_at = models.DateTimeField(null=True, blank=True)
     expires_at = models.DateTimeField(db_index=True)
+
+
+class AnalysisFollowup(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    analysis = models.ForeignKey(ResumeAnalysis, on_delete=models.CASCADE, related_name='followups')
+    request_key = models.CharField(max_length=64)
+    questions = models.JSONField()
+    include_cover_letter = models.BooleanField(default=False)
+    prompt = models.TextField()
+    result = models.JSONField(default=dict)
+    status = models.CharField(max_length=20, default='manual')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        constraints = [models.UniqueConstraint(fields=['analysis', 'request_key'], name='unique_analysis_followup_request')]
