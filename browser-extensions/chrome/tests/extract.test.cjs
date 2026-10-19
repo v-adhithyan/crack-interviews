@@ -46,3 +46,8 @@ test('Malformed structured data falls back to description only', async () => {
   const result=await extract('https://boards.greenhouse.io/example/jobs/42', '<script type="application/ld+json">bad json</script><div id="content"><p>Build resilient systems and meaningful developer tools.</p></div><footer>Footer tracking</footer>');
   assert.match(result.description,/Build resilient/); assert.doesNotMatch(result.description,/tracking/);
 });
+
+test('Expired postings are reported without a misleading job title', async () => {
+  const result=await extract(ashby,'<h1>Job not found</h1>');
+  assert.equal(result.description,''); assert.equal(result.title,''); assert.match(result.warning,/no longer available/);
+});

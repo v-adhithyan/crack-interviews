@@ -23,7 +23,7 @@
 <section class="analysis-result-card" data-followup-status="{% url 'analysis_followup_status' job_uuid=job.uuid %}"><h2>Preparing your answers</h2><p id="followup-progress" role="status">{{ job.status|title }}. You can leave this page and return later.</p></section>
 {% elif job.status == 'ready' %}
 {% for item in answers %}<section class="analysis-result-card"><h2>{{ forloop.counter }}. {{ item.question }}</h2><div class="followup-answer" id="answer-{{ forloop.counter }}">{{ item.answer }}</div><button type="button" class="outline-small" data-copy="answer-{{ forloop.counter }}">Copy answer</button></section>{% endfor %}
-{% if job.include_cover_letter %}<section class="analysis-result-card"><h2>Cover letter</h2><div class="followup-answer" id="cover-letter">{{ job.result.cover_letter }}</div><button type="button" class="outline-small" data-copy="cover-letter">Copy cover letter</button></section>{% endif %}
+{% if job.include_cover_letter %}<section class="analysis-result-card"><h2>Cover letter</h2><div class="followup-answer" id="cover-letter">{{ job.result.cover_letter }}</div><button type="button" class="outline-small" data-copy="cover-letter">Copy cover letter</button> <a class="outline-small" href="{% url 'analysis_followup_cover_letter_pdf' job_uuid=job.uuid %}">Download PDF</a></section>{% endif %}
 <p>Review the answers and cover letter for accuracy before using them.</p>
 {% else %}
 <section class="analysis-result-card"><h2>{% if job.status == 'failed' %}AI generation couldn’t finish{% else %}Your prompt is ready{% endif %}</h2>

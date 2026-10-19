@@ -1,0 +1,6 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Cover letter</title><style>
+{% for face in font_faces %}@font-face { font-family:"CoverLetter"; src:url("{{ face.url }}") format("truetype"); font-style:{{ face.style }}; font-weight:{{ face.weight }}; }
+{% endfor %}@page { size:A4; margin:22mm; }
+body { font-family:"CoverLetter",sans-serif; font-size:11pt; line-height:1.5; color:#202020; margin:0; }
+.letter { white-space:pre-wrap; overflow-wrap:anywhere; orphans:3; widows:3; }
+</style></head><body><div class="letter">{{ letter }}</div></body></html>

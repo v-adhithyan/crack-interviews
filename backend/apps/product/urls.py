@@ -14,6 +14,7 @@ urlpatterns = [
     path("app/extension/analyses/", extension_views.submit, name="extension_submit"),
     path("app/analysis/<uuid:analysis_uuid>/followups/", followup_views.create, name="analysis_followup_create"),
     path("app/followups/<uuid:job_uuid>/", followup_views.detail, name="analysis_followup_detail"),
+    path("app/followups/<uuid:job_uuid>/cover-letter.pdf", followup_views.cover_letter_pdf, name="analysis_followup_cover_letter_pdf"),
     path("app/followups/<uuid:job_uuid>/status/", followup_views.status, name="analysis_followup_status"),
     path("app/resume-pdf/<uuid:job_uuid>/", resume_pdf_views.detail, name="resume_pdf_detail"),
     path("app/resume-pdf/<uuid:job_uuid>/status/", resume_pdf_views.status, name="resume_pdf_status"),

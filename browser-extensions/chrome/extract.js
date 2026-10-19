@@ -62,7 +62,13 @@ export function extractJob() {
   }
   if (!result.title) result.title = clean(document.querySelector('h1')?.textContent || '');
   if (!result.company) result.company = clean(document.querySelector('.company-name, .company-name-link, [data-testid="company-name"]')?.textContent || '');
-  if (!result.description) result.warning = 'Could not confidently extract this job. Paste its description below; application forms are never copied.';
+  if (!result.description) {
+    result.warning = 'Could not confidently extract this job. Paste its description below; application forms are never copied.';
+    if (/^job not found$/i.test(result.title)) {
+      result.title = '';
+      result.warning = 'This job is no longer available. Open an active posting or paste a description.';
+    }
+  }
   if (result.description.length > 12000) result.warning = 'This description exceeds 12,000 characters. Shorten it before analysis; the full extracted text is available to copy.';
   // Bound untrusted page output without silently claiming a complete extraction.
   if (result.description.length > 100000) {

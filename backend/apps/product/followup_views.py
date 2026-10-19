@@ -5,7 +5,14 @@ from datetime import timedelta
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, FileResponse
+from django.utils.text import slugify
+from django.template.loader import render_to_string
+from django.core.cache import cache
+from io import BytesIO
+
+from .resume_builder import render_document_pdf
+from .resume_fonts import FAMILIES, faces
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
@@ -94,3 +101,30 @@ def status(request, job_uuid):
     job = get_object_or_404(AnalysisFollowup, uuid=job_uuid, analysis__user=request.user)
     expire_stalled(job)
     return JsonResponse({'status': job.status})
+
+
+@never_cache
+@product_access_required
+@require_GET
+def cover_letter_pdf(request, job_uuid):
+    job = get_object_or_404(AnalysisFollowup.objects.select_related('analysis'), uuid=job_uuid,
+                           analysis__user=request.user, status='ready', include_cover_letter=True)
+    letter = job.result.get('cover_letter') if isinstance(job.result, dict) else None
+    if not isinstance(letter, str) or not letter.strip() or len(letter) > 12000:
+        return HttpResponse('No valid cover letter is available for this response.', status=404)
+    if not cache.add(f'cover-letter-export:{request.user.pk}', True, timeout=5):
+        return HttpResponse('Please wait a few seconds before downloading another PDF.', status=429)
+    html = render_to_string('product/cover_letter_pdf.html', {
+        'letter': letter,
+        'font_faces': [{'url': 'resume-font:' + name, 'style': style, 'weight': weight}
+                       for name, style, weight in faces(FAMILIES['default'])],
+    })
+    try:
+        pdf = render_document_pdf(html)
+    except RuntimeError:
+        return HttpResponse('Unable to generate the cover letter PDF right now. Please try again.', status=503)
+    username = slugify(request.user.get_username())[:80] or 'user'
+    company = job.analysis.result_data.get('company_detected')
+    company = slugify(company if isinstance(company, str) else '')[:80] or 'company'
+    filename = f'{username}_{company}_cover_letter.pdf'
+    return FileResponse(BytesIO(pdf), as_attachment=True, filename=filename, content_type='application/pdf')

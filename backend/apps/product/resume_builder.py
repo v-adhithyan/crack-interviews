@@ -157,7 +157,11 @@ def pdf_python_executable():
 def render_pdf(content):
     if not validate_content(content)["contact"]["name"]:
         raise ValidationError("Enter your full name before exporting a resume.")
-    html = render_resume(content, for_pdf=True)
+    return render_document_pdf(render_resume(content, for_pdf=True))
+
+
+def render_document_pdf(html):
+    """Render trusted template HTML using the bounded, resource-restricted worker."""
     worker = Path(__file__).with_name('resume_pdf_worker.py')
     started = monotonic()
     interpreter = '(not resolved)'
