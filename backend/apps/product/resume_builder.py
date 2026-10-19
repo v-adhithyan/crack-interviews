@@ -12,6 +12,7 @@ from urllib.parse import urlsplit
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import URLValidator
 from django.template.loader import render_to_string
 from django.templatetags.static import static
 
@@ -49,12 +50,13 @@ CONTACT = {"name": 120, "headline": 180, "email": 254, "phone": 60, "location": 
 SECTIONS = {
     "skills": ({"label": 80, "items": 1200}, 12),
     "experience": ({"company": 150, "role": 150, "context": 180, "dates": 100, "bullets": 8000}, 15),
+    "projects": ({"name": 180, "website": 500, "start_year": 4, "end_year": 7, "bullets": 8000}, 15),
     "education": ({"school": 180, "degree": 180, "location": 120, "dates": 100}, 10),
 }
 
 
 def blank_content():
-    return {"contact": {key: "" for key in CONTACT}, "summary": "", "skills": [], "experience": [], "education": [], "typography": dict(DEFAULT_TYPOGRAPHY)}
+    return {"contact": {key: "" for key in CONTACT}, "summary": "", "skills": [], "experience": [], "education": [], "projects": [], "projects_heading": "Projects", "typography": dict(DEFAULT_TYPOGRAPHY)}
 
 
 def fields(value, schema):
@@ -72,14 +74,37 @@ def fields(value, schema):
 
 
 def validate_content(content):
-    if not isinstance(content, dict) or set(content) - {"typography"} != {"contact", "summary", *SECTIONS}:
+    if not isinstance(content, dict) or set(content) - {"typography", "projects", "projects_heading"} != {"contact", "summary", "skills", "experience", "education"}:
         raise ValidationError("Invalid resume structure.")
     result = {"contact": fields(content["contact"], CONTACT), **fields({"summary": content["summary"]}, {"summary": 3000})}
     for key, (schema, maximum) in SECTIONS.items():
+        if key == "projects" and key not in content:
+            continue
         rows = content[key]
         if not isinstance(rows, list) or len(rows) > maximum:
             raise ValidationError(f"Use at most {maximum} {key} entries.")
         result[key] = [fields(row, schema) for row in rows]
+    if 'projects_heading' in content:
+        result.update(fields({'projects_heading': content['projects_heading']}, {'projects_heading': 80}))
+        if not result['projects_heading'] or '\n' in result['projects_heading'] or '\r' in result['projects_heading']:
+            raise ValidationError('Enter a section heading on one line.')
+    for project in result.get('projects', []):
+        for key in ('start_year', 'end_year'):
+            year = project[key]
+            if year and not (key == 'end_year' and year == 'Present') and not re.fullmatch(r'[1-9][0-9]{3}', year):
+                raise ValidationError('Use a four-digit year, or Present for the end year.')
+        if project['start_year'] and project['end_year'] not in ('', 'Present') and project['end_year'] < project['start_year']:
+            raise ValidationError('Project end year cannot be before its start year.')
+        if project['website']:
+            try:
+                URLValidator(schemes=['https', 'http'])(project['website'])
+                url = urlsplit(project['website'])
+                if url.username or url.password:
+                    raise ValidationError('Credentials are not allowed in project websites.')
+            except ValueError as exc:
+                raise ValidationError('Enter a valid project website URL.') from exc
+        if len(project['bullets'].splitlines()) > 30:
+            raise ValidationError('Use at most 30 bullet points per project.')
     if 'typography' in content:
         result['typography'] = validate_typography(content['typography'])
     if len(json.dumps(result, ensure_ascii=False).encode()) > 60000:
@@ -98,6 +123,7 @@ def emphasis(value):
 def render_resume(content, *, for_pdf=False):
     content = validate_content(content)
     experience = [{**row, "points": [emphasis(line.lstrip('-• ').strip()) for line in row['bullets'].splitlines() if line.strip()]} for row in content['experience']]
+    projects = [{**row, "points": [emphasis(line.lstrip('-• ').strip()) for line in row['bullets'].splitlines() if line.strip()]} for row in content.get('projects', [])]
     website = content['contact']['website'].strip()
     linkedin_url = ''
     candidate = website if '://' in website else 'https://' + website
@@ -115,7 +141,7 @@ def render_resume(content, *, for_pdf=False):
     family = FAMILIES[typography['font']]
     font_faces = [{'url': 'resume-font:' + name if for_pdf else static('product/fonts/' + name),
                    'style': style, 'weight': weight} for name, style, weight in faces(family)]
-    return render_to_string('product/resume_builder/document.html', {"resume_data": content, "experience": experience, "linkedin_url": linkedin_url, "typography": typography, "font_faces": font_faces})
+    return render_to_string('product/resume_builder/document.html', {"resume_data": content, "experience": experience, "projects": projects, "linkedin_url": linkedin_url, "typography": typography, "font_faces": font_faces})
 
 
 def pdf_python_executable():

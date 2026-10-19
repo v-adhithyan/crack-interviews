@@ -6,6 +6,8 @@
   const initial = JSON.parse(document.getElementById('resume-initial').textContent);
   let content = initial.content, title = initial.title, revision = initial.revision;
   content.typography = {...initial.typography_defaults, ...(content.typography || {})};
+  content.projects = content.projects || [];
+  content.projects_heading = content.projects_heading || 'Projects';
   let generation = 0, savedGeneration = 0, saving = false, conflict = false;
   let saveTimer, previewTimer, previewSequence = 0, previewController;
   const fields = document.getElementById('resume-fields');
@@ -15,10 +17,11 @@
   const schemas = {
     skills: {label: ['Group', 80], items: ['Skills', 1200, true]},
     experience: {company: ['Company', 150], role: ['Role', 150], context: ['Industry / location', 180], dates: ['Dates', 100], bullets: ['Achievements — one bullet per line', 8000, true]},
+    projects: {name: ['Project name', 180], website: ['Website (optional, https://...)', 500], start_year: ['Start year', 4], end_year: ['End year (or Present)', 7], bullets: ['Bullet points — one per line', 8000, true]},
     education: {school: ['School', 180], degree: ['Degree', 180], location: ['Location', 120], dates: ['Dates', 100]},
   };
-  const limits = {skills: 12, experience: 15, education: 10};
-  const labels = {skills: 'Skills', experience: 'Work history', education: 'Education'};
+  const limits = {skills: 12, experience: 15, projects: 15, education: 10};
+  const labels = {skills: 'Skills', experience: 'Work history', projects: 'Projects / independent products', education: 'Education'};
   const node = (tag, text, parent) => {const el = document.createElement(tag); if (text) el.textContent = text; if (parent) parent.append(el); return el;};
   function message(text) {error.textContent = text; error.hidden = !text;}
   function updateActions() {
@@ -72,6 +75,12 @@
     input(section('Professional summary'), 'Summary', content.summary, 3000, true, value => {content.summary=value;});
     Object.entries(schemas).forEach(([key,schema]) => {
       const group = section(labels[key]);
+      if (key === 'projects') {
+        const heading = input(group, 'Section heading (choose or type your own)', content.projects_heading, 80, false, value => {content.projects_heading = value;});
+        heading.setAttribute('list', 'project-heading-options');
+        const choices = node('datalist', '', group); choices.id = 'project-heading-options';
+        ['Projects', 'Independent Products', 'Projects / Independent Products'].forEach(value => {node('option', '', choices).value = value;});
+      }
       content[key].forEach((entry,index) => {
         const row = node('div', '', group); row.className = 'rb-entry';
         node('h3', `${labels[key]} ${index+1}`, row);

@@ -34,6 +34,40 @@ class ResumeBuilderTests(TestCase):
     def save(self, **changes):
         return self.client.post(self.url('save'), {'title': 'Updated', 'content': self.content, 'revision': 1, **changes}, content_type='application/json')
 
+    def test_projects_save_preview_and_clone(self):
+        self.content['projects_heading'] = 'Independent Products'
+        self.content['projects'] = [{'name': 'Example Product', 'website': 'https://example.com/product', 'start_year': '2022', 'end_year': 'Present', 'bullets': 'Built **search**\n<script>alert(1)</script>'}]
+        self.assertEqual(self.save().status_code, 200)
+        self.draft.refresh_from_db()
+        self.assertEqual(self.draft.content['projects'], self.content['projects'])
+        for for_pdf in (False, True):
+            html = render_resume(self.draft.content, for_pdf=for_pdf)
+            self.assertIn('<h2>Independent Products</h2>', html)
+            self.assertIn('<strong>Example Product</strong>', html)
+            self.assertIn('2022 – Present', html)
+            self.assertIn('href="https://example.com/product"', html)
+            self.assertIn('<strong>search</strong>', html)
+            self.assertNotIn('<script>', html)
+        self.assertEqual(self.client.post(self.url('clone')).status_code, 302)
+        clone = ResumeDraft.objects.exclude(pk=self.draft.pk).get(user=self.user)
+        self.assertEqual(clone.content, self.draft.content)
+
+    def test_projects_validation_and_legacy_content(self):
+        from django.core.exceptions import ValidationError
+        from .resume_builder import validate_content
+        legacy = copy.deepcopy(self.content)
+        legacy.pop('projects')
+        legacy.pop('projects_heading')
+        self.assertEqual(validate_content(legacy), legacy)
+        self.assertNotIn('<h2>Projects</h2>', render_resume(legacy))
+        project = {'name': 'Product', 'website': '', 'start_year': '2020', 'end_year': '2024', 'bullets': 'Built a product'}
+        for changes in ({'website': 'javascript:alert(1)'}, {'website': 'https://user:password@example.com'}, {'start_year': 'year'}, {'end_year': '2019'}, {'bullets': 'bullet\n' * 31}):
+            with self.subTest(changes=changes), self.assertRaises(ValidationError):
+                validate_content({**self.content, 'projects': [{**project, **changes}]})
+        for changes in ({'projects': [project] * 16}, {'projects': {}}, {'projects_heading': 'x' * 81}, {'projects_heading': ''}):
+            with self.subTest(changes=changes), self.assertRaises(ValidationError):
+                validate_content({**self.content, **changes})
+
     def test_atomic_revision_conflict_preserves_first_save(self):
         self.assertEqual(self.save().json()['revision'], 2)
         response = self.save(title='Stale overwrite')
