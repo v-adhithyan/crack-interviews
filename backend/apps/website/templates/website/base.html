@@ -16,7 +16,7 @@
     <meta property="og:locale" content="en_US">
     <meta property="og:title" content="{% block og_title %}HackerLeap | Land your next job{% endblock %}">
     <meta property="og:description" content="{% block og_description %}From application to interview, HackerLeap helps software engineers optimize resumes, match jobs smarter, and prepare with confidence.{% endblock %}">
-    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    <meta property="og:url" content="{% if canonical_url %}{{ canonical_url }}{% else %}{{ request.scheme }}://{{ request.get_host }}{{ request.path }}{% endif %}">
     <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ og_image_path }}">
     <meta property="og:image:secure_url" content="{{ request.scheme }}://{{ request.get_host }}{{ og_image_path }}">
     <meta property="og:image:type" content="image/png">
@@ -28,7 +28,7 @@
     <meta name="twitter:description" content="{% block twitter_description %}Resume matching, ATS optimization, AI resume rewriting, and interview prep for software engineers.{% endblock %}">
     <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ og_image_path }}">
     <meta name="twitter:image:alt" content="HackerLeap closed beta for software engineers">
-    <link rel="canonical" href="{{ request.build_absolute_uri }}">
+    <link rel="canonical" href="{% if canonical_url %}{{ canonical_url }}{% else %}{{ request.scheme }}://{{ request.get_host }}{{ request.path }}{% endif %}">
     <link rel="icon" href="{% static 'website/images/favicon.svg' %}" type="image/svg+xml">
     <link rel="stylesheet" href="{% static 'website/css/site.css' %}">
     <script type="application/ld+json">

@@ -159,3 +159,13 @@ LOGGING = {
         )
     },
 }
+
+# Never map this directory to a public static/media URL.
+PUBLIC_RESUME_PDF_ROOT = Path(os.getenv('PUBLIC_RESUME_PDF_ROOT', str(BASE_DIR / 'private_exports')))
+PUBLIC_RESUME_QUEUE_LIMIT = int(os.getenv('PUBLIC_RESUME_QUEUE_LIMIT', '10'))
+PUBLIC_RESUME_GLOBAL_QUEUE_LIMIT = int(os.getenv('PUBLIC_RESUME_GLOBAL_QUEUE_LIMIT', '50'))
+PUBLIC_RESUME_IP_EXPORTS_PER_HOUR = int(os.getenv('PUBLIC_RESUME_IP_EXPORTS_PER_HOUR', '10'))
+# Only set when the reverse proxy REPLACES this header with the verified client IP.
+PUBLIC_RESUME_CLIENT_IP_HEADER = os.getenv('PUBLIC_RESUME_CLIENT_IP_HEADER', '')
+PUBLIC_SITE_URL = os.getenv('PUBLIC_SITE_URL', 'https://www.hackerleap.com').rstrip('/')
+MIDDLEWARE.insert(0, 'apps.product.public_resume_middleware.PublicResumePrivacyMiddleware')

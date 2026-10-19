@@ -11,23 +11,18 @@
                 <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M13 2 4 14h7l-1 8 10-13h-7l1-7Z"/>
                 </svg>
-                CLOSED BETA - FREE FOR EARLY USERS
+                FREE SIGNUP — START BUILDING TODAY
             </p>
             <h1>Land your next job,<br>take the <span>big leap</span>.</h1>
             <p class="hero-subtitle">From application to interview, HackerLeap helps software engineers optimize resumes, match jobs smarter, and prepare with confidence.</p>
-            <form class="signup-form" method="post" action="{% url 'home_page' %}" aria-label="Request Early Access">
-                {% csrf_token %}
-                <label class="sr-only" for="hero-email">Enter your email</label>
-                <input id="hero-email" name="email" type="email" placeholder="Enter your email" autocomplete="email" value="{{ early_access_form.email.value|default:'' }}" required>
-                <button type="submit">Request Early Access <span aria-hidden="true">-&gt;</span></button>
-            </form>
+            <p><a class="login-button" href="{% url 'public_signup' %}">Create free account</a> <a href="{% url 'public_resume_landing' %}">Try the resume builder</a></p>
             <p class="payment-note">
                 <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none">
                     <path d="M7 11V8a5 5 0 0 1 10 0v3" stroke="currentColor" stroke-width="2"/>
                     <rect x="6" y="11" width="12" height="10" rx="2" stroke="currentColor" stroke-width="2"/>
                     <path d="M12 15v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 </svg>
-                No payment details required. Just your email.
+                No payment details required. AI usage limits apply.
             </p>
         </div>
         <aside class="report-card" aria-label="Resume match report preview">
@@ -184,22 +179,17 @@
     </div>
 </section>
 
-<section class="page-shell beta-section" id="pricing" aria-label="Join the Closed Beta">
-    <h2>Join the Closed Beta</h2>
+<section class="page-shell beta-section" id="pricing" aria-label="Create your free account">
+    <h2>Create your free account</h2>
     <p>Be among the first to access powerful tools that help you land more interviews.</p>
-    <form class="signup-form beta-form" method="post" action="{% url 'home_page' %}" aria-label="Request Early Access">
-        {% csrf_token %}
-        <label class="sr-only" for="beta-email">Enter your email</label>
-        <input id="beta-email" name="email" type="email" placeholder="Enter your email" autocomplete="email" value="{{ early_access_form.email.value|default:'' }}" required>
-        <button type="submit">Request Early Access <span aria-hidden="true">-&gt;</span></button>
-    </form>
+    <p><a class="login-button" href="{% url 'public_signup' %}">Create free account</a> <a href="{% url 'public_resume_landing' %}">Try the resume builder</a></p>
     <p class="payment-note">
         <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none">
             <path d="M7 11V8a5 5 0 0 1 10 0v3" stroke="currentColor" stroke-width="2"/>
             <rect x="6" y="11" width="12" height="10" rx="2" stroke="currentColor" stroke-width="2"/>
             <path d="M12 15v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         </svg>
-        No payment details required. Just your email.
+        No payment details required. AI usage limits apply.
     </p>
 </section>
 <span id="faq" class="anchor-target" aria-hidden="true"></span>

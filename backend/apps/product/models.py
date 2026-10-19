@@ -404,3 +404,41 @@ class AnalysisFollowup(models.Model):
     class Meta:
         ordering = ['-created_at']
         constraints = [models.UniqueConstraint(fields=['analysis', 'request_key'], name='unique_analysis_followup_request')]
+
+
+class PublicBuilderGate(models.Model):
+    """Singleton row serializes public quota admissions across web workers."""
+    key = models.PositiveSmallIntegerField(primary_key=True, default=1)
+
+
+class PublicBuilderCounter(models.Model):
+    key = models.CharField(max_length=160, unique=True)
+    count = models.PositiveBigIntegerField(default=0)
+    expires_at = models.DateTimeField(db_index=True)
+
+
+class PublicResumeTransfer(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    session_hash = models.CharField(max_length=64, db_index=True)
+    title = models.CharField(max_length=120)
+    content = models.JSONField(default=dict)
+    draft = models.ForeignKey(ResumeDraft, null=True, on_delete=models.SET_NULL)
+    claimed = models.BooleanField(default=False)
+    expires_at = models.DateTimeField(db_index=True)
+
+
+from .public_resume_storage import public_pdf_storage
+
+
+class PublicResumePdfJob(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    session_hash = models.CharField(max_length=64, db_index=True)
+    fingerprint = models.CharField(max_length=64)
+    revision = models.PositiveIntegerField(default=1)
+    content = models.JSONField(default=dict)
+    status = models.CharField(max_length=12, choices=ResumePdfJob.Status.choices, default='queued')
+    file = models.FileField(storage=public_pdf_storage, upload_to='exports/', blank=True)
+    error = models.CharField(max_length=250, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(db_index=True)

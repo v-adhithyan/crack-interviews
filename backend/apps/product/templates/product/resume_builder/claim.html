@@ -1,0 +1,7 @@
+{% extends 'product/base.html' %}{% block title %}Save your resume | HackerLeap{% endblock %}
+{% block body %}<main class="auth-page"><section class="auth-panel"><h1>Save your resume</h1>
+{% if expired %}<p>This transfer expired. Return to your original editor tab and choose “Save to a free account” again, or import your recovery copy.</p>
+{% else %}<p>Save “{{ pending.title }}” as a private draft in {{ request.user.username }}’s account.</p>
+<form method="post" action="{% url 'public_resume_claim_save' pending.uuid %}">{% csrf_token %}<button>Save private draft</button></form>{% endif %}
+<p>Your original editor remains open. This saves the version you submitted; later edits there are not included.</p>
+<a href="{% url 'resume_builder_list' %}">My resumes</a></section></main>{% endblock %}

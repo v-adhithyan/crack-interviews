@@ -46,6 +46,7 @@ services:
       - "8000:8000"
     volumes:
       - media-data:/app/media
+      - private-exports:/app/private_exports
     depends_on:
       db:
         condition: service_healthy
@@ -64,6 +65,7 @@ services:
     environment: *backend-environment
     volumes:
       - media-data:/app/media
+      - private-exports:/app/private_exports
     depends_on:
       backend:
         condition: service_healthy
@@ -84,3 +86,4 @@ services:
 volumes:
   mysql-data:
   media-data:
+  private-exports:
