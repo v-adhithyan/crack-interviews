@@ -65,12 +65,22 @@
                     <div class="section-heading">
                         <div>
                             <h2 id="pending-title">Prompt Ready</h2>
-                            <p>This analysis is waiting for the JSON response to be pasted on the dashboard.</p>
+                            <p>Copy this prompt into your preferred AI tool, then paste its JSON response below.</p>
                         </div>
                         <button class="outline-small" type="button" data-copy-prompt>Copy Prompt</button>
                     </div>
                     <label class="sr-only" for="generated-prompt">Generated prompt</label>
                     <textarea id="generated-prompt" class="prompt-output" readonly>{{ analysis.generated_prompt }}</textarea>
+                    {% if analysis.user_id == request.user.id %}
+                    <form method="post" action="{% url 'product_dashboard' %}" class="job-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="save_analysis_json">
+                        <input type="hidden" name="analysis_uuid" value="{{ analysis.uuid }}">
+                        <label for="extension-analysis-json">AI JSON response</label>
+                        <textarea id="extension-analysis-json" name="analysis_json" maxlength="100000" rows="10" required></textarea>
+                        <button type="submit">Save analysis result</button>
+                    </form>
+                    {% endif %}
                 </section>
             {% endif %}
 

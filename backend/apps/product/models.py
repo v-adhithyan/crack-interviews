@@ -42,13 +42,15 @@ class ResumeAnalysis(models.Model):
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="resume_analyses")
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
-    resume = models.ForeignKey(Resume, on_delete=models.CASCADE, related_name="analyses")
+    resume = models.ForeignKey(Resume, on_delete=models.SET_NULL, null=True, blank=True, related_name="analyses")
     builder_snapshot = models.JSONField(default=dict, blank=True)
     job_description = models.TextField()
     resume_text = models.TextField()
     generated_prompt = models.TextField()
     ai_response_json = models.JSONField(blank=True, null=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PROMPT_READY)
+    submission_key = models.UUIDField(null=True, blank=True, editable=False)
+    submission_digest = models.CharField(max_length=64, blank=True, editable=False)
     task_id = models.CharField(max_length=255, blank=True)
     ai_provider = models.CharField(max_length=40, blank=True)
     error_message = models.TextField(blank=True)
@@ -59,9 +61,11 @@ class ResumeAnalysis(models.Model):
 
     class Meta:
         ordering = ("-updated_at",)
+        constraints = [models.UniqueConstraint(fields=["user", "submission_key"], name="unique_analysis_submission")]
 
     def __str__(self):
-        return f"Analysis for {self.resume.original_filename}"
+        name = self.resume.original_filename if self.resume_id else self.builder_snapshot.get("title", "saved resume")
+        return f"Analysis for {name}"
 
     @property
     def result_data(self):

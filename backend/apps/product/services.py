@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.core.exceptions import ValidationError
+from django.db import transaction
 
 ANALYZER_INSTRUCTIONS = """You are HackerLeap Resume Match Analyzer.
 
@@ -542,8 +543,12 @@ def reserve_resume_analysis_ai_quota(user):
     if configured_mode not in {"chatgpt", "claude"}:
         return False
 
-    feature_flags = get_user_feature_flags(user, create=True)
-    return feature_flags.consume_ai_analysis_quota()
+    # Website and extension requests share the same quota; consume atomically.
+    from .models import UserFeatureFlags
+    with transaction.atomic():
+        feature_flags = get_user_feature_flags(user, create=True)
+        feature_flags = UserFeatureFlags.objects.select_for_update().get(pk=feature_flags.pk)
+        return feature_flags.consume_ai_analysis_quota()
 
 
 def reserve_mock_interview_quota(user):

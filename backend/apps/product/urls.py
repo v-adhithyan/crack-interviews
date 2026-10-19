@@ -4,10 +4,14 @@ from django.urls import path
 from . import resume_edit_views
 from . import resume_pdf_views
 from . import followup_views
+from . import extension_views
 from . import views
 from . import resume_builder_views as builder
 
 urlpatterns = [
+    path("app/extension/", extension_views.bridge, name="extension_bridge"),
+    path("app/extension/resumes/", extension_views.resumes, name="extension_resumes"),
+    path("app/extension/analyses/", extension_views.submit, name="extension_submit"),
     path("app/analysis/<uuid:analysis_uuid>/followups/", followup_views.create, name="analysis_followup_create"),
     path("app/followups/<uuid:job_uuid>/", followup_views.detail, name="analysis_followup_detail"),
     path("app/followups/<uuid:job_uuid>/status/", followup_views.status, name="analysis_followup_status"),
