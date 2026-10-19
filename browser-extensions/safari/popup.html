@@ -1,0 +1,18 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HackerLeap</title><link rel="stylesheet" href="popup.css"></head><body>
+<header><span class="logo">HL</span><div><h1>HackerLeap</h1><p>Turn a job into your next opportunity.</p></div></header>
+<main>
+<section><h2>1. Job description</h2><p id="source" class="hint">Reading the current job…</p>
+<label>Job title<input id="job-title" maxlength="200"></label><label>Company<input id="company" maxlength="200"></label>
+<label>Description<textarea id="description" rows="8" placeholder="Open an Ashby, Greenhouse or LinkedIn job, or paste a description."></textarea></label>
+<p id="length" class="hint"></p><div class="row"><button id="copy" type="button">Copy job description</button><button id="extract" type="button">Extract again</button></div>
+</section>
+<section><h2>2. Choose your resume</h2><label>HackerLeap environment<select id="origin"><option value="https://www.hackerleap.com">www.hackerleap.com</option><option value="https://hackerleap.com">hackerleap.com</option><option value="http://localhost:8000">Local development (localhost:8000)</option><option value="http://127.0.0.1:8000">Local development (127.0.0.1:8000)</option></select></label>
+<div class="row"><button id="connect" type="button">Connect / sign in</button><button id="reload" type="button">Reload resumes</button></div>
+<p id="account" class="hint">Uses your HackerLeap login. No password is stored in this extension.</p>
+<label>Saved resume<select id="resume"><option value="">Connect to load resumes</option></select></label>
+<p id="mode" class="hint"></p><button id="analyze" type="button" class="primary" disabled>Analyze in HackerLeap →</button>
+<button id="disconnect" class="text-button" type="button">Disconnect extension</button>
+</section>
+<p id="status" role="status" aria-live="polite"></p><a id="last-analysis" hidden target="_blank" rel="noopener">Open last analysis</a>
+<p class="privacy">Only the job you submit is sent to HackerLeap. Your resume stays on HackerLeap. Temporary job text is cleared when Safari restarts.</p>
+</main><script type="module" src="popup.js"></script></body></html>

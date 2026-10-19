@@ -79,3 +79,14 @@ test('LinkedIn rejects a stale details pane during job navigation', async () => 
   const result=await extract('https://www.linkedin.com/jobs/search/?currentJobId=222', '<div class="jobs-search__job-details--container"><h2 class="job-details-jobs-unified-top-card__job-title"><a href="/jobs/view/111/">Old job</a></h2><div id="job-details">Old job description with enough text to be extracted.</div></div>');
   assert.equal(result.description,'');assert.match(result.warning,/switching jobs/);
 });
+
+test('LinkedIn email-linked posting supports a labelled description without legacy classes', async () => {
+  const result=await extract('https://www.linkedin.com/jobs/view/4479381038/?trk=email&trackingId=example', '<main><h1>Software Engineer, Product</h1><section><h2>About the job</h2><div><p>Build reliable software products for scientists and collaborate with engineers and designers on useful tools.</p><ul><li>Python experience</li></ul></div></section><section><h2>Recommended jobs</h2>Unrelated vacancy</section></main>');
+  assert.match(result.description,/Build reliable/);assert.match(result.description,/• Python/);
+  assert.doesNotMatch(result.description,/Unrelated|Recommended/);assert.equal(result.title,'Software Engineer, Product');
+  assert.equal(result.url,'https://www.linkedin.com/jobs/view/4479381038/');
+});
+test('LinkedIn labelled fallback does not copy the entire page or application forms', async () => {
+  const result=await extract('https://www.linkedin.com/jobs/view/4479381038/', '<main><h2>About the job</h2><form><textarea>Private applicant text</textarea></form><aside>Unrelated vacancy</aside></main>');
+  assert.equal(result.description,'');
+});

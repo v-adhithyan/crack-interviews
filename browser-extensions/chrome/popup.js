@@ -104,7 +104,7 @@ async function initialize() {
   stateKey = `job:${tab?.id || 'manual'}`;
   const stored = await chrome.storage.session.get([stateKey, 'lastAnalysis']);
   const state = stored[stateKey];
-  if (state && state.tabUrl === tab?.url) {
+  if (state && state.tabUrl === tab?.url && state.job?.description?.trim()) {
     job=state.job; requestId=state.requestId; selectedId=state.origin === origin() ? state.selectedId : '';
     displayJob();
   } else {

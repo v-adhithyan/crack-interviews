@@ -87,6 +87,23 @@ export function extractJob() {
       if (el && elementText(el).length >= 40) {result.description = elementText(el); break;}
     }
   }
+  // LinkedIn also renders layouts without the legacy jobs-* CSS classes.
+  // Stay inside the labelled description section; never copy the entire main/page.
+  if (linkedin && !result.description && href.pathname.startsWith('/jobs/view/')) {
+    const heading = Array.from(document.querySelectorAll('h2, h3, [role="heading"], p')).find(node =>
+      node.getClientRects().length && /^about the job$/i.test(clean(node.textContent || '')));
+    let section = heading?.parentElement;
+    for (let depth = 0; section && depth < 3; depth++, section = section.parentElement) {
+      if (section.matches('main, body, html') || section.querySelector('form, input, textarea')) break;
+      const otherHeadings = Array.from(section.querySelectorAll('h1, h2, h3, [role="heading"]')).filter(node =>
+        node !== heading && !/^(about the job|about|responsibilities|requirements|qualifications|benefits|what .+|who .+)$/i.test(clean(node.textContent || '')));
+      if (otherHeadings.length) break;
+      const text = elementText(section);
+      if (text.length >= 100) {result.description = text; break;}
+    }
+    if (result.description && !result.title) result.title = clean(document.querySelector('main h1')?.textContent || '');
+  }
+
   if (!result.title) result.title = clean((linkedin
     ? scope.querySelector('.job-details-jobs-unified-top-card__job-title, .jobs-unified-top-card__job-title, .top-card-layout__title')
     : document.querySelector('h1'))?.textContent || '');
