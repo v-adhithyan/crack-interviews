@@ -1,8 +1,39 @@
 {% extends "product/base.html" %}{% load static %}
 {% block title %}Resume Builder | HackerLeap{% endblock %}
 {% block styles %}<link rel="stylesheet" href="{% static 'product/css/resume_builder.css' %}">{% endblock %}
-{% block body %}<div class="product-layout">{% include "product/includes/sidebar.html" %}<div class="product-main-shell">{% include "product/includes/topbar.html" %}<main class="product-main rb-list">
+{% block body %}
+<div class="product-layout">
+{% include "product/includes/sidebar.html" %}
+<div class="product-main-shell">
+{% include "product/includes/topbar.html" %}
+<main class="product-main rb-list">
 <h1>Your resumes</h1><p>One clean template. Private drafts you can edit, preview and export.</p>
 <form method="post" action="{% url 'resume_builder_create' %}">{% csrf_token %}<button class="rb-primary">Create resume</button></form>
-<div class="rb-cards">{% for draft in drafts %}<article class="rb-card"><h2><a href="{% url 'resume_builder_edit' draft.uuid %}">{{ draft.title }}</a></h2><p>Updated {{ draft.updated_at|date:"M j, Y, H:i" }}</p><a href="{% url 'resume_builder_edit' draft.uuid %}">Edit resume →</a><form method="post" action="{% url 'resume_builder_clone' draft.uuid %}">{% csrf_token %}<button type="submit">Clone resume</button></form><details><summary>Delete draft</summary><p>This permanently deletes this draft.</p><form method="post" action="{% url 'resume_builder_delete' draft.uuid %}">{% csrf_token %}<input type="hidden" name="revision" value="{{ draft.revision }}"><button>Confirm delete</button></form></details></article>{% empty %}<p>No drafts yet. Create your first resume to get started.</p>{% endfor %}</div>
-</main></div></div>{% endblock %}
+<div class="rb-cards">
+{% for draft in drafts %}
+<article class="rb-card">
+<h2><a href="{% url 'resume_builder_edit' draft.uuid %}">{{ draft.title }}</a></h2>
+<p>Updated {{ draft.updated_at|date:"M j, Y, H:i" }}</p>
+<div class="rb-card-actions" aria-label="Resume actions">
+<a class="rb-icon-action" href="{% url 'resume_builder_edit' draft.uuid %}" aria-label="Edit resume: {{ draft.title }}" title="Edit resume">
+<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m16 3 5 5-12 12-6 1 1-6L16 3Z M13 6l5 5"/></svg>
+</a>
+<form method="post" action="{% url 'resume_builder_clone' draft.uuid %}">{% csrf_token %}
+<button class="rb-icon-action" type="submit" aria-label="Clone resume: {{ draft.title }}" title="Clone resume">
+<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg>
+</button></form>
+<details class="rb-delete-menu">
+<summary class="rb-icon-action rb-delete-action" aria-label="Delete resume: {{ draft.title }}" title="Delete resume">
+<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6h18 M9 6V3h6v3 M5 6l1 15h12l1-15 M10 10v7 M14 10v7"/></svg>
+</summary>
+<div class="rb-delete-confirm"><p>Permanently delete “{{ draft.title }}”?</p>
+<form method="post" action="{% url 'resume_builder_delete' draft.uuid %}">{% csrf_token %}<input type="hidden" name="revision" value="{{ draft.revision }}"><button type="submit">Confirm delete</button></form>
+</div></details>
+</div>
+<form class="rb-use-form" method="post" action="{% url 'resume_builder_use' draft.uuid %}" data-use-resume>{% csrf_token %}<input type="hidden" name="revision" value="{{ draft.revision }}"><button class="rb-primary" type="submit">Use for analysis <span aria-hidden="true">→</span></button></form>
+</article>
+{% empty %}<p>No drafts yet. Create your first resume to get started.</p>{% endfor %}
+</div>
+</main></div></div>
+{% endblock %}
+{% block scripts %}<script src="{% static 'product/js/resume_list.js' %}" defer></script>{% endblock %}
