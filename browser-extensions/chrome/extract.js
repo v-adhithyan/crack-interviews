@@ -4,15 +4,18 @@ export function extractJob() {
   const href = new URL(location.href);
   const ashby = href.hostname === 'jobs.ashbyhq.com';
   const greenhouse = ['boards.greenhouse.io', 'job-boards.greenhouse.io', 'boards.eu.greenhouse.io', 'job-boards.eu.greenhouse.io'].includes(href.hostname);
-  if (href.protocol !== 'https:' || (!ashby && !greenhouse)) {
-    return {source: 'manual', title: '', company: '', description: '', url: '', warning: 'Open an Ashby or Greenhouse job, or paste the job description below.'};
+  const linkedin = /^(?:www\.|[a-z]{2}\.)?linkedin\.com$/.test(href.hostname);
+  const linkedinId = href.pathname.match(/^\/jobs\/view\/(?:[^/]*-)?(\d+)\/?$/)?.[1]
+    || (/^\/jobs\/(?:search|collections)(?:\/|$)/.test(href.pathname) ? href.searchParams.get('currentJobId') : null);
+  if (href.protocol !== 'https:' || (!ashby && !greenhouse && !linkedin)) {
+    return {source: 'manual', title: '', company: '', description: '', url: '', warning: 'Open an Ashby, Greenhouse or LinkedIn job, or paste the job description below.'};
   }
-  const isJob = ashby ? /^\/[^/]+\/[0-9a-f-]{36}(?:\/|$)/i.test(href.pathname)
+  const isJob = linkedin ? /^\d+$/.test(linkedinId || '') : ashby ? /^\/[^/]+\/[0-9a-f-]{36}(?:\/|$)/i.test(href.pathname)
     : /\/jobs\/\d+(?:\/|$)/.test(href.pathname) || (href.pathname.startsWith('/embed/job_app') && /^\d+$/.test(href.searchParams.get('token') || ''));
   if (!isJob) return {source: 'manual', title: '', company: '', description: '', url: '', warning: 'Open an individual job posting, or paste its description below.'};
-  const source = ashby ? 'ashby' : 'greenhouse';
+  const source = linkedin ? 'linkedin' : ashby ? 'ashby' : 'greenhouse';
   // Do not copy tracking query parameters. Preserve Greenhouse embed identifiers only.
-  const canonical = new URL(href.origin + href.pathname);
+  const canonical = new URL(linkedin ? `https://www.linkedin.com/jobs/view/${linkedinId}/` : href.origin + href.pathname);
   if (greenhouse && href.pathname.startsWith('/embed/')) {
     for (const key of ['for', 'token', 'gh_jid']) if (href.searchParams.has(key)) canonical.searchParams.set(key, href.searchParams.get(key));
   }
@@ -36,10 +39,17 @@ export function extractJob() {
     if (!value || depth > 8) return null;
     if (Array.isArray(value)) {for (const item of value.slice(0, 100)) {const found = findPosting(item, depth+1); if (found) return found;} return null;}
     if (typeof value !== 'object') return null;
-    if ([].concat(value['@type'] || []).includes('JobPosting') && typeof value.description === 'string') return value;
+    if ([].concat(value['@type'] || []).includes('JobPosting') && typeof value.description === 'string') {
+      // Search pages may include metadata for a different/recommended job.
+      if (linkedin) {
+        const id = typeof value.url === 'string' ? value.url.match(/\/jobs\/view\/(?:[^/?]*-)?(\d+)(?:[/?]|$)/)?.[1] : null;
+        if (id !== linkedinId) return null;
+      }
+      return value;
+    }
     return findPosting(value['@graph'], depth+1);
   }
-  for (const script of document.querySelectorAll('script[type="application/ld+json"]')) {
+  for (const script of (linkedin && !href.pathname.startsWith('/jobs/view/') ? [] : document.querySelectorAll('script[type="application/ld+json"]'))) {
     if (script.textContent.length > 500000) continue;
     try {
       const post = findPosting(JSON.parse(script.textContent));
@@ -51,17 +61,39 @@ export function extractJob() {
       }
     } catch (_) { /* Try a targeted DOM extractor below. */ }
   }
+  let scope = document;
+  if (linkedin) {
+    const panes = document.querySelectorAll('.jobs-search__job-details--container, .jobs-search__job-details, .job-view-layout, .jobs-details');
+    scope = Array.from(panes).find(el => el.getClientRects().length && el.querySelector('#job-details, .jobs-description__content, .jobs-description-content__text')) || document;
+    if (!href.pathname.startsWith('/jobs/view/') && scope === document) {
+      result.warning = 'Wait for the selected LinkedIn job details to load, then click Extract again, or paste the description.';
+      return result;
+    }
+    const titleLink = scope.querySelector('.job-details-jobs-unified-top-card__job-title a, .jobs-unified-top-card__job-title a');
+    const visibleId = titleLink?.href.match(/\/jobs\/view\/(?:[^/?]*-)?(\d+)(?:[/?]|$)/)?.[1];
+    if (visibleId && visibleId !== linkedinId) {
+      result.warning = 'LinkedIn is switching jobs. Wait for the selected job to load, then click Extract again.';
+      return result;
+    }
+  }
   if (!result.description) {
-    const selectors = ashby
+    const selectors = linkedin
+      ? ['#job-details', '.jobs-description-content__text', '.jobs-description__content', '.show-more-less-html__markup']
+      : ashby
       ? ['.ashby-job-posting-description', '[data-testid="job-description"]', '[class*="jobDescription"]', '[class*="JobDescription"]', '[class*="descriptionText"]']
       : ['.job__description', '#content', '[data-testid="job-description"]', '.job-description'];
     for (const selector of selectors) {
-      const el = document.querySelector(selector);
+      const el = linkedin ? Array.from(scope.querySelectorAll(selector)).find(node => node.getClientRects().length) : scope.querySelector(selector);
       if (el && elementText(el).length >= 40) {result.description = elementText(el); break;}
     }
   }
-  if (!result.title) result.title = clean(document.querySelector('h1')?.textContent || '');
-  if (!result.company) result.company = clean(document.querySelector('.company-name, .company-name-link, [data-testid="company-name"]')?.textContent || '');
+  if (!result.title) result.title = clean((linkedin
+    ? scope.querySelector('.job-details-jobs-unified-top-card__job-title, .jobs-unified-top-card__job-title, .top-card-layout__title')
+    : document.querySelector('h1'))?.textContent || '');
+  if (!result.company) result.company = clean(scope.querySelector(linkedin
+    ? '.job-details-jobs-unified-top-card__company-name, .jobs-unified-top-card__company-name, .topcard__org-name-link'
+    : '.company-name, .company-name-link, [data-testid="company-name"]')?.textContent || '');
+  if (linkedin && result.description) result.warning = 'Detected LinkedIn job. Expand the description on LinkedIn first, then use Extract again if any text is missing. Review the selected job before submitting.';
   if (!result.description) {
     result.warning = 'Could not confidently extract this job. Paste its description below; application forms are never copied.';
     if (/^job not found$/i.test(result.title)) {

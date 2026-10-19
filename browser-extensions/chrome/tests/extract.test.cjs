@@ -51,3 +51,31 @@ test('Expired postings are reported without a misleading job title', async () =>
   const result=await extract(ashby,'<h1>Job not found</h1>');
   assert.equal(result.description,''); assert.equal(result.title,''); assert.match(result.warning,/no longer available/);
 });
+
+test('LinkedIn public page extracts only description and strips tracking', async () => {
+  const result=await extract('https://www.linkedin.com/jobs/view/backend-engineer-1234567890/?trackingId=secret', '<h1 class="top-card-layout__title">Backend Engineer</h1><a class="topcard__org-name-link">Example</a><div class="show-more-less-html__markup"><p>Build secure services and support customers.</p><ul><li>Python experience</li></ul><form>Private application</form></div><aside>Recommended jobs</aside>');
+  assert.equal(result.source,'linkedin');assert.equal(result.company,'Example');assert.equal(result.title,'Backend Engineer');
+  assert.match(result.description,/• Python/);assert.doesNotMatch(result.description,/Private|Recommended/);
+  assert.equal(result.url,'https://www.linkedin.com/jobs/view/1234567890/');
+});
+test('LinkedIn split view uses selected detail pane and ignores unrelated JSON-LD', async () => {
+  const result=await extract('https://www.linkedin.com/jobs/search/?keywords=python&currentJobId=23456', '<script type="application/ld+json">{"@type":"JobPosting","url":"https://www.linkedin.com/jobs/view/999/","description":"Wrong job"}</script><h1>Search results</h1><div class="jobs-search__job-details--container"><h2 class="job-details-jobs-unified-top-card__job-title">Selected Engineer</h2><div class="job-details-jobs-unified-top-card__company-name">Selected Company</div><div id="job-details"><p>Build reliable Python services for our customers.</p></div></div>');
+  assert.equal(result.title,'Selected Engineer');assert.equal(result.company,'Selected Company');
+  assert.match(result.description,/Build reliable/);assert.doesNotMatch(result.description,/Wrong job/);
+  assert.equal(result.url,'https://www.linkedin.com/jobs/view/23456/');
+});
+test('LinkedIn feed, search without a selection, and lookalike hosts require manual input', async () => {
+  for(const url of ['https://www.linkedin.com/feed/','https://www.linkedin.com/jobs/search/?keywords=python','https://www.linkedin.com.evil.test/jobs/view/1234/']) {
+    const result=await extract(url,'<div id="job-details">Private page text that is not a selected job.</div>');
+    assert.equal(result.source,'manual');assert.equal(result.description,'');
+  }
+});
+test('LinkedIn structured posting must match the current job ID', async () => {
+  const posts=[{'@type':'JobPosting',url:'https://www.linkedin.com/jobs/view/111/',description:'Wrong role'}, {'@type':'JobPosting',url:'https://www.linkedin.com/jobs/view/222/',title:'Engineer',description:'<p>Develop software.</p>',hiringOrganization:{name:'Example'}}];
+  const result=await extract('https://in.linkedin.com/jobs/view/222/', `<script type="application/ld+json">${JSON.stringify(posts)}</script>`);
+  assert.equal(result.description,'Develop software.');assert.equal(result.title,'Engineer');
+});
+test('LinkedIn rejects a stale details pane during job navigation', async () => {
+  const result=await extract('https://www.linkedin.com/jobs/search/?currentJobId=222', '<div class="jobs-search__job-details--container"><h2 class="job-details-jobs-unified-top-card__job-title"><a href="/jobs/view/111/">Old job</a></h2><div id="job-details">Old job description with enough text to be extracted.</div></div>');
+  assert.equal(result.description,'');assert.match(result.warning,/switching jobs/);
+});

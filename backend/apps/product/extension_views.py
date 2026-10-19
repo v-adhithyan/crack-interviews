@@ -112,7 +112,7 @@ def submit(request):
         for field, limit in [('title', 200), ('company', 200), ('description', 12000), ('url', 2000), ('source', 20)]:
             if not isinstance(job[field], str) or len(job[field]) > limit or '\x00' in job[field]:
                 raise ValueError()
-        if job['source'] not in {'ashby', 'greenhouse', 'manual'}:
+        if job['source'] not in {'ashby', 'greenhouse', 'linkedin', 'manual'}:
             raise ValueError()
         if job['url']:
             url = urlsplit(job['url'])

@@ -1,6 +1,6 @@
 # HackerLeap Chrome extension
 
-Manifest V3 extension for extracting Ashby/Greenhouse job descriptions, copying them,
+Manifest V3 extension for extracting Ashby/Greenhouse/LinkedIn job descriptions, copying them,
 and analyzing a selected saved resume in HackerLeap. No build is required to run it.
 
 ## Install locally
@@ -9,7 +9,7 @@ and analyzing a selected saved resume in HackerLeap. No build is required to run
 2. Open `chrome://extensions` in Chrome and enable **Developer mode**.
 3. Click **Load unpacked** and select this `browser-extensions/chrome` directory.
 4. Pin **HackerLeap — Job to Resume Analysis** using Chrome's Extensions menu.
-5. Open an individual Ashby or Greenhouse job and click the extension icon.
+5. Open an individual Ashby, Greenhouse or LinkedIn job and click the extension icon.
 6. Review/edit the extracted description, title, and company. **Copy job description**
    works without logging in or connecting HackerLeap.
 7. Select the HackerLeap environment. For local Docker, select **localhost:8000**.
@@ -30,6 +30,7 @@ The extension is not published to the Chrome Web Store.
 - `boards.greenhouse.io/{board}/jobs/{id}`
 - `job-boards.greenhouse.io/{board}/jobs/{id}`
 - Greenhouse's corresponding `.eu` hosts and `embed/job_app` links
+- LinkedIn `/jobs/view/` postings and job search/collection pages with a selected `currentJobId`
 - Manually pasted descriptions on other pages
 - JSON-LD JobPosting extraction first, then targeted description containers
 - Editable text and an explicit Copy button; application forms are excluded
@@ -128,3 +129,5 @@ unchanged default resumes, stale selection, duplicate requests, queue errors and
 Before a store release, test several live job pages on both boards, install/login permissions
 in regular Chrome, and the real configured AI provider in a staging account. Package only
 runtime files, supply screenshots/privacy disclosures, and submit for Chrome Web Store review.
+
+For LinkedIn, open/select the job and expand its description before extraction. The extension reads the rendered page only; it does not use LinkedIn private APIs, automate applications, or bypass sign-in. If the layout is unsupported or still loading, expand the description and click Extract again, or paste it manually. No additional host permissions are requested.

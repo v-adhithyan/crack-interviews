@@ -24,7 +24,7 @@ function persist() {
 }
 function displayJob() {
   $('job-title').value = job.title; $('company').value = job.company; $('description').value = job.description;
-  $('source').textContent = job.warning || (job.source === 'manual' ? 'Manually pasted job description' : `Detected ${job.source === 'ashby' ? 'Ashby' : 'Greenhouse'} job. Review the description before submitting.`);
+  $('source').textContent = job.warning || (job.source === 'manual' ? 'Manually pasted job description' : `Detected ${job.source === 'ashby' ? 'Ashby' : job.source === 'linkedin' ? 'LinkedIn' : 'Greenhouse'} job. Review the description before submitting.`);
   update();
 }
 async function rpc(type, body) {

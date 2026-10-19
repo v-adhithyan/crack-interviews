@@ -31,6 +31,13 @@ class ExtensionTests(TestCase):
     def submit(self, body=None, client=None):
         return (client or self.client).post(self.submit_url, body or self.body, content_type='application/json')
 
+    def test_linkedin_submission(self):
+        self.body['job']['source'] = 'linkedin'
+        self.body['job']['url'] = 'https://www.linkedin.com/jobs/view/1234567890/'
+        response = self.submit()
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(ResumeAnalysis.objects.get().status, 'prompt_ready')
+
     def test_private_metadata_only_and_no_cache(self):
         response = self.client.get(self.list_url)
         self.assertIn('no-store', response['Cache-Control'])
