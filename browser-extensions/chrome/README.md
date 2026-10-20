@@ -105,8 +105,8 @@ account resume is never changed. Analysis text is derived from validated structu
 no synchronous PDF rendering is required. The resulting snapshot supports regeneration and
 follow-up questions. Title and company are included as job-description context.
 
-Extension submissions are capped at 20 per account per rolling 24 hours and share the
-existing AI allowance. Quota consumption is serialized at the feature-flags row. No new AI
+Extension submissions use HackerLeap’s existing AI allowance and manual-prompt fallback;
+there is no separate extension analysis cap. Quota consumption is serialized at the feature-flags row. No new AI
 keys are needed. The worker and existing analysis-progress page are reused.
 
 ## Tests
