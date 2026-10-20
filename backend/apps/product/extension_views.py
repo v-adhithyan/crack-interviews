@@ -6,7 +6,6 @@ isolated world on the signed-in HackerLeap connection tab.
 import hashlib
 import json
 import logging
-from datetime import timedelta
 from functools import wraps
 from urllib.parse import urlsplit
 from uuid import UUID
@@ -137,9 +136,6 @@ def submit(request):
             if existing.submission_digest != digest:
                 return JsonResponse({'detail': 'This request ID was already used for different inputs.'}, status=409)
             return analysis_response(existing)
-        if ResumeAnalysis.objects.filter(user=request.user, submission_key__isnull=False,
-                created_at__gte=timezone.now()-timedelta(hours=24)).count() >= 20:
-            return JsonResponse({'detail': 'Extension limit reached: 20 analyses per 24 hours.'}, status=429)
         resume = None
         if chosen['kind'] == 'draft':
             draft = ResumeDraft.objects.select_for_update().filter(user=request.user, uuid=chosen['id']).first()

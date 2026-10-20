@@ -138,7 +138,33 @@ class ExtensionTests(TestCase):
     def test_quota_exhaustion_uses_manual(self, mode, quota):
         self.assertEqual(self.submit().json()['status'], 'prompt_ready')
 
-    def test_extension_daily_limit(self):
+    def test_manual_submissions_use_hackerleap_rules_without_extension_cap(self):
         for _ in range(20):
             ResumeAnalysis.objects.create(user=self.user, job_description='job',resume_text='resume',generated_prompt='prompt',submission_key=uuid4())
-        self.assertEqual(self.submit().status_code, 429)
+        response = self.submit()
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()['status'], 'prompt_ready')
+
+    @patch('apps.product.extension_views.enqueue_background_job', return_value='task')
+    @patch('apps.product.extension_views.reserve_resume_analysis_ai_quota', return_value=True)
+    @patch('apps.product.extension_views.get_effective_resume_analysis_mode', return_value='chatgpt')
+    def test_more_than_twenty_submissions_still_obey_server_ai_allowance(self, mode, quota, enqueue):
+        for _ in range(20):
+            ResumeAnalysis.objects.create(user=self.user, job_description='job', resume_text='resume', generated_prompt='prompt', submission_key=uuid4())
+        response = self.submit()
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()['status'], 'queued')
+        quota.assert_called_once_with(self.user)
+        enqueue.assert_called_once()
+
+    @patch('apps.product.extension_views.enqueue_background_job')
+    @patch('apps.product.extension_views.reserve_resume_analysis_ai_quota', return_value=False)
+    @patch('apps.product.extension_views.get_effective_resume_analysis_mode', return_value='chatgpt')
+    def test_more_than_twenty_submissions_with_exhausted_ai_use_manual(self, mode, quota, enqueue):
+        for _ in range(20):
+            ResumeAnalysis.objects.create(user=self.user, job_description='job', resume_text='resume', generated_prompt='prompt', submission_key=uuid4())
+        response = self.submit()
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()['status'], 'prompt_ready')
+        quota.assert_called_once_with(self.user)
+        enqueue.assert_not_called()
