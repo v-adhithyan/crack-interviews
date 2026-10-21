@@ -15,7 +15,7 @@
             </p>
             <h1>Land your next job,<br>take the <span>big leap</span>.</h1>
             <p class="hero-subtitle">From application to interview, HackerLeap helps software engineers optimize resumes, match jobs smarter, and prepare with confidence.</p>
-            <p><a class="login-button" href="{% url 'public_signup' %}">Create free account</a> <a href="{% url 'public_resume_landing' %}">Try the resume builder</a></p>
+            <div class="public-cta-row"><a class="site-button site-button-primary" href="{% url 'public_signup' %}">Create free account <span aria-hidden="true">→</span></a><a class="site-button site-button-secondary" href="{% url 'public_resume_landing' %}">Try the resume builder</a></div>
             <p class="payment-note">
                 <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none">
                     <path d="M7 11V8a5 5 0 0 1 10 0v3" stroke="currentColor" stroke-width="2"/>
@@ -182,7 +182,7 @@
 <section class="page-shell beta-section" id="pricing" aria-label="Create your free account">
     <h2>Create your free account</h2>
     <p>Be among the first to access powerful tools that help you land more interviews.</p>
-    <p><a class="login-button" href="{% url 'public_signup' %}">Create free account</a> <a href="{% url 'public_resume_landing' %}">Try the resume builder</a></p>
+    <div class="public-cta-row"><a class="site-button site-button-primary" href="{% url 'public_signup' %}">Create free account <span aria-hidden="true">→</span></a><a class="site-button site-button-secondary" href="{% url 'public_resume_landing' %}">Try the resume builder</a></div>
     <p class="payment-note">
         <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none">
             <path d="M7 11V8a5 5 0 0 1 10 0v3" stroke="currentColor" stroke-width="2"/>

@@ -105,7 +105,7 @@ def landing(request):
 @require_GET
 def editor(request):
     owner(request, create=True)
-    return render(request, 'product/resume_builder/editor.html', {'public': True, 'initial': {
+    return render(request, 'product/resume_builder/editor.html', {'public': True, 'editor_base': 'website/public_app_base.html', 'initial': {
         'title': 'My resume', 'revision': 1, 'content': blank_content(),
         'typography_defaults': DEFAULT_TYPOGRAPHY, 'public': True,
     }})

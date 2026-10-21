@@ -8,7 +8,7 @@
     <title>{% block title %}HackerLeap | Resume Match, ATS Optimization, and Interview Prep{% endblock %}</title>
     <meta name="description" content="{% block meta_description %}HackerLeap helps software engineers optimize resumes, match jobs smarter, and prepare for interviews with confidence.{% endblock %}">
     <meta name="keywords" content="HackerLeap, resume match, ATS optimization, AI resume rewrite, interview prep, software engineer jobs">
-    <meta name="robots" content="index, follow">
+    <meta name="robots" content="{% block robots %}index, follow{% endblock %}">
     <meta name="author" content="HackerLeap">
     <meta name="theme-color" content="#ffc400">
     <meta property="og:type" content="website">
@@ -31,6 +31,7 @@
     <link rel="canonical" href="{% if canonical_url %}{{ canonical_url }}{% else %}{{ request.scheme }}://{{ request.get_host }}{{ request.path }}{% endif %}">
     <link rel="icon" href="{% static 'website/images/favicon.svg' %}" type="image/svg+xml">
     <link rel="stylesheet" href="{% static 'website/css/site.css' %}">
+    {% block styles %}{% endblock %}
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -75,5 +76,6 @@
             });
         });
     </script>
+    {% block scripts %}{% endblock %}
 </body>
 </html>

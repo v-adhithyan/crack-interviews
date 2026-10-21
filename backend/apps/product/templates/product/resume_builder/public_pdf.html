@@ -1,7 +1,7 @@
-{% extends "product/base.html" %}{% load static %}
+{% extends "website/public_app_base.html" %}{% load static %}
 {% block title %}Resume PDF | HackerLeap{% endblock %}
 {% block styles %}<style>#pdf-job [hidden] { display:none; }</style>{% endblock %}
-{% block body %}<div class="public-builder-layout"><div class="product-main-shell"><main class="product-main">
+{% block body %}<div class="public-builder-layout"><div class="product-main-shell"><div class="product-main">
 <h1>Resume PDF</h1>
 <p>This PDF uses the content submitted from your public editor.</p>
 <section class="analysis-progress-card" aria-labelledby="pdf-progress-title" id="pdf-job" data-status="{% url 'public_resume_pdf_status' job.uuid %}" data-file="{% url 'public_resume_pdf_file' job.uuid %}{% if download %}?download=1{% endif %}">
@@ -22,5 +22,5 @@
 </section>
 <p>Files expire after 30 minutes. You can continue editing while the PDF is generated.</p>
 <p>Return to your original editor tab to keep editing or request a new PDF. Closing that tab loses unsaved edits unless you downloaded a recovery copy.</p>
-</main></div></div>{% endblock %}
+</div></div></div>{% endblock %}
 {% block scripts %}<script src="{% static 'product/js/resume_pdf_job.js' %}" defer></script>{% endblock %}

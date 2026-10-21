@@ -1,19 +1,23 @@
-{% extends "product/base.html" %}{% load static %}
+{% extends editor_base|default:"product/base.html" %}{% load static %}
 {% block title %}Edit Resume | HackerLeap{% endblock %}
 {% block styles %}<link rel="stylesheet" href="{% static 'product/css/resume_builder.css' %}">{% endblock %}
-{% block body %}<div class="{% if public %}public-builder-layout{% else %}product-layout{% endif %}">{% if not public %}{% include "product/includes/sidebar.html" %}{% endif %}<div class="product-main-shell">{% if not public %}{% include "product/includes/topbar.html" %}{% endif %}<main class="product-main rb-builder" id="resume-builder" {% if public %}data-public="true" data-session="{% url 'public_resume_session' %}" data-preview="{% url 'public_resume_preview' %}" data-export="{% url 'public_resume_export' %}" data-transfer="{% url 'public_resume_transfer' %}"{% else %}data-save="{% url 'resume_builder_save' draft.uuid %}" data-preview="{% url 'resume_builder_preview' draft.uuid %}"{% endif %}>
+{% block body %}<div class="{% if public %}public-builder-layout{% else %}product-layout{% endif %}">{% if not public %}{% include "product/includes/sidebar.html" %}{% endif %}<div class="product-main-shell">{% if not public %}{% include "product/includes/topbar.html" %}{% endif %}<div class="product-main rb-builder" id="resume-builder" {% if public %}data-public="true" data-session="{% url 'public_resume_session' %}" data-preview="{% url 'public_resume_preview' %}" data-export="{% url 'public_resume_export' %}" data-transfer="{% url 'public_resume_transfer' %}"{% else %}data-save="{% url 'resume_builder_save' draft.uuid %}" data-preview="{% url 'resume_builder_preview' draft.uuid %}"{% endif %}>
 {% if public %}
-<a href="{% url 'public_resume_landing' %}">← HackerLeap resume builder</a>
+<a class="public-back" href="{% url 'public_resume_landing' %}">← Resume builder</a>
+<p class="public-eyebrow">YOUR NEXT CHAPTER</p>
 {% csrf_token %}
-<p>No autosave: keep this tab open or download a recovery copy. Preview sends your text securely to HackerLeap for rendering. PDF files expire after 30 minutes.</p>
-<p>Create a free account for up to 20 saved resumes, font choices, coding practice and system-design interviews. AI features have usage limits.</p>
+
 {% else %}<a href="{% url 'resume_builder_list' %}">← All resumes</a>{% endif %}
 <div class="rb-toolbar"><h1>Resume builder</h1><span id="save-status" role="status" aria-live="polite">{% if public %}Not saved — this tab only{% else %}Saved{% endif %}</span><button type="button" id="save-draft" class="rb-primary" {% if public %}hidden{% endif %}>Save</button></div>
 <div id="save-error" role="alert" hidden></div>
+{% if public %}<p class="public-editor-intro">Bring your experience into focus. Edit below and watch your resume take shape.</p>
+<div class="public-notice"><strong>No autosave in guest mode.</strong> Keep this tab open or save to a free account for private drafts, font choices and interview practice.</div>
+<details class="public-recovery"><summary>Back up or restore your work</summary>{% endif %}
 <div id="conflict-actions" {% if not public %}hidden{% endif %}><p>{% if public %}Download a private JSON recovery copy to your device. You can import it below if the tab closes.{% else %}Keep your edits with a recovery download, then load the latest draft and reapply your changes.{% endif %}</p><button type="button" id="recovery">Download my edits</button><button type="button" id="reload-draft" {% if public %}hidden{% endif %}>Load latest draft</button></div>
 {% if public %}
-<label>Restore recovery copy <input type="file" id="import-recovery" accept="application/json,.json"></label>
+<label class="public-file">Restore recovery copy <input type="file" id="import-recovery" accept="application/json,.json"></label></details>
 <div class="rb-actions"><button type="button" id="public-preview">Preview PDF</button><button type="button" id="public-download">Download PDF</button><button type="button" id="public-transfer" class="rb-primary">Save to a free account</button></div>
+<p class="rb-hint">Live preview processes your text on HackerLeap. PDF exports expire after 30 minutes. AI features require an account and have usage limits.</p>
 <p id="public-export-status" role="status"></p>
 {% else %}<div class="rb-actions">
 <form method="post" action="{% url 'resume_builder_export' draft.uuid %}" target="_blank" rel="noopener" class="rb-export">{% csrf_token %}<input type="hidden" name="revision" value="{{ draft.revision }}"><button>Preview PDF</button><button name="download" value="1">Download PDF</button></form>
@@ -23,5 +27,5 @@
 <div class="rb-tabs"><button type="button" data-panel="edit" aria-pressed="true">Edit</button><button type="button" data-panel="preview" aria-pressed="false">Preview</button></div>
 <div class="rb-workspace" data-panel="edit"><form id="resume-fields" class="rb-fields" autocomplete="off"><noscript>JavaScript is required for live editing and saving.</noscript></form><section class="rb-preview"><h2>Live preview</h2><p class="rb-hint">Content preview. Open Preview PDF to check exact page breaks.</p><p id="preview-status" role="status"></p><iframe id="resume-preview" title="Live resume preview" sandbox="" referrerpolicy="no-referrer"></iframe></section></div>
 {{ initial|json_script:"resume-initial" }}
-</main></div></div>{% endblock %}
+</div></div></div>{% endblock %}
 {% block scripts %}<script src="{% static 'product/js/resume_builder.js' %}" defer></script>{% endblock %}
