@@ -22,7 +22,7 @@ COPY backend/ .
 COPY docker/backend-entrypoint.sh /usr/local/bin/backend-entrypoint
 RUN chmod +x /usr/local/bin/backend-entrypoint \
     && useradd --create-home --uid 10001 appuser \
-    && mkdir -p /app/media /app/staticfiles \
+    && mkdir -p /app/media /app/staticfiles /app/private_exports \
     && chown -R appuser:appuser /app
 
 USER appuser

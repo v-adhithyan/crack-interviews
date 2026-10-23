@@ -1,0 +1,33 @@
+{% extends 'website/base.html' %}
+{% block title %}Free Resume Builder — Live Preview & PDF | HackerLeap{% endblock %}
+{% block meta_description %}Build a resume with one clean template, live preview and free PDF export. No signup required to start. Save private drafts with a free HackerLeap account.{% endblock %}
+{% block content %}
+<section class="page-shell" style="padding:48px 24px;max-width:1050px">
+<h1>Build your resume. See it take shape.</h1>
+<p>One clean template. Live preview. Free PDF download. Start without creating an account.</p>
+<p><a class="login-button" href="{% url 'public_resume_editor' %}">Build my resume</a> <a href="{% url 'public_signup' %}">Create a free account</a></p>
+<h2>From experience to a readable resume</h2>
+<ol><li>Add your contact details, summary, skills, experience, projects and education.</li><li>Check the live preview as you write. Preview the PDF to check page breaks.</li><li>Download your PDF, or save a private draft after free signup.</li></ol>
+<h2>A simple example</h2>
+<article aria-label="Fictional example resume" style="background:white;border:1px solid #ddd;padding:24px;border-radius:12px">
+<h3>Alex Morgan</h3><p>Software engineer · alex@example.com</p>
+<h4>Summary</h4><p>Backend engineer building reliable services and internal tools with Python and SQL.</p>
+<h4>Experience</h4><p><strong>Example Company</strong> — Software Engineer, 2023–Present</p>
+<ul><li>Built a support dashboard that brought customer context and incident history into one view.</li><li>Added regression tests and deployment checks for the team's Django services.</li></ul>
+<h4>Skills</h4><p>Python, Django, SQL, automated testing</p><p><small>Fictional example. Use your own experience and only claims you can support.</small></p>
+</article>
+<h2>Keep building after signup</h2>
+<p>A free account lets you keep up to 20 private drafts, choose fonts and sizes, practice coding, and prepare for system-design interviews. Resume analysis can suggest improvements; review AI changes before applying them.</p>
+<p>AI is not unlimited. Default account limits are 2 AI resume analyses and 1 AI mock interview per rolling 24 hours. Automatic AI availability depends on the server configuration. Manual prompt workflows are also available.</p>
+<h2>Frequently asked questions</h2>
+<details><summary>Do I need an account to download a PDF?</summary><p>No. Anonymous PDFs are queued and available only to the browser session that requested them. They expire after 30 minutes. Rate and capacity limits apply.</p></details>
+<details><summary>Is my resume saved automatically?</summary><p>Not in the public builder. Keep the editor tab open and download a recovery copy before leaving. Free accounts support private saved drafts and autosave.</p></details>
+<details><summary>Where does my resume text go?</summary><p>Live preview sends it to HackerLeap for rendering without saving a draft. Export stores a temporary snapshot and PDF. Saving to an account temporarily stores a transfer for up to one hour. Expired artifacts are inaccessible immediately and removed by scheduled cleanup. Anonymous resume content is not sent to an AI provider.</p></details>
+<details><summary>Can I change fonts?</summary><p>The public template uses Liberation Sans at 10.5 pt for body text, 12 pt headings and a 22 pt name. Font and size controls are available in the account editor.</p></details>
+<details><summary>Will this guarantee an interview or an ATS score?</summary><p>No. A readable layout helps you present your experience, but hiring outcomes and parsing behavior vary. Always check your exported document.</p></details>
+<h2>Resume guides</h2><ul>
+<li><a href="/blog/build-a-resume-with-hackerleap/">Build your first resume with HackerLeap</a></li>
+<li><a href="/blog/software-engineering-resume-guide/">Write a software-engineering resume</a></li>
+<li><a href="/blog/resume-builder-comparison/">Compare resume builders and their tradeoffs</a></li>
+</ul>
+</section>{% endblock %}

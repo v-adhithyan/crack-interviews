@@ -1,3 +1,4 @@
+from . import public_resume_views as public_resume
 from django.contrib.auth.views import LogoutView
 from django.urls import path
 
@@ -9,6 +10,19 @@ from . import views
 from . import resume_builder_views as builder
 
 urlpatterns = [
+    path('resume-builder/', public_resume.landing, name='public_resume_landing'),
+    path('resume-builder/edit/', public_resume.editor, name='public_resume_editor'),
+    path('resume-builder/session/', public_resume.session_token, name='public_resume_session'),
+    path('resume-builder/preview/', public_resume.preview, name='public_resume_preview'),
+    path('resume-builder/export/', public_resume.export, name='public_resume_export'),
+    path('resume-builder/transfer/', public_resume.transfer, name='public_resume_transfer'),
+    path('resume-builder/claim/<uuid:transfer_uuid>/', public_resume.claim, name='public_resume_claim'),
+    path('resume-builder/claim/<uuid:transfer_uuid>/save/', public_resume.claim_save, name='public_resume_claim_save'),
+    path('resume-builder/pdf/<uuid:job_uuid>/', public_resume.pdf_detail, name='public_resume_pdf_detail'),
+    path('resume-builder/pdf/<uuid:job_uuid>/status/', public_resume.pdf_status, name='public_resume_pdf_status'),
+    path('resume-builder/pdf/<uuid:job_uuid>/file/', public_resume.pdf_file, name='public_resume_pdf_file'),
+    path('signup/', public_resume.signup, name='public_signup'),
+
     path("app/extension/", extension_views.bridge, name="extension_bridge"),
     path("app/extension/resumes/", extension_views.resumes, name="extension_resumes"),
     path("app/extension/analyses/", extension_views.submit, name="extension_submit"),

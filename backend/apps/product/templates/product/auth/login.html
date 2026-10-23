@@ -24,6 +24,7 @@
             {% for error in form.password.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
 
             <button type="submit">Login</button>
+            <p><a href="{% url 'public_signup' %}?next={{ next|urlencode }}">Create a free account</a></p>
             <p class="auth-hint">Forgot password is not implemented yet. Please remember your password.</p>
         </form>
     </section>
