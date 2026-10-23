@@ -11,7 +11,7 @@ before(async () => {
 after(async () => {await browser?.close();});
 async function extract(url, html) {
   const page=await browser.newPage();
-  await page.route('**/*', route => route.fulfill({contentType:'text/html; charset=utf-8', body:html}));
+  await page.route('**/*', route => route.fulfill({contentType:'text/html; charset=utf-8', body:'<meta charset="utf-8">'+html}));
   await page.goto(url);
   const result=await page.evaluate(extractJob); await page.close(); return result;
 }

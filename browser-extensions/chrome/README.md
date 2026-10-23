@@ -44,7 +44,7 @@ The extension is not published to the Chrome Web Store.
 Custom employer domains/embedded frames are not automatically scraped in this version.
 When detection fails or a site changes its layout, paste the description. Descriptions
 are limited to 12,000 characters for analysis; oversized extraction is flagged for review.
-There are no automated applications, background crawlers, or job-board API calls.
+There are no automated applications, background crawlers, or job-board API calls. Application-link extraction makes one on-demand request to the same-origin public job description.
 
 ## Authentication and privacy
 
@@ -134,4 +134,4 @@ runtime files, supply screenshots/privacy disclosures, and submit for Chrome Web
 
 For LinkedIn, open/select the job and expand its description before extraction. The extension reads the rendered page only; it does not use LinkedIn private APIs, automate applications, or bypass sign-in. If the layout is unsupported or still loading, expand the description and click Extract again, or paste it manually. No additional host permissions are requested.
 
-For Personio and Lever, open the job description page rather than its `/apply` application form. Custom employer domains remain manual-paste only. Deploy the backend update before analyzing these new sources; no migration or additional extension permissions are needed.
+Personio and Lever `/apply` links fetch the corresponding public description without credentials, tracking parameters, or reading application fields. If the fetch fails, open the description URL shown in the popup. Custom employer domains remain manual-paste only. Deploy the backend update before analyzing these new sources; no migration or additional extension permissions are needed.
