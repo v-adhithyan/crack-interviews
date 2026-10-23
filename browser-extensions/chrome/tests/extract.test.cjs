@@ -11,7 +11,7 @@ before(async () => {
 after(async () => {await browser?.close();});
 async function extract(url, html) {
   const page=await browser.newPage();
-  await page.route('**/*', route => route.fulfill({contentType:'text/html', body:html}));
+  await page.route('**/*', route => route.fulfill({contentType:'text/html; charset=utf-8', body:html}));
   await page.goto(url);
   const result=await page.evaluate(extractJob); await page.close(); return result;
 }
@@ -89,4 +89,101 @@ test('LinkedIn email-linked posting supports a labelled description without lega
 test('LinkedIn labelled fallback does not copy the entire page or application forms', async () => {
   const result=await extract('https://www.linkedin.com/jobs/view/4479381038/', '<main><h2>About the job</h2><form><textarea>Private applicant text</textarea></form><aside>Unrelated vacancy</aside></main>');
   assert.equal(result.description,'');
+});
+
+const leverId = '12345678-1234-1234-1234-123456789012';
+test('Lever structured descriptions support global and EU hosts', async () => {
+  for (const host of ['jobs.lever.co', 'jobs.eu.lever.co']) {
+    const url = `https://${host}/example/${leverId}`;
+    const post = {'@type':'JobPosting', title:'Engineer', hiringOrganization:{name:'Example'}, description:'<p>Build reliable services.</p><ul><li>Python</li></ul>'};
+    const result = await extract(url+'?lever-source=tracking', `<script type="application/ld+json">${JSON.stringify(post)}</script>`);
+    assert.equal(result.source,'lever'); assert.equal(result.title,'Engineer'); assert.equal(result.company,'Example');
+    assert.equal(result.url,url); assert.match(result.description,/• Python/);
+  }
+});
+test('Lever fallback includes every description section and excludes application/footer content', async () => {
+  const result = await extract(`https://jobs.lever.co/example/${leverId}`, `<a class="main-header-logo"><img alt="Example"></a><div class="posting-headline"><h2>Engineer</h2></div>
+    <div class="section" data-qa="job-description"><p>Build reliable services for customers.</p></div>
+    <div class="section"><h3>Requirements</h3><div class="posting-requirements"><ul><li>Python experience</li></ul></div></div>
+    <div class="section" data-qa="salary-range">Salary: 100–120k</div>
+    <div class="section" data-qa="closing-description">Flexible working hours.<form>Private answers<input value="secret"></form></div>
+    <div class="last-section-apply">Apply now</div><footer>Unrelated footer</footer>`);
+  assert.equal(result.title,'Engineer'); assert.equal(result.company,'Example');
+  for (const text of ['Build reliable','Requirements','• Python','100–120k','Flexible working']) assert.ok(result.description.includes(text), `Missing ${text}: ${result.description}`);
+  assert.doesNotMatch(result.description,/Private|secret|Apply now|Unrelated/);
+});
+test('Personio structured descriptions support both domains and retain only language', async () => {
+  for (const suffix of ['de','com']) {
+    const url = `https://example-company.jobs.personio.${suffix}/job/12345`;
+    const post = {'@type':'JobPosting', title:'Engineer', hiringOrganization:{name:'Example'}, description:'<p>Build reliable services.</p>'};
+    const result = await extract(url+'?language=en&utm_source=tracking#apply', `<script type="application/ld+json">${JSON.stringify(post)}</script>`);
+    assert.equal(result.source,'personio'); assert.equal(result.title,'Engineer'); assert.equal(result.company,'Example');
+    assert.equal(result.url,url+'?language=en'); assert.match(result.description,/Build reliable/);
+  }
+});
+test('Personio DOM fallback keeps section titles and bullets without private form content', async () => {
+  const result = await extract('https://example.jobs.personio.de/job/12345', `<h1>Engineer</h1><div class="detail-content-block-conditions">
+    <div class="jb-description-item"><h2>Your tasks</h2><div class="detail-block-description">Build useful and reliable services for customers.</div></div>
+    <div class="jb-description-item"><h2>Your profile</h2><ul><li>Python experience</li></ul></div>
+    <form>Private application<textarea>secret</textarea></form></div><footer>Unrelated footer</footer>`);
+  assert.equal(result.title,'Engineer'); assert.match(result.description,/Your tasks/); assert.match(result.description,/Your profile/);
+  assert.match(result.description,/• Python/); assert.doesNotMatch(result.description,/Private|secret|Unrelated/);
+});
+test('Personio and Lever reject lookalikes, listings and insecure URLs', async () => {
+  for (const url of [
+    `https://jobs.lever.co.evil.test/example/${leverId}`, `https://eviljobs.lever.co/example/${leverId}`,
+    `http://jobs.lever.co/example/${leverId}`, 'https://jobs.lever.co/example',
+    'https://example.jobs.personio.de/', 'https://example.jobs.personio.de.evil.test/job/123',
+    'https://example.personio.de/job/123', 'https://example.jobs.personio.com/job/not-a-job'
+  ]) {
+    const result = await extract(url, '<div class="detail-content-block-conditions">Private content should never be copied from this page.</div>');
+    assert.equal(result.source,'manual',url); assert.equal(result.description,'',url);
+  }
+});
+test('New providers do not extract whole-page content when description is absent', async () => {
+  for (const url of [`https://jobs.lever.co/example/${leverId}`, 'https://example.jobs.personio.com/job/123']) {
+    const result = await extract(url, '<main><h1>Job unavailable</h1><form>Private application data</form><aside>Other jobs</aside></main>');
+    assert.equal(result.description,''); assert.match(result.warning,/Could not confidently extract/);
+  }
+});
+
+test('Application links fetch only the public description without credentials or tracking', async () => {
+  for (const base of ['https://smartbroker.jobs.personio.com/job/1259155', `https://jobs.lever.co/example/${leverId}`]) {
+    const page = await browser.newPage();
+    const requests = [];
+    await page.route('**/*', route => {
+      requests.push(route.request().url());
+      return route.fulfill({contentType:'text/html; charset=utf-8', body:route.request().url().includes('/apply')
+        ? '<form><input value="Private applicant"><textarea>Private answer</textarea></form>'
+        : '<script type="application/ld+json">{"@type":"JobPosting","title":"Engineer","description":"Build reliable public services for customers."}</script>'});
+    });
+    await page.goto(base+'/apply?language=en&utm_source=chatgpt.com');
+    await page.evaluate(() => {
+      const nativeFetch = fetch;
+      window.fetch = (url, options) => {window.fetchOptions = options; return nativeFetch(url, options);};
+    });
+    const result = await page.evaluate(extractJob);
+    const canonical = base + (base.includes('personio') ? '?language=en' : '');
+    assert.equal(result.url,canonical); assert.equal(result.title,'Engineer');
+    assert.equal(result.description,'Build reliable public services for customers.');
+    assert.doesNotMatch(result.description,/Private/); assert.ok(requests.includes(canonical));
+    const options = await page.evaluate(() => window.fetchOptions);
+    assert.equal(options.credentials,'omit'); assert.equal(options.redirect,'error'); assert.equal(options.referrerPolicy,'no-referrer');
+    await page.close();
+  }
+});
+test('Failed application-page fetch never falls back to applicant data', async () => {
+  for (const failure of ['http','redirect','network']) {
+    const page=await browser.newPage();
+    await page.route('**/*', route => {
+      if (route.request().url().includes('/apply')) return route.fulfill({contentType:'text/html',body:'<div class="detail-content-block-conditions">Private application data and personal answers here.</div>'});
+      if (failure === 'network') return route.abort();
+      return route.fulfill({status:failure === 'redirect' ? 302 : 404,headers:failure === 'redirect' ? {location:'https://example.org/'} : {},contentType:'text/html',body:'Unavailable'});
+    });
+    await page.goto('https://smartbroker.jobs.personio.com/job/1259155/apply?language=en');
+    const result=await page.evaluate(extractJob);
+    assert.equal(result.source,'personio'); assert.equal(result.description,'');
+    assert.match(result.warning,/Could not load/); assert.equal(result.url,'https://smartbroker.jobs.personio.com/job/1259155?language=en');
+    await page.close();
+  }
 });
