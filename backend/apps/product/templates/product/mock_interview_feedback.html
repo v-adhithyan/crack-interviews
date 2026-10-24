@@ -10,11 +10,12 @@
         <main class="product-main">
             <section class="mock-room-hero" aria-labelledby="feedback-title">
                 <div>
-                    <a class="back-link" href="{% url 'mock_interview_history' %}">← Back to history</a>
-                    <p class="eyebrow">{{ session.get_level_display }} · {{ session.get_topic_source_display }}</p>
+                    <a class="back-link" href="{% if session.is_simulator %}{% url 'simulator_history' %}{% else %}{% url 'mock_interview_history' %}{% endif %}">← Back to history</a>
+                    <p class="eyebrow">{% if session.is_simulator %}Mock interview simulator{% else %}{{ session.get_level_display }} · {{ session.get_topic_source_display }}{% endif %}</p>
                     <h1 id="feedback-title">{{ session.topic }}</h1>
                 </div>
-                <a class="outline-small" href="{% url 'mock_interview_start' %}">New Interview</a>
+                <a class="outline-small" href="{% if session.is_simulator %}{% url 'simulator_setup' %}{% else %}{% url 'mock_interview_start' %}{% endif %}">New Interview</a>
+                {% if session.is_simulator %}<a class="outline-small" href="{% url 'simulator_reuse' source_uuid=session.uuid %}">Start another interview</a>{% endif %}
             </section>
 
             {% if session.status == 'failed' %}
@@ -36,9 +37,9 @@
                             <small>{{ session.updated_at|date:"M j, Y, g:i A" }}</small>
                         </div>
                         <div>
-                            <span>Topic Source</span>
-                            <strong class="compact-score">{{ session.get_topic_source_display }}</strong>
-                            <small>{{ session.get_level_display }}</small>
+                            <span>{% if session.is_simulator %}Resume{% else %}Topic Source{% endif %}</span>
+                            <strong class="compact-score">{% if session.is_simulator %}{{ session.resume_snapshot.title }}{% else %}{{ session.get_topic_source_display }}{% endif %}</strong>
+                            {% if not session.is_simulator %}<small>{{ session.get_level_display }}</small>{% endif %}
                         </div>
                     </div>
                     <section class="analysis-result-section">
@@ -102,7 +103,7 @@
                 <section class="analysis-progress-card">
                     <h2>Interview not completed</h2>
                     <p>Finish the voice interview to generate feedback.</p>
-                    <a class="outline-small" href="{% url 'mock_interview_room' session_uuid=session.uuid %}">Return to Room</a>
+                    <a class="outline-small" href="{% if session.is_simulator %}{% url 'simulator_room' session_uuid=session.uuid %}{% else %}{% url 'mock_interview_room' session_uuid=session.uuid %}{% endif %}">Return to Room</a>
                 </section>
             {% endif %}
 

@@ -326,6 +326,23 @@ class MockInterviewSession(models.Model):
             return None
 
 
+class InterviewSimulatorSession(MockInterviewSession):
+    """Separate simulator context; shared voice-session lifecycle and transcript engine."""
+    mockinterviewsession_ptr = models.OneToOneField(MockInterviewSession, parent_link=True,
+        primary_key=True, on_delete=models.CASCADE, related_name='simulator')
+    setup = models.JSONField(default=dict)
+    resume_snapshot = models.JSONField(default=dict)
+    resume_text = models.TextField()
+    prompt_snapshot = models.TextField()
+
+    class Meta:
+        db_table = 'product_interview_simulator_session'
+
+    @property
+    def is_simulator(self):
+        return True
+
+
 class MockInterviewTurn(models.Model):
     class Role(models.TextChoices):
         USER = "user", "User"

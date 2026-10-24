@@ -301,6 +301,7 @@ Run a live mock system design interview. Follow these rules:
 
 
 def create_mock_interview_realtime_token(user, session):
+    from .interview_simulator import runtime_prompt
     if not settings.OPENAI_API_KEY:
         raise ImproperlyConfigured("OPENAI_API_KEY is required for mock voice interviews.")
 
@@ -312,7 +313,7 @@ def create_mock_interview_realtime_token(user, session):
         "session": {
             "type": "realtime",
             "model": settings.OPENAI_REALTIME_MODEL,
-            "instructions": build_mock_interview_instructions(
+            "instructions": runtime_prompt(session, transcript_text) if getattr(session, "is_simulator", False) else build_mock_interview_instructions(
                 session.topic,
                 session.get_level_display(),
                 transcript_text,
@@ -356,6 +357,7 @@ def create_mock_interview_realtime_token(user, session):
 
 
 def generate_mock_interview_feedback(session):
+    from .interview_simulator import FEEDBACK_INSTRUCTIONS, interview_context
     if not settings.OPENAI_API_KEY:
         raise ImproperlyConfigured("OPENAI_API_KEY is required for mock interview feedback.")
 
@@ -368,14 +370,14 @@ def generate_mock_interview_feedback(session):
     response = OpenAI(api_key=settings.OPENAI_API_KEY).chat.completions.create(
         model=settings.OPENAI_FEEDBACK_MODEL,
         messages=[
-            {"role": "system", "content": MOCK_INTERVIEW_FEEDBACK_INSTRUCTIONS},
+            {"role": "system", "content": FEEDBACK_INSTRUCTIONS if getattr(session, "is_simulator", False) else MOCK_INTERVIEW_FEEDBACK_INSTRUCTIONS},
             {
                 "role": "user",
                 "content": json.dumps(
                     {
                         "topic": session.topic,
-                        "level": session.get_level_display(),
                         "transcript": transcript,
+                        **({"setup": interview_context(session.setup, session.resume_text)} if getattr(session, "is_simulator", False) else {"level": session.get_level_display()}),
                     },
                     ensure_ascii=False,
                 ),

@@ -1,0 +1,18 @@
+{% extends "product/base.html" %}
+{% block title %}Simulator History | HackerLeap{% endblock %}
+{% block body %}
+<div class="product-layout">{% include "product/includes/sidebar.html" %}<div class="product-main-shell">
+{% include "product/includes/topbar.html" %}<main class="product-main">
+<section class="dashboard-hero"><div><h1>Simulator history</h1><p>Review your practice or reuse a saved setup for a fresh interview.</p></div><a class="outline-small" href="{% url 'simulator_setup' %}">New interview</a></section>
+{% for session in page %}
+<section class="prompt-card"><h2>{{ session.topic }}</h2><p>{{ session.get_status_display }} · {{ session.created_at|date:"M j, Y, g:i A" }}{% if session.display_score != None %} · Score: {{ session.display_score }}/100{% endif %}</p>
+<p>Resume: {{ session.resume_snapshot.title }}</p>
+<p><a class="outline-small" href="{% url 'simulator_reuse' source_uuid=session.uuid %}">Start another interview</a>
+<a class="outline-small" href="{% if session.status == 'completed' %}{% url 'simulator_feedback' session_uuid=session.uuid %}{% else %}{% url 'simulator_room' session_uuid=session.uuid %}{% endif %}">{% if session.status == 'completed' %}View feedback{% else %}Open room{% endif %}</a></p>
+<details><summary>Saved interview prompt</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere">{{ session.prompt_snapshot }}</pre></details>
+</section>
+{% empty %}<section class="prompt-card"><h2>No simulator interviews yet</h2><p>Create your first interview to start practising. System design interviews have their own history.</p></section>{% endfor %}
+{% if page.has_previous %}<a class="outline-small" href="?page={{ page.previous_page_number }}">Previous</a>{% endif %}
+{% if page.has_next %}<a class="outline-small" href="?page={{ page.next_page_number }}">Next</a>{% endif %}
+</main></div></div>
+{% endblock %}

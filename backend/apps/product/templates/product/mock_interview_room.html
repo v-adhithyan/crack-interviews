@@ -10,8 +10,8 @@
         <main class="product-main">
             <section class="mock-room-hero" aria-labelledby="room-title">
                 <div>
-                    <a class="back-link" href="{% url 'mock_interview_start' %}">← Back to mock interviews</a>
-                    <p class="eyebrow">{{ session.get_level_display }} · {{ session.get_topic_source_display }} · {{ session.get_mode_display }}</p>
+                    <a class="back-link" href="{% if session.is_simulator %}{% url 'simulator_setup' %}{% else %}{% url 'mock_interview_start' %}{% endif %}">← Back to mock interviews</a>
+                    <p class="eyebrow">{% if session.is_simulator %}Mock interview simulator{% else %}{{ session.get_level_display }} · {{ session.get_topic_source_display }}{% endif %} · {{ session.get_mode_display }}</p>
                     <h1 id="room-title">{{ session.topic }}</h1>
                 </div>
                 <div class="mock-room-controls">
@@ -24,11 +24,12 @@
             </section>
 
             <section class="mock-room-grid" data-session-root
-                data-token-url="{% url 'mock_interview_token' session_uuid=session.uuid %}"
-                data-turns-url="{% url 'mock_interview_turns' session_uuid=session.uuid %}"
-                data-finish-url="{% url 'mock_interview_finish' session_uuid=session.uuid %}"
+                data-token-url="{% if session.is_simulator %}{% url 'simulator_token' session_uuid=session.uuid %}{% else %}{% url 'mock_interview_token' session_uuid=session.uuid %}{% endif %}"
+                data-turns-url="{% if session.is_simulator %}{% url 'simulator_turns' session_uuid=session.uuid %}{% else %}{% url 'mock_interview_turns' session_uuid=session.uuid %}{% endif %}"
+                data-finish-url="{% if session.is_simulator %}{% url 'simulator_finish' session_uuid=session.uuid %}{% else %}{% url 'mock_interview_finish' session_uuid=session.uuid %}{% endif %}"
                 data-started-at="{% if session.started_at %}{{ session.started_at|date:'c' }}{% endif %}"
                 data-interview-status="{{ session.status }}"
+                data-simulator="{{ session.is_simulator|yesno:'true,false' }}"
                 data-interview-mode="{{ session.mode }}"
                 data-user-label="{{ mock_interview_user_label }}"
                 data-duration-seconds="{{ duration_seconds|default:3600 }}">
@@ -561,6 +562,9 @@
                     setStatus("Interview is live. Start speaking; the interviewer responds after you pause for 20 seconds.");
                     startSilenceMonitor();
                     startTimer(startedAt || Date.now());
+                    if (root.dataset.simulator === "true") {
+                        requestInterviewerResponse("Interviewer is preparing a question...", true);
+                    }
                 });
                 dataChannel.addEventListener("message", function (message) {
                     try {

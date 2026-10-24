@@ -5,10 +5,20 @@ from . import resume_edit_views
 from . import resume_pdf_views
 from . import followup_views
 from . import extension_views
+from . import interview_simulator
 from . import views
 from . import resume_builder_views as builder
 
 urlpatterns = [
+    path("app/interview-simulator/", interview_simulator.setup, name="simulator_setup"),
+    path("app/interview-simulator/history/", interview_simulator.history, name="simulator_history"),
+    path("app/interview-simulator/<uuid:source_uuid>/reuse/", interview_simulator.setup, name="simulator_reuse"),
+    path("app/interview-simulator/<uuid:session_uuid>/", views.mock_interview_room, name="simulator_room"),
+    path("app/interview-simulator/<uuid:session_uuid>/token/", views.mock_interview_token, name="simulator_token"),
+    path("app/interview-simulator/<uuid:session_uuid>/turns/", views.mock_interview_turns, name="simulator_turns"),
+    path("app/interview-simulator/<uuid:session_uuid>/finish/", views.mock_interview_finish, name="simulator_finish"),
+    path("app/interview-simulator/<uuid:session_uuid>/feedback/", views.mock_interview_feedback, name="simulator_feedback"),
+
     path("app/extension/", extension_views.bridge, name="extension_bridge"),
     path("app/extension/resumes/", extension_views.resumes, name="extension_resumes"),
     path("app/extension/analyses/", extension_views.submit, name="extension_submit"),
