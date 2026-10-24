@@ -1,0 +1,13 @@
+{% extends "product/base.html" %}{% load static %}
+{% block title %}Resume Pruner | HackerLeap{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{% static 'product/css/resume_builder.css' %}">{% endblock %}
+{% block body %}<div class="product-layout">{% include "product/includes/sidebar.html" %}<div class="product-main-shell">{% include "product/includes/topbar.html" %}<main class="product-main rb-list">
+<h1>Resume pruner</h1><p>Protect up to five base resumes, group related drafts, then review missing content before creating consolidated copies. Your bases stay unchanged. No AI or external service is used.</p>
+<p><a class="outline-small" href="{% url 'resume_builder_list' %}">Your resumes</a></p>
+<form method="post">{% csrf_token %}<button class="rb-primary" type="submit">Prune resumes →</button></form>
+<p>No drafts are created or deleted until you confirm the final preview. Unassigned resumes remain untouched.</p>
+<div class="rb-cards">{% for draft in drafts %}<article class="rb-card"><h2>{{ draft.title }}</h2><p>{% if draft.is_base %}Protected base resume{% else %}Available for pruning{% endif %}</p>
+<form method="post" action="{% url 'resume_prune_base' draft.uuid %}">{% csrf_token %}<input type="hidden" name="revision" value="{{ draft.revision }}"><input type="hidden" name="is_base" value="{% if draft.is_base %}0{% else %}1{% endif %}"><button type="submit" class="rb-secondary">{% if draft.is_base %}Unmark as base{% else %}Mark as protected base{% endif %}</button></form></article>{% empty %}<p>Create resumes in Resume Builder first.</p>{% endfor %}</div>
+<h2>Prune reviews and backups</h2><p>Reviews and their private backups expire after 24 hours. Download a backup before confirming deletions.</p>
+{% for plan in plans %}<section class="rb-card"><a href="{% url 'resume_prune_review' plan.uuid %}">Review {{ plan.created_at|date:"M j, H:i" }} — {{ plan.stage }}</a><form method="post" action="{% url 'resume_prune_discard' plan.uuid %}">{% csrf_token %}<button class="rb-secondary">Discard review and its backup</button></form></section>{% empty %}<p>No active reviews.</p>{% endfor %}
+</main></div></div>{% endblock %}

@@ -71,6 +71,8 @@ def delete_pdf_artifact(sender, instance, **kwargs):
 
 
 def cleanup_expired_pdfs():
+    from .models import ResumePrunePlan
+    ResumePrunePlan.objects.filter(expires_at__lte=timezone.now()).delete()
     count = 0
     while True:
         ids = list(ResumePdfJob.objects.filter(expires_at__lte=timezone.now()).values_list('pk', flat=True)[:100])

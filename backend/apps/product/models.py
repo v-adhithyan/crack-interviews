@@ -362,7 +362,24 @@ class MockInterviewTurn(models.Model):
         return f"{self.get_role_display()}: {self.text[:80]}"
 
 
+class ResumeDraftQuerySet(models.QuerySet):
+    def delete(self):
+        from django.db import transaction
+        from django.db.models.deletion import ProtectedError
+        with transaction.atomic():
+            protected = [draft for draft in self.select_for_update() if draft.is_base]
+            if protected:
+                raise ProtectedError('Unmark base resumes before deleting them.', protected)
+            return super().delete()
+
+
 class ResumeDraft(models.Model):
+    objects = ResumeDraftQuerySet.as_manager()
+    is_base = models.BooleanField(default=False)
+
+    def delete(self, using=None, keep_parents=False):
+        return type(self).objects.using(using or self._state.db).filter(pk=self.pk).delete()
+
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="resume_drafts")
     title = models.CharField(max_length=120, default="Untitled resume")
@@ -421,3 +438,18 @@ class AnalysisFollowup(models.Model):
     class Meta:
         ordering = ['-created_at']
         constraints = [models.UniqueConstraint(fields=['analysis', 'request_key'], name='unique_analysis_followup_request')]
+
+
+class ResumePrunePlan(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    snapshots = models.JSONField(default=dict)
+    assignments = models.JSONField(default=dict)
+    candidates = models.JSONField(default=list)
+    outputs = models.JSONField(default=list)
+    delete_ids = models.JSONField(default=list)
+    result_ids = models.JSONField(default=list)
+    stage = models.CharField(max_length=16, default='assign')
+    revision = models.PositiveIntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(db_index=True)

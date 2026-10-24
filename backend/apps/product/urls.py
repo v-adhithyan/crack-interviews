@@ -6,10 +6,18 @@ from . import resume_pdf_views
 from . import followup_views
 from . import extension_views
 from . import interview_simulator
+from . import resume_pruner_views as pruner
 from . import views
 from . import resume_builder_views as builder
 
 urlpatterns = [
+    path('app/resume-pruner/', pruner.start, name='resume_pruner'),
+    path('app/resume-pruner/base/<uuid:draft_uuid>/', pruner.mark_base, name='resume_prune_base'),
+    path('app/resume-pruner/<uuid:plan_uuid>/', pruner.review, name='resume_prune_review'),
+    path('app/resume-pruner/<uuid:plan_uuid>/backup/', pruner.backup, name='resume_prune_backup'),
+    path('app/resume-pruner/<uuid:plan_uuid>/apply/', pruner.apply, name='resume_prune_apply'),
+    path('app/resume-pruner/<uuid:plan_uuid>/discard/', pruner.discard, name='resume_prune_discard'),
+
     path("app/interview-simulator/", interview_simulator.setup, name="simulator_setup"),
     path("app/interview-simulator/history/", interview_simulator.history, name="simulator_history"),
     path("app/interview-simulator/<uuid:source_uuid>/reuse/", interview_simulator.setup, name="simulator_reuse"),

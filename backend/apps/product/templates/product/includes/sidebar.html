@@ -23,6 +23,7 @@
             </svg>
             <span>Resume Builder</span>
         </a>
+        <a class="{% if active_nav == 'resume_pruner' %}active{% endif %}" href="{% url 'resume_pruner' %}"><span aria-hidden="true">✂</span><span>Resume Pruner</span></a>
         <a class="{% if active_nav == 'analysis_history' %}active{% endif %}" href="{% url 'analysis_history' %}">
             <span aria-hidden="true">◷</span>
             <span>Analysis History</span>
