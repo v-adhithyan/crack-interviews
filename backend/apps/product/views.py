@@ -19,7 +19,7 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.urls import reverse_lazy
 from django.utils import timezone
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_GET
 
 from apps.website.models import EarlyAccessUser
 from apps.core.jobs import enqueue_background_job
@@ -440,12 +440,49 @@ def mock_interview_token(request, session_uuid):
         session.started_at = timezone.now()
         session.save(update_fields=("status", "started_at", "updated_at"))
 
+    if session.paused_at:
+        session.paused_duration += timezone.now() - session.paused_at
+        session.paused_at = None
+        session.save(update_fields=('paused_duration', 'paused_at', 'updated_at'))
+
     if session.status != MockInterviewSession.Status.ACTIVE or session.error_message or session.ended_at:
         session.status = MockInterviewSession.Status.ACTIVE
         session.error_message = ""
         session.ended_at = None
         session.save(update_fields=("status", "error_message", "ended_at", "updated_at"))
+    token_payload["interview_state"] = interview_clock_state(session)
     return JsonResponse(token_payload)
+
+
+
+def interview_clock_state(session):
+    return {'status': session.status, 'paused': session.paused_at is not None,
+            'remaining_seconds': session.remaining_seconds, 'started': session.started_at is not None}
+
+
+@product_access_required
+@require_GET
+@never_cache
+def mock_interview_state(request, session_uuid):
+    session = get_visible_mock_interview_or_404(request.user, session_uuid, request.resolver_match.url_name.startswith('simulator_'))
+    return JsonResponse(interview_clock_state(session))
+
+
+@product_access_required
+@require_POST
+@never_cache
+@transaction.atomic
+def mock_interview_pause(request, session_uuid):
+    session = get_visible_mock_interview_or_404(request.user, session_uuid, request.resolver_match.url_name.startswith('simulator_'))
+    session = type(session).objects.select_for_update().get(pk=session.pk)
+    if session.paused_at and session.status != MockInterviewSession.Status.COMPLETED:
+        return JsonResponse(interview_clock_state(session))
+    if not session.started_at or session.status != MockInterviewSession.Status.ACTIVE or session.is_time_expired:
+        return JsonResponse({'detail': 'Only an active, unexpired interview can be paused.'}, status=409)
+    session.paused_at = timezone.now()
+    session.status = MockInterviewSession.Status.PAUSED
+    session.save(update_fields=('paused_at', 'status', 'updated_at'))
+    return JsonResponse(interview_clock_state(session))
 
 
 @product_access_required
@@ -478,8 +515,10 @@ def mock_interview_turns(request, session_uuid):
 
 @product_access_required
 @require_POST
+@transaction.atomic
 def mock_interview_finish(request, session_uuid):
     session = get_visible_mock_interview_or_404(request.user, session_uuid, request.resolver_match.url_name.startswith("simulator_"))
+    session = type(session).objects.select_for_update().get(pk=session.pk)
     if session.status == MockInterviewSession.Status.COMPLETED and session.feedback_json:
         return JsonResponse({"feedback_url": reverse("simulator_feedback" if getattr(session, "is_simulator", False) else "mock_interview_feedback", kwargs={"session_uuid": session.uuid})})
 

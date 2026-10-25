@@ -255,6 +255,7 @@ class MockInterviewSession(models.Model):
     class Status(models.TextChoices):
         CREATED = "created", "Created"
         ACTIVE = "active", "Active"
+        PAUSED = "paused", "Paused"
         COMPLETED = "completed", "Completed"
         FAILED = "failed", "Failed"
 
@@ -269,6 +270,8 @@ class MockInterviewSession(models.Model):
     transcript_text = models.TextField(blank=True)
     feedback_json = models.JSONField(blank=True, null=True)
     error_message = models.TextField(blank=True)
+    paused_at = models.DateTimeField(blank=True, null=True)
+    paused_duration = models.DurationField(default=timedelta)
     started_at = models.DateTimeField(blank=True, null=True)
     ended_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -285,7 +288,7 @@ class MockInterviewSession(models.Model):
     def expires_at(self):
         if self.is_free_style or not self.started_at:
             return None
-        return self.started_at + self.DURATION
+        return self.started_at + self.DURATION + self.paused_duration
 
     @property
     def remaining_seconds(self):
@@ -296,7 +299,7 @@ class MockInterviewSession(models.Model):
         expires_at = self.expires_at
         if not expires_at:
             return int(self.DURATION.total_seconds())
-        return max(0, int((expires_at - timezone.now()).total_seconds()))
+        return max(0, int((expires_at - (self.paused_at or timezone.now())).total_seconds()))
 
     @property
     def remaining_display(self):

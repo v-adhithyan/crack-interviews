@@ -19,11 +19,17 @@
                         <span class="mock-timer" data-mock-timer>{{ session.remaining_display }}</span>
                     {% endif %}
                     <button type="button" data-start-interview>Start Interview</button>
+                    <button class="outline-small" type="button" data-pause-interview disabled>Pause Interview</button>
                     <button class="outline-small" type="button" data-end-interview disabled>End Interview</button>
                 </div>
             </section>
 
+            <p>Use Pause Interview before taking a break. Closing or refreshing this page disconnects voice but does not stop the clock. Pause between answers; speech that has not yet been transcribed may not be saved.</p>
             <section class="mock-room-grid" data-session-root
+                data-paused="{{ session.paused_at|yesno:'true,false' }}"
+                data-remaining-seconds="{{ session.remaining_seconds }}"
+                data-pause-url="{% if session.is_simulator %}{% url 'simulator_pause' session_uuid=session.uuid %}{% else %}{% url 'mock_interview_pause' session_uuid=session.uuid %}{% endif %}"
+                data-state-url="{% if session.is_simulator %}{% url 'simulator_state' session_uuid=session.uuid %}{% else %}{% url 'mock_interview_state' session_uuid=session.uuid %}{% endif %}"
                 data-token-url="{% if session.is_simulator %}{% url 'simulator_token' session_uuid=session.uuid %}{% else %}{% url 'mock_interview_token' session_uuid=session.uuid %}{% endif %}"
                 data-turns-url="{% if session.is_simulator %}{% url 'simulator_turns' session_uuid=session.uuid %}{% else %}{% url 'mock_interview_turns' session_uuid=session.uuid %}{% endif %}"
                 data-finish-url="{% if session.is_simulator %}{% url 'simulator_finish' session_uuid=session.uuid %}{% else %}{% url 'mock_interview_finish' session_uuid=session.uuid %}{% endif %}"
@@ -37,7 +43,7 @@
                     <h2>Session Status</h2>
                     <p data-session-status>
                         {% if session.started_at %}
-                            Session paused in this browser. Click resume and allow microphone access to continue.
+                            {% if session.paused_at %}Interview paused. Audio is disconnected and the interview clock is stopped. Click Resume Interview when ready.{% else %}Voice is disconnected. The interview clock is still running. Reconnect to continue, or click Pause Interview to stop it.{% endif %}
                         {% else %}
                             Ready. Click start and allow microphone access.
                         {% endif %}
@@ -98,6 +104,7 @@
         }
 
         var startButton = document.querySelector("[data-start-interview]");
+        var pauseButton = document.querySelector("[data-pause-interview]");
         var endButton = document.querySelector("[data-end-interview]");
         var manualNudgeButton = document.querySelector("[data-manual-nudge]");
         var statusNode = document.querySelector("[data-session-status]");
@@ -121,6 +128,11 @@
         var silenceMonitorFrame = null;
         var remoteAudioMonitorFrame = null;
         var startedAt = root.dataset.startedAt ? new Date(root.dataset.startedAt).getTime() : null;
+        var clockPaused = root.dataset.paused === "true";
+        var clockRemaining = Number(root.dataset.remainingSeconds || 3600);
+        var clockSyncedAt = Date.now();
+        var clockBusy = false;
+        var clockVersion = 0;
         var durationSeconds = Number(root.dataset.durationSeconds || 3600);
         var sessionStatus = root.dataset.interviewStatus || "created";
         var isFreeStyle = root.dataset.interviewMode === "free";
@@ -208,8 +220,8 @@
             if (!startedAt) {
                 return durationSeconds;
             }
-            var elapsed = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
-            return Math.max(0, durationSeconds - elapsed);
+            var elapsed = clockPaused ? 0 : Math.max(0, Math.floor((Date.now() - clockSyncedAt) / 1000));
+            return Math.max(0, clockRemaining - elapsed);
         }
 
         function renderInterviewTimer() {
@@ -518,13 +530,18 @@
         }
 
         async function startInterview() {
+            clockVersion += 1;
+            clockBusy = true;
+            pauseButton.disabled = true;
             startButton.disabled = true;
             setStatus("Requesting microphone access...");
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
             } catch (error) {
                 startButton.disabled = false;
-                setStatus("Microphone permission was denied. Allow mic access and try again.");
+                clockBusy = false;
+                pauseButton.disabled = !startedAt || clockPaused;
+                setStatus("Microphone permission was denied. Allow mic access and try again. " + (clockPaused ? "The interview remains paused." : "If already started, the clock is still running."));
                 return;
             }
 
@@ -538,12 +555,24 @@
                 if (!tokenResponse.ok) {
                     throw new Error(tokenPayload.detail || "Unable to start interview.");
                 }
+                syncClock(tokenPayload.interview_state);
                 var ephemeralKey = extractEphemeralKey(tokenPayload);
                 if (!ephemeralKey) {
                     throw new Error("Voice session token was missing.");
                 }
 
                 peerConnection = new RTCPeerConnection();
+                peerConnection.addEventListener("connectionstatechange", function () {
+                    if (!peerConnection || clockBusy) return;
+                    if (["failed", "disconnected"].includes(peerConnection.connectionState)) {
+                        cleanupConnection();
+                        startTimer();
+                        startButton.disabled = false;
+                        startButton.textContent = "Reconnect Interview";
+                        pauseButton.disabled = false;
+                        setStatus("Voice connection lost. The clock is still running. Reconnect to continue or click Pause Interview to stop it.");
+                    }
+                });
                 var audio = document.createElement("audio");
                 audio.autoplay = true;
                 peerConnection.ontrack = function (event) {
@@ -556,6 +585,7 @@
                 dataChannel = peerConnection.createDataChannel("oai-events");
                 dataChannel.addEventListener("open", function () {
                     isInterviewLive = true;
+                    pauseButton.disabled = false;
                     candidateHasSpokenSinceLastResponse = false;
                     setManualNudgeEnabled(true);
                     setNudgeCountdown("Speak to start the 20 second nudge timer, or ask for a manual nudge.");
@@ -592,10 +622,14 @@
                     sdp: await sdpResponse.text()
                 });
                 endButton.disabled = false;
+                clockBusy = false;
             } catch (error) {
                 startButton.disabled = false;
                 cleanupConnection();
-                setStatus(error.message || "Unable to start voice interview.");
+                clockBusy = false;
+                pauseButton.disabled = !startedAt || clockPaused;
+                startTimer();
+                setStatus((error.message || "Unable to start voice interview.") + (clockPaused ? " The interview remains paused." : " If already started, the clock is still running. Use Pause Interview to stop it."));
             }
         }
 
@@ -626,6 +660,9 @@
         }
 
         async function endInterview(isAutomatic) {
+            clockVersion += 1;
+            clockBusy = true;
+            pauseButton.disabled = true;
             endButton.disabled = true;
             startButton.disabled = true;
             cleanupConnection();
@@ -641,24 +678,85 @@
                 }
                 window.location.href = payload.feedback_url;
             } catch (error) {
+                clockBusy = false;
                 setStatus(error.message || "Unable to generate feedback.");
                 endButton.disabled = false;
             }
         }
 
+        function syncClock(state) {
+            if (!state) return;
+            clockPaused = state.paused;
+            clockRemaining = state.remaining_seconds;
+            clockSyncedAt = Date.now();
+            sessionStatus = state.status;
+            if (state.started && !startedAt) startedAt = Date.now();
+            renderInterviewTimer();
+        }
+
+        async function pauseInterview() {
+            if (clockBusy) return;
+            clockVersion += 1;
+            clockBusy = true;
+            pauseButton.disabled = true;
+            startButton.disabled = true;
+            cleanupConnection();
+            setStatus("Audio disconnected. Saving pause...");
+            try {
+                var response = await fetch(root.dataset.pauseUrl, {method: "POST", headers: {"X-CSRFToken": csrfToken}});
+                var state = await response.json();
+                if (!response.ok) throw new Error(state.detail || "Unable to pause interview.");
+                syncClock(state);
+                startButton.textContent = "Resume Interview";
+                setStatus("Interview paused. Audio is disconnected and the interview clock is stopped. Resume when ready.");
+                setNudgeCountdown("Paused — no interviewer responses until you resume.");
+            } catch (error) {
+                setStatus("Audio is disconnected, but pause could not be confirmed. The clock may still be running. Retry Pause Interview or reload to check.");
+                pauseButton.disabled = false;
+                startTimer();
+            } finally {
+                clockBusy = false;
+                startButton.disabled = false;
+            }
+        }
+        pauseButton.addEventListener("click", pauseInterview);
+        // Keep other tabs and reopened rooms aligned with the server clock.
+        window.setInterval(async function () {
+            if (clockBusy || !startedAt) return;
+            try {
+                var version = clockVersion;
+                var response = await fetch(root.dataset.stateUrl);
+                if (!response.ok || clockBusy || version !== clockVersion) return;
+                var state = await response.json();
+                if (clockBusy || version !== clockVersion) return;
+                if (state.paused || state.status === "completed") {
+                    cleanupConnection();
+                    startButton.disabled = state.status === "completed";
+                    pauseButton.disabled = true;
+                    endButton.disabled = state.status === "completed";
+                    startButton.textContent = "Resume Interview";
+                    setStatus(state.status === "completed" ? "This interview has ended." : "Interview paused. Audio is disconnected and the interview clock is stopped. Resume when ready.");
+                }
+                if (!state.paused && state.status === "active" && !isInterviewLive) {
+                    pauseButton.disabled = false;
+                    startButton.textContent = "Reconnect Interview";
+                    setStatus("Voice is disconnected in this tab. The interview clock is running. Reconnect to continue or pause to stop it.");
+                }
+                syncClock(state);
+            } catch (error) { /* Preserve the last known clock during a network interruption. */ }
+        }, 3000);
         startButton.addEventListener("click", startInterview);
         manualNudgeButton.addEventListener("click", function () {
             requestInterviewerResponse("Manual interviewer nudge requested.", true);
         });
-        endButton.addEventListener("click", endInterview);
+        endButton.addEventListener("click", function () { endInterview(false); });
         hydrateSavedTranscriptKeys();
         if (startedAt) {
-            startButton.textContent = "Resume Interview";
+            startButton.textContent = clockPaused ? "Resume Interview" : "Reconnect Interview";
+            pauseButton.disabled = clockPaused;
             endButton.disabled = false;
-            renderInterviewTimer();
-            if (sessionStatus === "active") {
-                setStatus("Session paused in this browser. Click resume and allow microphone access to continue from the saved transcript.");
-            }
+            startTimer();
+            setStatus(clockPaused ? "Interview paused. Audio is disconnected and the interview clock is stopped. Resume when ready." : "Voice is disconnected. The interview clock is still running. Reconnect to continue, or click Pause Interview to stop it.");
             setNudgeCountdown("Resume the interview to continue the nudge timer.");
         } else {
             renderInterviewTimer();

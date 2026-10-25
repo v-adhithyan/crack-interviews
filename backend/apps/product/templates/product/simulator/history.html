@@ -8,7 +8,7 @@
 <section class="prompt-card"><h2>{{ session.topic }}</h2><p>{{ session.get_status_display }} · {{ session.created_at|date:"M j, Y, g:i A" }}{% if session.display_score != None %} · Score: {{ session.display_score }}/100{% endif %}</p>
 <p>Resume: {{ session.resume_snapshot.title }}</p>
 <p><a class="outline-small" href="{% url 'simulator_reuse' source_uuid=session.uuid %}">Start another interview</a>
-<a class="outline-small" href="{% if session.status == 'completed' %}{% url 'simulator_feedback' session_uuid=session.uuid %}{% else %}{% url 'simulator_room' session_uuid=session.uuid %}{% endif %}">{% if session.status == 'completed' %}View feedback{% else %}Open room{% endif %}</a></p>
+<a class="outline-small" href="{% if session.status == 'completed' %}{% url 'simulator_feedback' session_uuid=session.uuid %}{% else %}{% url 'simulator_room' session_uuid=session.uuid %}{% endif %}">{% if session.status == 'completed' %}View feedback{% elif session.paused_at %}Resume interview{% else %}Open room{% endif %}</a></p>
 <details><summary>Saved interview prompt</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere">{{ session.prompt_snapshot }}</pre></details>
 </section>
 {% empty %}<section class="prompt-card"><h2>No simulator interviews yet</h2><p>Create your first interview to start practising. System design interviews have their own history.</p></section>{% endfor %}

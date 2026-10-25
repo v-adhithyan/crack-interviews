@@ -201,7 +201,7 @@ class MockInterviewTests(TestCase):
         self.assertContains(response, 'data-interview-status="active"')
         self.assertNotContains(response, 'data-session-status="active"')
         self.assertContains(response, "Resume Interview")
-        self.assertContains(response, "Session paused in this browser")
+        self.assertContains(response, "The interview clock is still running")
         self.assertContains(response, 'data-transcript')
 
     def test_room_uses_email_for_candidate_label_when_name_missing(self):

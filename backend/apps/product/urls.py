@@ -11,6 +11,11 @@ from . import views
 from . import resume_builder_views as builder
 
 urlpatterns = [
+    path('app/mock-interview/<uuid:session_uuid>/pause/', views.mock_interview_pause, name='mock_interview_pause'),
+    path('app/mock-interview/<uuid:session_uuid>/state/', views.mock_interview_state, name='mock_interview_state'),
+    path('app/interview-simulator/<uuid:session_uuid>/pause/', views.mock_interview_pause, name='simulator_pause'),
+    path('app/interview-simulator/<uuid:session_uuid>/state/', views.mock_interview_state, name='simulator_state'),
+
     path('app/resume-pruner/', pruner.start, name='resume_pruner'),
     path('app/resume-pruner/base/<uuid:draft_uuid>/', pruner.mark_base, name='resume_prune_base'),
     path('app/resume-pruner/<uuid:plan_uuid>/', pruner.review, name='resume_prune_review'),

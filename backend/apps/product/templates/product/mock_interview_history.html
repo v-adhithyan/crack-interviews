@@ -41,7 +41,7 @@
                                             <button type="submit">Continue free style</button>
                                         </form>
                                     {% elif session.status != 'completed' %}
-                                        <a class="table-action-link" href="{% url 'mock_interview_room' session_uuid=session.uuid %}">Open room</a>
+                                        <a class="table-action-link" href="{% url 'mock_interview_room' session_uuid=session.uuid %}">{% if session.paused_at %}Resume interview{% else %}Open room{% endif %}</a>
                                     {% else %}
                                         <a class="table-action-link" href="{% url 'mock_interview_feedback' session_uuid=session.uuid %}">View feedback</a>
                                     {% endif %}
