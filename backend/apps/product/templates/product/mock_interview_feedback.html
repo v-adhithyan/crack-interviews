@@ -1,4 +1,5 @@
 {% extends "product/base.html" %}
+{% load static %}
 
 {% block title %}Mock Interview Feedback | HackerLeap{% endblock %}
 
@@ -17,6 +18,21 @@
                 <a class="outline-small" href="{% if session.is_simulator %}{% url 'simulator_setup' %}{% else %}{% url 'mock_interview_start' %}{% endif %}">New Interview</a>
                 {% if session.is_simulator %}<a class="outline-small" href="{% url 'simulator_reuse' source_uuid=session.uuid %}">Start another interview</a>{% endif %}
             </section>
+
+            {% if coaching_prompt %}
+            <section class="prompt-card" aria-labelledby="coaching-title">
+                <h2 id="coaching-title">Turn feedback into progress</h2>
+                <p>Take your results and full saved transcript to a new ChatGPT chat for a focused practice plan and follow-up questions.</p>
+                <button type="button" data-open-coaching>Work on my gaps in ChatGPT ↗</button>
+                <button class="outline-small" type="button" data-copy-coaching>Copy coaching prompt</button>
+                <button class="outline-small" type="button" data-download-coaching>Download prompt (.txt)</button>
+                <p>Opens ChatGPT in a new tab. Short prompts may be prefilled; for long transcripts, paste the copied prompt or attach the downloaded file. Review personal details before sharing. No HackerLeap API credits are used.</p>
+                <p data-coaching-status role="status" aria-live="polite"></p>
+                <a href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer" data-coaching-fallback hidden>Open a new ChatGPT chat</a>
+                <details><summary>Review or manually copy the full prompt</summary><label for="coaching-text">Coaching prompt</label><textarea id="coaching-text" readonly rows="12" style="width:100%;box-sizing:border-box">{{ coaching_prompt }}</textarea></details>
+            </section>
+            {{ coaching_prompt|json_script:'interview-coaching-prompt' }}
+            {% endif %}
 
             {% if session.status == 'failed' %}
                 <section class="analysis-progress-card analysis-progress-card-failed">
@@ -125,4 +141,9 @@
         </main>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script src="{% static 'product/js/interview_coaching.js' %}" defer></script>
 {% endblock %}

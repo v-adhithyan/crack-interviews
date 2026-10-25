@@ -561,6 +561,7 @@ def mock_interview_history(request):
 @never_cache
 @product_access_required
 def mock_interview_feedback(request, session_uuid):
+    from .interview_coaching import coaching_prompt
     session = get_visible_mock_interview_or_404(request.user, session_uuid, request.resolver_match.url_name.startswith("simulator_"))
     return render(
         request,
@@ -569,6 +570,7 @@ def mock_interview_feedback(request, session_uuid):
             "resume": user_resume(request.user),
             "session": session,
             "feedback": session.feedback_json or {},
+            "coaching_prompt": coaching_prompt(session),
             "active_nav": "simulator_history" if getattr(session, "is_simulator", False) else "mock_interview_history",
         },
     )
