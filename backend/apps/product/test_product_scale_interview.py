@@ -57,6 +57,22 @@ class ProductScaleInterviewTests(TestCase):
         self.assertContains(feedback, reverse('product_scale_start'))
         self.assertIn('Product-scale design', coaching_prompt(session))
 
+    def test_explicit_custom_option_creates_interview_and_requires_question(self):
+        page = self.client.get(reverse('product_scale_start'))
+        self.assertContains(page, 'Custom question — enter your own below')
+        self.assertContains(page, 'Your own product-scale question')
+        data = {'preset_topic': 'custom', 'custom_topic': '  Design a booking tool for 20 therapists.  ', 'level': 'senior'}
+        response = self.client.post(reverse('product_scale_create'), data)
+        self.assertEqual(response.status_code, 302)
+        session = MockInterviewSession.objects.get(user=self.user)
+        self.assertEqual(session.topic, 'Design a booking tool for 20 therapists.')
+        self.assertEqual(session.topic_source, 'custom')
+        self.assertEqual(session.track, 'product_scale')
+        for question in ('', '   '):
+            invalid = self.client.post(reverse('product_scale_create'), dict(data, custom_topic=question))
+            self.assertContains(invalid, 'Enter your own product-scale question below.', status_code=400)
+        self.assertEqual(MockInterviewSession.objects.filter(user=self.user).count(), 1)
+
     def test_custom_question_and_default_preset(self):
         form = MockInterviewStartForm({'custom_topic': 'Design a small repair booking product.', 'level': 'mid'}, track='product_scale')
         self.assertTrue(form.is_valid(), form.errors)

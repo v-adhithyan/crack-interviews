@@ -243,7 +243,7 @@ class MockInterviewStartForm(forms.Form):
         self.track = track
         if track == MockInterviewSession.Track.PRODUCT_SCALE:
             from .interview_tracks import PRODUCT_SCALE_TOPICS
-            self.fields["preset_topic"].choices = PRODUCT_SCALE_TOPICS
+            self.fields["preset_topic"].choices = (*PRODUCT_SCALE_TOPICS, ("custom", "Custom question — enter your own below"))
             self.fields["custom_topic"].widget.attrs["placeholder"] = "Describe a product, its users, scale and practical constraints."
 
     def clean(self):
@@ -254,6 +254,10 @@ class MockInterviewStartForm(forms.Form):
         if custom_topic:
             cleaned_data["topic"] = custom_topic
             cleaned_data["topic_source"] = MockInterviewSession.TopicSource.CUSTOM
+            return cleaned_data
+
+        if self.track == MockInterviewSession.Track.PRODUCT_SCALE and preset_topic == "custom":
+            self.add_error("custom_topic", "Enter your own product-scale question below.")
             return cleaned_data
 
         cleaned_data["topic"] = preset_topic

@@ -63,7 +63,9 @@ A real microphone/provider acceptance check is still required after deployment.
 The **Product-Scale Interview** sidebar entry opens `/app/product-scale-interview/`.
 It offers six bounded product scenarios: workshop bookings, document processing,
 retail inventory, webhook delivery, device monitoring and approval workflows.
-Candidates may also enter a custom scenario and select a level; no resume, company
+Candidates may select **Custom question — enter your own below** and enter a custom
+scenario in **Your own product-scale question**, then select a level. Selecting Custom
+question requires nonempty text (up to 1,000 characters); no resume, company
 or job description is required. Creation uses POST `/app/product-scale-interview/start/`.
 
 This is a 60-minute voice design discussion, with the existing pause/resume,

@@ -23,13 +23,13 @@
             <section class="analysis-card mock-interview-card" aria-labelledby="start-mock-title">
                 <header>
                     <h2 id="start-mock-title">Start Interview</h2>
-                    <p>Choose a preset topic or type a custom {% if is_product_scale %}product-scale{% else %}system design{% endif %} question. Custom question takes precedence.</p>
+                    {% if is_product_scale %}<p>Choose a preset or select Custom question and enter your own question below. Any question you enter overrides the preset.</p>{% else %}<p>Choose a preset topic or type a custom system design question. Custom question takes precedence.</p>{% endif %}
                 </header>
                 <form class="mock-interview-form" method="post" action="{% if is_product_scale %}{% url 'product_scale_create' %}{% else %}{% url 'mock_interview_create' %}{% endif %}">
                     {% csrf_token %}
                     <div class="mock-form-grid">
                         <label>
-                            Preset topic
+                            {% if is_product_scale %}Question{% else %}Preset topic{% endif %}
                             {{ form.preset_topic }}
                         </label>
                         <label>
@@ -38,8 +38,9 @@
                         </label>
                     </div>
                     <label>
-                        Custom question
+                        {% if is_product_scale %}Your own product-scale question{% else %}Custom question{% endif %}
                         {{ form.custom_topic }}
+                        {% if is_product_scale %}<small>Paste your question and any product constraints here (up to 1,000 characters).</small>{% endif %}
                     </label>
                     {{ form.non_field_errors }}
                     {% for field in form %}{% for error in field.errors %}
