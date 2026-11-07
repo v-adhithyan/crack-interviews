@@ -32,6 +32,7 @@
             <span aria-hidden="true">◉</span>
             <span>System Design Interview</span>
         </a>
+        <a class="{% if active_nav == 'product_scale' %}active{% endif %}" href="{% url 'product_scale_start' %}"><span aria-hidden="true">◇</span><span>Product-Scale Interview</span></a>
         <a class="{% if active_nav == 'mock_interview_history' %}active{% endif %}" href="{% url 'mock_interview_history' %}">
             <span aria-hidden="true">▤</span>
             <span>System Design History</span>

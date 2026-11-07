@@ -10,8 +10,8 @@
         <main class="product-main">
             <section class="mock-room-hero" aria-labelledby="room-title">
                 <div>
-                    <a class="back-link" href="{% if session.is_simulator %}{% url 'simulator_setup' %}{% else %}{% url 'mock_interview_start' %}{% endif %}">← Back to mock interviews</a>
-                    <p class="eyebrow">{% if session.is_simulator %}Mock interview simulator{% else %}{{ session.get_level_display }} · {{ session.get_topic_source_display }}{% endif %} · {{ session.get_mode_display }}</p>
+                    <a class="back-link" href="{% if session.is_simulator %}{% url 'simulator_setup' %}{% elif session.track == 'product_scale' %}{% url 'product_scale_start' %}{% else %}{% url 'mock_interview_start' %}{% endif %}">← Back to mock interviews</a>
+                    <p class="eyebrow">{% if session.is_simulator %}Mock interview simulator{% else %}{{ session.get_level_display }} · {% if session.track == 'product_scale' %}{{ session.get_track_display }} · {% endif %}{{ session.get_topic_source_display }}{% endif %} · {{ session.get_mode_display }}</p>
                     <h1 id="room-title">{{ session.topic }}</h1>
                 </div>
                 <div class="mock-room-controls">

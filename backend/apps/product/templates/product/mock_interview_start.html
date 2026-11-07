@@ -1,6 +1,6 @@
 {% extends "product/base.html" %}
 
-{% block title %}Mock System Design Interview | HackerLeap{% endblock %}
+{% block title %}{% if is_product_scale %}Product-Scale Interview{% else %}Mock System Design Interview{% endif %} | HackerLeap{% endblock %}
 
 {% block body %}
 <div class="product-layout">
@@ -10,22 +10,22 @@
         <main class="product-main">
             <section class="dashboard-hero" aria-labelledby="mock-title">
                 <div>
-                    <h1 id="mock-title">Mock system design interview</h1>
-                    <p>Practice with an AI interviewer over voice, then review the transcript and feedback.</p>
+                    <h1 id="mock-title">{% if is_product_scale %}Product-scale interview{% else %}Mock system design interview{% endif %}</h1>
+                    {% if is_product_scale %}<p>A 60-minute design discussion about a real product with practical constraints. Clarify requirements, explain decisions and adapt as the interviewer introduces changes.</p>{% else %}<p>Practice with an AI interviewer over voice, then review the transcript and feedback.</p>{% endif %}
                 </div>
                 <aside class="active-resume-card" aria-label="Mock interview quota">
                     <span>Daily voice sessions</span>
                     <strong>{{ quota_remaining }} remaining</strong>
-                    <small>Resets 24 hours after your first session.</small>
+                    <small>{% if is_product_scale %}Shared with other voice interview modes. {% endif %}Resets 24 hours after your first session.</small>
                 </aside>
             </section>
 
             <section class="analysis-card mock-interview-card" aria-labelledby="start-mock-title">
                 <header>
                     <h2 id="start-mock-title">Start Interview</h2>
-                    <p>Choose a preset topic or type a custom system design question. Custom question takes precedence.</p>
+                    <p>Choose a preset topic or type a custom {% if is_product_scale %}product-scale{% else %}system design{% endif %} question. Custom question takes precedence.</p>
                 </header>
-                <form class="mock-interview-form" method="post" action="{% url 'mock_interview_create' %}">
+                <form class="mock-interview-form" method="post" action="{% if is_product_scale %}{% url 'product_scale_create' %}{% else %}{% url 'mock_interview_create' %}{% endif %}">
                     {% csrf_token %}
                     <div class="mock-form-grid">
                         <label>
@@ -41,12 +41,22 @@
                         Custom question
                         {{ form.custom_topic }}
                     </label>
-                    {% for error in form.custom_topic.errors %}
-                        <span class="field-error">{{ error }}</span>
-                    {% endfor %}
+                    {{ form.non_field_errors }}
+                    {% for field in form %}{% for error in field.errors %}
+                        <span class="field-error" role="alert">{{ field.label }}: {{ error }}</span>
+                    {% endfor %}{% endfor %}
                     <button type="submit">Create Voice Room <span aria-hidden="true">→</span></button>
                 </form>
             </section>
+
+            {% if is_product_scale %}
+            <section class="analysis-card">
+                <h2>What you will practice</h2>
+                <p>Break the problem down, ask clarifying questions and state assumptions. Justify your architecture against actual traffic, team capacity and operational cost.</p>
+                <p>Discuss reliability, observability and growth where they matter. Expect requirements to evolve during the conversation. Think aloud and finish with your decisions, trade-offs and remaining risks.</p>
+                <p>This track is a design discussion. No coding or industry research is required.</p>
+            </section>
+            {% endif %}
 
             <section class="recent-card" aria-labelledby="recent-mock-title">
                 <div class="section-heading">

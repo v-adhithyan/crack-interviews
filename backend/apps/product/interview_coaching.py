@@ -8,7 +8,7 @@ def coaching_prompt(session):
     turns = list(session.turns.order_by('created_at', 'pk'))
     transcript = '\n\n'.join(f'{turn.get_role_display()}: {turn.text}' for turn in turns) if turns else session.transcript_text
     payload = {
-        'interview_type': 'Mock interview simulator' if getattr(session, 'is_simulator', False) else 'System design',
+        'interview_type': 'Mock interview simulator' if getattr(session, 'is_simulator', False) else session.get_track_display(),
         'topic': session.topic,
         'level': session.get_level_display(),
         'feedback': session.feedback_json,

@@ -292,12 +292,12 @@ def analysis_status(request, analysis_uuid):
 
 
 @product_access_required
-def mock_interview_start(request):
+def mock_interview_start(request, track=MockInterviewSession.Track.SYSTEM_DESIGN):
     resume = user_resume(request.user)
     feature_flags = get_user_feature_flags(request.user, create=True)
     feature_flags.reset_mock_interview_usage_if_expired()
-    form = MockInterviewStartForm()
-    sessions = user_mock_interview_queryset(request.user)[:5]
+    form = MockInterviewStartForm(track=track)
+    sessions = user_mock_interview_queryset(request.user).filter(track=track)[:5]
     return render(
         request,
         "product/mock_interview_start.html",
@@ -305,7 +305,8 @@ def mock_interview_start(request):
             "resume": resume,
             "form": form,
             "recent_sessions": sessions,
-            "active_nav": "mock_interview",
+            "active_nav": "product_scale" if track == MockInterviewSession.Track.PRODUCT_SCALE else "mock_interview",
+            "is_product_scale": track == MockInterviewSession.Track.PRODUCT_SCALE,
             "quota_remaining": feature_flags.mock_interview_quota_remaining,
         },
     )
@@ -313,11 +314,12 @@ def mock_interview_start(request):
 
 @product_access_required
 @require_POST
-def mock_interview_create(request):
-    form = MockInterviewStartForm(request.POST)
+def mock_interview_create(request, track=MockInterviewSession.Track.SYSTEM_DESIGN):
+    form = MockInterviewStartForm(request.POST, track=track)
     if form.is_valid():
         session = MockInterviewSession.objects.create(
             user=request.user,
+            track=track,
             topic_source=form.cleaned_data["topic_source"],
             topic=form.cleaned_data["topic"],
             level=form.cleaned_data["level"],
@@ -333,8 +335,9 @@ def mock_interview_create(request):
         {
             "resume": resume,
             "form": form,
-            "recent_sessions": user_mock_interview_queryset(request.user)[:5],
-            "active_nav": "mock_interview",
+            "recent_sessions": user_mock_interview_queryset(request.user).filter(track=track)[:5],
+            "active_nav": "product_scale" if track == MockInterviewSession.Track.PRODUCT_SCALE else "mock_interview",
+            "is_product_scale": track == MockInterviewSession.Track.PRODUCT_SCALE,
             "quota_remaining": feature_flags.mock_interview_quota_remaining,
         },
         status=400,
@@ -354,7 +357,7 @@ def mock_interview_room(request, session_uuid):
         {
             "resume": user_resume(request.user),
             "session": session,
-            "active_nav": "simulator" if getattr(session, "is_simulator", False) else "mock_interview",
+            "active_nav": "simulator" if getattr(session, "is_simulator", False) else ("product_scale" if session.track == MockInterviewSession.Track.PRODUCT_SCALE else "mock_interview"),
             "duration_seconds": int(MockInterviewSession.DURATION.total_seconds()),
             "remaining_seconds": session.remaining_seconds,
             "mock_interview_user_label": user_display_label(session.user),
@@ -382,6 +385,7 @@ def mock_interview_continue_free_style(request, session_uuid):
         mode=MockInterviewSession.Mode.FREE,
         topic_source=source_session.topic_source,
         topic=source_session.topic,
+        track=source_session.track,
         level=source_session.level,
         transcript_text=transcript_text,
     )

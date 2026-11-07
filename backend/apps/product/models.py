@@ -259,6 +259,12 @@ class MockInterviewSession(models.Model):
         COMPLETED = "completed", "Completed"
         FAILED = "failed", "Failed"
 
+    class Track(models.TextChoices):
+        SYSTEM_DESIGN = "system_design", "System design"
+        PRODUCT_SCALE = "product_scale", "Product-scale design"
+
+    track = models.CharField(max_length=24, choices=Track.choices, default=Track.SYSTEM_DESIGN)
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="mock_interview_sessions")
     continued_from = models.ForeignKey("self", on_delete=models.SET_NULL, related_name="free_style_continuations", blank=True, null=True)
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)

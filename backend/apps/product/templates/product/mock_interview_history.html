@@ -11,7 +11,7 @@
             <section class="dashboard-hero" aria-labelledby="history-title">
                 <div>
                     <h1 id="history-title">Mock interview history</h1>
-                    <p>Review previous system design practice sessions and feedback.</p>
+                    <p>Review previous system design and product-scale practice sessions and feedback.</p>
                 </div>
                 <a class="outline-small" href="{% url 'mock_interview_start' %}">New Interview</a>
             </section>
@@ -29,7 +29,7 @@
                         </div>
                         {% for session in sessions %}
                             <div class="mock-history-row" data-href="{% if session.status == 'completed' %}{% url 'mock_interview_feedback' session_uuid=session.uuid %}{% else %}{% url 'mock_interview_room' session_uuid=session.uuid %}{% endif %}">
-                                <strong>{{ session.topic }}</strong>
+                                <strong>{{ session.topic }}{% if session.track == 'product_scale' %}<small> · {{ session.get_track_display }}</small>{% endif %}</strong>
                                 <span>{{ session.get_level_display }}</span>
                                 <span>{{ session.get_status_display }} · {{ session.get_mode_display }}</span>
                                 <span>{% if session.display_score is not None %}{{ session.display_score }}{% else %}-{% endif %}</span>

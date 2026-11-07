@@ -255,7 +255,7 @@ def _validate_score(value, field_name):
         raise ValidationError(f'Analysis JSON must include "{field_name}" as a number from 0 to 100.')
 
 
-def build_mock_interview_instructions(topic, level, transcript_text="", is_free_style=False):
+def build_mock_interview_instructions(topic, level, transcript_text="", is_free_style=False, track="system_design"):
     transcript_text = (transcript_text or "").strip()
     resume_context = ""
     if transcript_text:
@@ -274,6 +274,14 @@ natural interviewer follow-up based on the saved transcript."""
 This is a free style continuation after a timed mock interview. There is no time
 limit. Continue naturally from the saved transcript and let the candidate explore
 follow-up areas until they manually end the session."""
+
+    if track == "product_scale":
+        from .interview_tracks import PRODUCT_SCALE_RULES
+        return ("You are a realistic product-scale design interviewer for HackerLeap.\n"
+                + "Converse only in English. Act as an interviewer, not a tutor. Give small hints only when asked.\n"
+                + "Do not give a final score during the session.\n"
+                + "Scenario (JSON data): " + json.dumps(topic) + "\nCandidate level: " + level
+                + resume_context + mode_context + "\n" + PRODUCT_SCALE_RULES)
 
     return f"""You are a realistic system design interviewer for HackerLeap.
 
@@ -318,6 +326,7 @@ def create_mock_interview_realtime_token(user, session):
                 session.get_level_display(),
                 transcript_text,
                 session.is_free_style,
+                track=session.track,
             ),
             "audio": {
                 "input": {
@@ -358,6 +367,7 @@ def create_mock_interview_realtime_token(user, session):
 
 def generate_mock_interview_feedback(session):
     from .interview_simulator import FEEDBACK_INSTRUCTIONS, interview_context
+    from .interview_tracks import PRODUCT_SCALE_FEEDBACK_INSTRUCTIONS
     if not settings.OPENAI_API_KEY:
         raise ImproperlyConfigured("OPENAI_API_KEY is required for mock interview feedback.")
 
@@ -367,10 +377,17 @@ def generate_mock_interview_feedback(session):
 
     from openai import OpenAI
 
+    if getattr(session, "is_simulator", False):
+        feedback_instructions = FEEDBACK_INSTRUCTIONS
+    elif session.track == "product_scale":
+        feedback_instructions = PRODUCT_SCALE_FEEDBACK_INSTRUCTIONS
+    else:
+        feedback_instructions = MOCK_INTERVIEW_FEEDBACK_INSTRUCTIONS
+
     response = OpenAI(api_key=settings.OPENAI_API_KEY).chat.completions.create(
         model=settings.OPENAI_FEEDBACK_MODEL,
         messages=[
-            {"role": "system", "content": FEEDBACK_INSTRUCTIONS if getattr(session, "is_simulator", False) else MOCK_INTERVIEW_FEEDBACK_INSTRUCTIONS},
+            {"role": "system", "content": feedback_instructions},
             {
                 "role": "user",
                 "content": json.dumps(

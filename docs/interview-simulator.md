@@ -57,3 +57,35 @@ Tests: `python backend/manage.py test apps.product.test_interview_simulator apps
 They mock AI calls and cover snapshots, reuse, edited setup, validation, privacy,
 CSRF, cross-feature isolation, prompt selection, reconnects, quota and feedback routing.
 A real microphone/provider acceptance check is still required after deployment.
+
+## Product-scale design track
+
+The **Product-Scale Interview** sidebar entry opens `/app/product-scale-interview/`.
+It offers six bounded product scenarios: workshop bookings, document processing,
+retail inventory, webhook delivery, device monitoring and approval workflows.
+Candidates may also enter a custom scenario and select a level; no resume, company
+or job description is required. Creation uses POST `/app/product-scale-interview/start/`.
+
+This is a 60-minute voice design discussion, with the existing pause/resume,
+transcript, quota and feedback lifecycle. It does not include a repository coding
+round. Interviewer instructions emphasize practical scope, explicit assumptions,
+technology trade-offs, proportional reliability/observability and incremental
+requirement changes. Feedback uses a dedicated product-scale rubric. Actual voice
+behavior still requires a live provider/microphone acceptance check.
+
+`MockInterviewSession.track` defaults to `system_design`, preserving existing
+sessions and submissions; the new entry point sets `product_scale` server-side.
+Presets and rubric content live in `interview_tracks.py`, separate from voice
+transport. The full selected scenario is copied into the session topic, so later
+preset edits do not alter saved scenarios. Free-style continuations preserve the
+track and transcript. Both design tracks appear in the existing system design
+history with a product-scale label; each setup page shows its own recent sessions.
+The role/round simulator retains its existing behavior and separate history.
+
+Apply migration `0029_mockinterviewsession_track` before serving the updated app.
+No new API keys, frontend build or worker configuration is required. Run:
+
+```sh
+python backend/manage.py migrate
+python backend/manage.py test apps.product.test_product_scale_interview apps.product.tests apps.product.test_interview_simulator apps.product.test_interview_pause apps.product.test_interview_coaching
+```

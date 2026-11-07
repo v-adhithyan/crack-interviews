@@ -12,10 +12,10 @@
             <section class="mock-room-hero" aria-labelledby="feedback-title">
                 <div>
                     <a class="back-link" href="{% if session.is_simulator %}{% url 'simulator_history' %}{% else %}{% url 'mock_interview_history' %}{% endif %}">← Back to history</a>
-                    <p class="eyebrow">{% if session.is_simulator %}Mock interview simulator{% else %}{{ session.get_level_display }} · {{ session.get_topic_source_display }}{% endif %}</p>
+                    <p class="eyebrow">{% if session.is_simulator %}Mock interview simulator{% else %}{{ session.get_level_display }} · {% if session.track == 'product_scale' %}{{ session.get_track_display }} · {% endif %}{{ session.get_topic_source_display }}{% endif %}</p>
                     <h1 id="feedback-title">{{ session.topic }}</h1>
                 </div>
-                <a class="outline-small" href="{% if session.is_simulator %}{% url 'simulator_setup' %}{% else %}{% url 'mock_interview_start' %}{% endif %}">New Interview</a>
+                <a class="outline-small" href="{% if session.is_simulator %}{% url 'simulator_setup' %}{% elif session.track == 'product_scale' %}{% url 'product_scale_start' %}{% else %}{% url 'mock_interview_start' %}{% endif %}">New Interview</a>
                 {% if session.is_simulator %}<a class="outline-small" href="{% url 'simulator_reuse' source_uuid=session.uuid %}">Start another interview</a>{% endif %}
             </section>
 
