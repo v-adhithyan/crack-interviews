@@ -11,6 +11,7 @@ from . import views
 from . import resume_builder_views as builder
 
 urlpatterns = [
+    path("app/product-scale-interview/history/", views.mock_interview_history, {"track": "product_scale"}, name="product_scale_history"),
     path("app/product-scale-interview/", views.mock_interview_start, {"track": "product_scale"}, name="product_scale_start"),
     path("app/product-scale-interview/start/", views.mock_interview_create, {"track": "product_scale"}, name="product_scale_create"),
     path('app/mock-interview/<uuid:session_uuid>/pause/', views.mock_interview_pause, name='mock_interview_pause'),

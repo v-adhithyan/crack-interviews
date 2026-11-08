@@ -549,15 +549,21 @@ def mock_interview_finish(request, session_uuid):
     return JsonResponse({"feedback_url": reverse("simulator_feedback" if getattr(session, "is_simulator", False) else "mock_interview_feedback", kwargs={"session_uuid": session.uuid})})
 
 
+@never_cache
 @product_access_required
-def mock_interview_history(request):
+def mock_interview_history(request, track=MockInterviewSession.Track.SYSTEM_DESIGN):
+    is_product_scale = track == MockInterviewSession.Track.PRODUCT_SCALE
+    sessions = user_mock_interview_queryset(request.user).filter(track=track)
+    if is_product_scale:
+        sessions = sessions.filter(user=request.user)
     return render(
         request,
         "product/mock_interview_history.html",
         {
             "resume": user_resume(request.user),
-            "sessions": user_mock_interview_queryset(request.user),
-            "active_nav": "mock_interview_history",
+            "sessions": sessions,
+            "is_product_scale": is_product_scale,
+            "active_nav": "product_scale_history" if is_product_scale else "mock_interview_history",
         },
     )
 
@@ -575,7 +581,7 @@ def mock_interview_feedback(request, session_uuid):
             "session": session,
             "feedback": session.feedback_json or {},
             "coaching_prompt": coaching_prompt(session),
-            "active_nav": "simulator_history" if getattr(session, "is_simulator", False) else "mock_interview_history",
+            "active_nav": "simulator_history" if getattr(session, "is_simulator", False) else ("product_scale_history" if session.track == MockInterviewSession.Track.PRODUCT_SCALE else "mock_interview_history"),
         },
     )
 

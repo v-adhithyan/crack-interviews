@@ -48,7 +48,8 @@ class ProductScaleInterviewTests(TestCase):
         room = self.client.get(reverse('mock_interview_room', args=[session.uuid]))
         self.assertContains(room, 'Product-scale design')
         self.assertContains(room, reverse('product_scale_start'))
-        self.assertContains(self.client.get(reverse('mock_interview_history')), 'Product-scale design')
+        self.assertContains(self.client.get(reverse('product_scale_history')), session.topic)
+        self.assertNotContains(self.client.get(reverse('mock_interview_history')), session.topic)
         self.assertNotContains(self.client.get(reverse('mock_interview_start')), session.topic)
         session.status = 'completed'
         session.feedback_json = {'overall_score': 75, 'summary': 'Clear trade-offs.'}
@@ -72,6 +73,34 @@ class ProductScaleInterviewTests(TestCase):
             invalid = self.client.post(reverse('product_scale_create'), dict(data, custom_topic=question))
             self.assertContains(invalid, 'Enter your own product-scale question below.', status_code=400)
         self.assertEqual(MockInterviewSession.objects.filter(user=self.user).count(), 1)
+
+    def test_history_is_separate_private_and_linked(self):
+        empty = self.client.get(reverse('product_scale_history'))
+        self.assertContains(empty, 'No product-scale interviews yet.')
+        self.assertContains(empty, reverse('product_scale_start'))
+        session = self.create_session()
+        standard = MockInterviewSession.objects.create(user=self.user, topic='Standard-only scenario')
+        other = get_user_model().objects.create_user('history-owner', password='test')
+        private = MockInterviewSession.objects.create(user=other, topic='Private other scenario', track='product_scale')
+        session.status = 'completed'
+        session.feedback_json = {'overall_score': 83, 'summary': 'Good scope.'}
+        session.save()
+        history = self.client.get(reverse('product_scale_history'))
+        self.assertContains(history, 'Product-scale interview history')
+        self.assertContains(history, '83')
+        self.assertContains(history, reverse('mock_interview_feedback', args=[session.uuid]))
+        self.assertNotContains(history, standard.topic)
+        self.assertNotContains(history, private.topic)
+        self.assertIn('no-store', history['Cache-Control'])
+        setup = self.client.get(reverse('product_scale_start'))
+        self.assertContains(setup, 'href="' + reverse('product_scale_history') + '">View All')
+        feedback = self.client.get(reverse('mock_interview_feedback', args=[session.uuid]))
+        self.assertContains(feedback, 'href="' + reverse('product_scale_history') + '">← Back to history')
+        self.user.is_staff = True
+        self.user.save()
+        self.assertNotContains(self.client.get(reverse('product_scale_history')), private.topic)
+        self.client.logout()
+        self.assertEqual(self.client.get(reverse('product_scale_history')).status_code, 302)
 
     def test_custom_question_and_default_preset(self):
         form = MockInterviewStartForm({'custom_topic': 'Design a small repair booking product.', 'level': 'mid'}, track='product_scale')

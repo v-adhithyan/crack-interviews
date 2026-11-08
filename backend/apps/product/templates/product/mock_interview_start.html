@@ -65,7 +65,7 @@
                         <h2 id="recent-mock-title">Recent Mock Interviews</h2>
                         <p>Jump back to feedback from your latest practice sessions.</p>
                     </div>
-                    <a class="outline-small" href="{% url 'mock_interview_history' %}">View All</a>
+                    <a class="outline-small" href="{% if is_product_scale %}{% url 'product_scale_history' %}{% else %}{% url 'mock_interview_history' %}{% endif %}">View All</a>
                 </div>
                 {% if recent_sessions %}
                     <div class="mock-session-list">

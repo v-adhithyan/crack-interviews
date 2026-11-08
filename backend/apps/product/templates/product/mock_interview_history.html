@@ -1,6 +1,6 @@
 {% extends "product/base.html" %}
 
-{% block title %}Mock Interview History | HackerLeap{% endblock %}
+{% block title %}{% if is_product_scale %}Product-Scale Interview History{% else %}Mock Interview History{% endif %} | HackerLeap{% endblock %}
 
 {% block body %}
 <div class="product-layout">
@@ -10,10 +10,10 @@
         <main class="product-main">
             <section class="dashboard-hero" aria-labelledby="history-title">
                 <div>
-                    <h1 id="history-title">Mock interview history</h1>
-                    <p>Review previous system design and product-scale practice sessions and feedback.</p>
+                    <h1 id="history-title">{% if is_product_scale %}Product-scale interview history{% else %}Mock interview history{% endif %}</h1>
+                    <p>Review previous {% if is_product_scale %}product-scale{% else %}system design{% endif %} practice sessions and feedback.</p>
                 </div>
-                <a class="outline-small" href="{% url 'mock_interview_start' %}">New Interview</a>
+                <a class="outline-small" href="{% if is_product_scale %}{% url 'product_scale_start' %}{% else %}{% url 'mock_interview_start' %}{% endif %}">New Interview</a>
             </section>
 
             <section class="recent-card">
@@ -50,7 +50,7 @@
                         {% endfor %}
                     </div>
                 {% else %}
-                    <p class="empty-state">No mock interviews yet.</p>
+                    <p class="empty-state">{% if is_product_scale %}No product-scale interviews yet. Start your first interview to see it here.{% else %}No mock interviews yet.{% endif %}</p>
                 {% endif %}
             </section>
         </main>

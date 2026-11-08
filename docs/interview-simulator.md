@@ -80,8 +80,10 @@ sessions and submissions; the new entry point sets `product_scale` server-side.
 Presets and rubric content live in `interview_tracks.py`, separate from voice
 transport. The full selected scenario is copied into the session topic, so later
 preset edits do not alter saved scenarios. Free-style continuations preserve the
-track and transcript. Both design tracks appear in the existing system design
-history with a product-scale label; each setup page shows its own recent sessions.
+track and transcript. Product-scale sessions have a dedicated private history at
+`/app/product-scale-interview/history/`, linked from the sidebar, setup page and
+feedback page. System design history only lists the system design track. Each setup
+page shows its own recent sessions.
 The role/round simulator retains its existing behavior and separate history.
 
 Apply migration `0029_mockinterviewsession_track` before serving the updated app.
