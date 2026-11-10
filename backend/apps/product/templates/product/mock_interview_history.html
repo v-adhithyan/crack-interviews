@@ -1,6 +1,6 @@
 {% extends "product/base.html" %}
 
-{% block title %}{% if is_product_scale %}Product-Scale Interview History{% else %}Mock Interview History{% endif %} | HackerLeap{% endblock %}
+{% block title %}Mock Interview History | HackerLeap{% endblock %}
 
 {% block body %}
 <div class="product-layout">
@@ -10,10 +10,10 @@
         <main class="product-main">
             <section class="dashboard-hero" aria-labelledby="history-title">
                 <div>
-                    <h1 id="history-title">{% if is_product_scale %}Product-scale interview history{% else %}Mock interview history{% endif %}</h1>
-                    <p>Review previous {% if is_product_scale %}product-scale{% else %}system design{% endif %} practice sessions and feedback.</p>
+                    <h1 id="history-title">Mock interview history</h1>
+                    <p>Review previous system design practice sessions and feedback.</p>
                 </div>
-                <a class="outline-small" href="{% if is_product_scale %}{% url 'product_scale_start' %}{% else %}{% url 'mock_interview_start' %}{% endif %}">New Interview</a>
+                <a class="outline-small" href="{% url 'mock_interview_start' %}">New Interview</a>
             </section>
 
             <section class="recent-card">
@@ -29,7 +29,7 @@
                         </div>
                         {% for session in sessions %}
                             <div class="mock-history-row" data-href="{% if session.status == 'completed' %}{% url 'mock_interview_feedback' session_uuid=session.uuid %}{% else %}{% url 'mock_interview_room' session_uuid=session.uuid %}{% endif %}">
-                                <strong>{{ session.topic }}{% if session.track == 'product_scale' %}<small> · {{ session.get_track_display }}</small>{% endif %}</strong>
+                                <strong>{{ session.topic }}</strong>
                                 <span>{{ session.get_level_display }}</span>
                                 <span>{{ session.get_status_display }} · {{ session.get_mode_display }}</span>
                                 <span>{% if session.display_score is not None %}{{ session.display_score }}{% else %}-{% endif %}</span>
@@ -50,7 +50,7 @@
                         {% endfor %}
                     </div>
                 {% else %}
-                    <p class="empty-state">{% if is_product_scale %}No product-scale interviews yet. Start your first interview to see it here.{% else %}No mock interviews yet.{% endif %}</p>
+                    <p class="empty-state">No mock interviews yet.</p>
                 {% endif %}
             </section>
         </main>

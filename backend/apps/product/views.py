@@ -292,12 +292,12 @@ def analysis_status(request, analysis_uuid):
 
 
 @product_access_required
-def mock_interview_start(request, track=MockInterviewSession.Track.SYSTEM_DESIGN):
+def mock_interview_start(request):
     resume = user_resume(request.user)
     feature_flags = get_user_feature_flags(request.user, create=True)
     feature_flags.reset_mock_interview_usage_if_expired()
-    form = MockInterviewStartForm(track=track)
-    sessions = user_mock_interview_queryset(request.user).filter(track=track)[:5]
+    form = MockInterviewStartForm()
+    sessions = user_mock_interview_queryset(request.user)[:5]
     return render(
         request,
         "product/mock_interview_start.html",
@@ -305,8 +305,7 @@ def mock_interview_start(request, track=MockInterviewSession.Track.SYSTEM_DESIGN
             "resume": resume,
             "form": form,
             "recent_sessions": sessions,
-            "active_nav": "product_scale" if track == MockInterviewSession.Track.PRODUCT_SCALE else "mock_interview",
-            "is_product_scale": track == MockInterviewSession.Track.PRODUCT_SCALE,
+            "active_nav": "mock_interview",
             "quota_remaining": feature_flags.mock_interview_quota_remaining,
         },
     )
@@ -314,12 +313,11 @@ def mock_interview_start(request, track=MockInterviewSession.Track.SYSTEM_DESIGN
 
 @product_access_required
 @require_POST
-def mock_interview_create(request, track=MockInterviewSession.Track.SYSTEM_DESIGN):
-    form = MockInterviewStartForm(request.POST, track=track)
+def mock_interview_create(request):
+    form = MockInterviewStartForm(request.POST)
     if form.is_valid():
         session = MockInterviewSession.objects.create(
             user=request.user,
-            track=track,
             topic_source=form.cleaned_data["topic_source"],
             topic=form.cleaned_data["topic"],
             level=form.cleaned_data["level"],
@@ -335,9 +333,8 @@ def mock_interview_create(request, track=MockInterviewSession.Track.SYSTEM_DESIG
         {
             "resume": resume,
             "form": form,
-            "recent_sessions": user_mock_interview_queryset(request.user).filter(track=track)[:5],
-            "active_nav": "product_scale" if track == MockInterviewSession.Track.PRODUCT_SCALE else "mock_interview",
-            "is_product_scale": track == MockInterviewSession.Track.PRODUCT_SCALE,
+            "recent_sessions": user_mock_interview_queryset(request.user)[:5],
+            "active_nav": "mock_interview",
             "quota_remaining": feature_flags.mock_interview_quota_remaining,
         },
         status=400,
@@ -357,7 +354,7 @@ def mock_interview_room(request, session_uuid):
         {
             "resume": user_resume(request.user),
             "session": session,
-            "active_nav": "simulator" if getattr(session, "is_simulator", False) else ("product_scale" if session.track == MockInterviewSession.Track.PRODUCT_SCALE else "mock_interview"),
+            "active_nav": "simulator" if getattr(session, "is_simulator", False) else "mock_interview",
             "duration_seconds": int(MockInterviewSession.DURATION.total_seconds()),
             "remaining_seconds": session.remaining_seconds,
             "mock_interview_user_label": user_display_label(session.user),
@@ -385,7 +382,6 @@ def mock_interview_continue_free_style(request, session_uuid):
         mode=MockInterviewSession.Mode.FREE,
         topic_source=source_session.topic_source,
         topic=source_session.topic,
-        track=source_session.track,
         level=source_session.level,
         transcript_text=transcript_text,
     )
@@ -549,21 +545,15 @@ def mock_interview_finish(request, session_uuid):
     return JsonResponse({"feedback_url": reverse("simulator_feedback" if getattr(session, "is_simulator", False) else "mock_interview_feedback", kwargs={"session_uuid": session.uuid})})
 
 
-@never_cache
 @product_access_required
-def mock_interview_history(request, track=MockInterviewSession.Track.SYSTEM_DESIGN):
-    is_product_scale = track == MockInterviewSession.Track.PRODUCT_SCALE
-    sessions = user_mock_interview_queryset(request.user).filter(track=track)
-    if is_product_scale:
-        sessions = sessions.filter(user=request.user)
+def mock_interview_history(request):
     return render(
         request,
         "product/mock_interview_history.html",
         {
             "resume": user_resume(request.user),
-            "sessions": sessions,
-            "is_product_scale": is_product_scale,
-            "active_nav": "product_scale_history" if is_product_scale else "mock_interview_history",
+            "sessions": user_mock_interview_queryset(request.user),
+            "active_nav": "mock_interview_history",
         },
     )
 
@@ -581,7 +571,7 @@ def mock_interview_feedback(request, session_uuid):
             "session": session,
             "feedback": session.feedback_json or {},
             "coaching_prompt": coaching_prompt(session),
-            "active_nav": "simulator_history" if getattr(session, "is_simulator", False) else ("product_scale_history" if session.track == MockInterviewSession.Track.PRODUCT_SCALE else "mock_interview_history"),
+            "active_nav": "simulator_history" if getattr(session, "is_simulator", False) else "mock_interview_history",
         },
     )
 
