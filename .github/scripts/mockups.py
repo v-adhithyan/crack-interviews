@@ -48,12 +48,13 @@ def mockup_ready(issue, events):
             approver = (event.get("actor") or {}).get("login")
     if not review_started:
         return True
+    # Approval is the final state: the review label may have been removed by a
+    # user while clearing/reapplying labels, so do not require it to remain.
     return (
-        REVIEW_LABEL in labels
-        and APPROVAL_LABEL in labels
-        and latest_review > latest_request
-        and latest_approval > latest_review
+        APPROVAL_LABEL in labels
+        and latest_approval > latest_request
         and approver == issue["author"]["login"]
+        and (latest_review == -1 or latest_approval > latest_review)
     )
 
 
