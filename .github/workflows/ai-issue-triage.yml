@@ -173,7 +173,8 @@ jobs:
           set -euo pipefail
           pr_url="$(gh pr list --head "$BRANCH" --json url --jq '.[0].url' || true)"
           if [[ -n "$pr_url" ]]; then
-            gh issue comment "$ISSUE_NUMBER" --body "## AI pull request ready\n\nReview the pull request: $pr_url\n\nThe implementation is complete and waiting for human review.\n\n<!-- ai-pr-ready -->"
+            body=$'## AI pull request ready\n\nReview the pull request: '\"$pr_url\"$'\n\nThe implementation is complete and waiting for human review.\n\n<!-- ai-pr-ready -->'
+            gh issue comment "$ISSUE_NUMBER" --body "$body"
           else
             gh issue comment "$ISSUE_NUMBER" --body $'## AI implementation finished\n\nCodex completed without finding a pull request. Check the workflow logs before retrying.\n\n<!-- ai-pr-missing -->'
           fi
