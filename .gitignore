@@ -35,6 +35,7 @@ frontend/.env.production.local
 frontend/node_modules/
 frontend/.next/
 frontend/out/
+frontend/test-results/
 frontend/.vercel/
 node_modules/
 .next/
