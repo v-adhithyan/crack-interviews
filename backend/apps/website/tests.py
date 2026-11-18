@@ -427,3 +427,20 @@ class ErrorPageTests(TestCase):
         self.assertEqual(response.status_code, 500)
         self.assertIn("Something went wrong", response.content.decode())
         self.assertIn("HackerLeap", response.content.decode())
+
+
+class StatusPageTests(TestCase):
+    @override_settings(HACKERLEAP_CODE="https://code.example.com/")
+    def test_anonymous_status_page_exposes_two_service_checks(self):
+        response = self.client.get(reverse("status_page"))
+
+        self.assertContains(response, "<h1>HackerLeap Status</h1>", html=True)
+        self.assertContains(response, "data-health-url=", count=2)
+        self.assertContains(response, 'data-health-url="https://code.example.com/health"')
+        self.assertContains(response, f'data-health-url="{reverse("health")}"')
+        self.assertContains(response, "Refresh this page to check the status again.")
+
+    def test_status_page_is_linked_from_footer_and_sitemap(self):
+        path = reverse("status_page")
+        self.assertContains(self.client.get(reverse("home_page")), f'<a href="{path}">Status</a>', html=True)
+        self.assertContains(self.client.get(reverse("sitemap_xml")), f"<loc>http://testserver{path}</loc>")

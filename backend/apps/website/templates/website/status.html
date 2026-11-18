@@ -1,0 +1,64 @@
+{% extends "website/base.html" %}
+{% load static %}
+
+{% block title %}HackerLeap Status{% endblock %}
+{% block meta_description %}Check the reachability of the HackerLeap website and coding platform.{% endblock %}
+{% block extra_head %}
+    <link rel="stylesheet" href="{% static 'website/css/status.css' %}">
+    <script defer src="{% static 'website/js/status.js' %}"></script>
+{% endblock %}
+
+{% block content %}
+<section class="status-page">
+    <header class="status-intro">
+        <svg aria-hidden="true" viewBox="0 0 52 40" width="52" height="40" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 21h15l6-18 7 34 6-16h14"/>
+        </svg>
+        <h1>HackerLeap Status</h1>
+        <p>Check whether the Website and Coding Platform are reachable.</p>
+    </header>
+
+    <div class="status-overview" role="status" aria-atomic="true">
+        <div>
+            <strong id="status-summary">Status check pending</strong>
+            <p>Coverage: Website and Coding Platform heartbeats.</p>
+        </div>
+        <div id="status-checked" hidden>
+            <span>Last checked</span>
+            <time></time>
+        </div>
+    </div>
+
+    <section class="status-services" aria-label="Service status">
+        <div class="status-labels" aria-hidden="true"><span>Services</span><span>Status</span></div>
+        <details data-health-url="{{ coding_health_url }}">
+            <summary>
+                <span class="status-icon" aria-hidden="true">&lt;/&gt;</span>
+                <span class="status-service"><strong>Coding Platform</strong><span>Solve problems, run code, and view results.</span></span>
+                <span class="status-result">Pending</span>
+            </summary>
+            <p>Checks whether the separately hosted Coding Platform responds to a health request.</p>
+        </details>
+        <details data-health-url="{% url 'health' %}">
+            <summary>
+                <span class="status-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <circle cx="12" cy="12" r="10"/><ellipse cx="12" cy="12" rx="4" ry="10"/><path d="M2 12h20"/>
+                    </svg>
+                </span>
+                <span class="status-service"><strong>Website</strong><span>Public site and Django application.</span></span>
+                <span class="status-result">Pending</span>
+            </summary>
+            <p>Checks whether Django responds. Staff login, job analysis, resume generation, and mock interview workflows are outside the heartbeat coverage.</p>
+        </details>
+    </section>
+
+    <p class="status-note">
+        <svg aria-hidden="true" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-11V6l-8-4-8 4v5c0 7 8 11 8 11Z"/><path d="m9 12 2 2 4-4"/>
+        </svg>
+        Refresh this page to check the status again.
+    </p>
+    <noscript><p class="status-note">Enable JavaScript to check service status.</p></noscript>
+</section>
+{% endblock %}
