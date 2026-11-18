@@ -3,6 +3,12 @@ name: AI address pull request review
 on:
   pull_request:
     types: [labeled]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number to update
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -12,14 +18,15 @@ permissions:
 jobs:
   address-review:
     if: >-
-      github.event.label.name == 'ai-address-review' &&
-      contains(github.event.pull_request.labels.*.name, 'ai-address-review')
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.label.name == 'ai-address-review' &&
+        contains(github.event.pull_request.labels.*.name, 'ai-address-review')))
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.AI_GH_TOKEN || github.token }}
       AI_GH_TOKEN: ${{ secrets.AI_GH_TOKEN }}
       AI_ALLOWED_USERS: ${{ vars.AI_ALLOWED_USERS || secrets.AI_ALLOWED_USERS }}
-      PR_NUMBER: ${{ github.event.pull_request.number }}
+      PR_NUMBER: ${{ inputs.pr_number || github.event.pull_request.number }}
       REPOSITORY: ${{ github.repository }}
     steps:
       - name: Validate reviewer authorization
