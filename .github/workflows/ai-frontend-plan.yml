@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.AI_GH_TOKEN || github.token }}
+      AI_GH_TOKEN: ${{ secrets.AI_GH_TOKEN }}
       AI_ALLOWED_USERS: ${{ vars.AI_ALLOWED_USERS || secrets.AI_ALLOWED_USERS }}
       ISSUE_NUMBER: ${{ github.event.issue.number }}
       REPOSITORY: ${{ github.repository }}
@@ -45,6 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.AI_GH_TOKEN || github.token }}
+      AI_GH_TOKEN: ${{ secrets.AI_GH_TOKEN }}
       AI_ALLOWED_USERS: ${{ vars.AI_ALLOWED_USERS || secrets.AI_ALLOWED_USERS }}
       ISSUE_NUMBER: ${{ github.event.issue.number }}
       REPOSITORY: ${{ github.repository }}
@@ -67,6 +69,11 @@ jobs:
           npm ci --prefix frontend
       - name: Install Codex Linux runtime
         run: npm install --global --include=optional @openai/codex@latest
+      - name: Configure workflow-capable git push
+        run: |
+          set -euo pipefail
+          test -n "$AI_GH_TOKEN" || { echo "AI_GH_TOKEN is missing."; exit 1; }
+          git remote set-url origin "https://x-access-token:${AI_GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
       - name: Implement approved frontend plan
         uses: openai/codex-action@v1
         with:
