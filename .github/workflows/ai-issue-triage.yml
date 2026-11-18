@@ -82,5 +82,8 @@ jobs:
           ISSUE_NUMBER: ${{ inputs.issue_number || github.event.issue.number }}
         run: |
           set -euo pipefail
-          gh issue comment "$ISSUE_NUMBER" --body $'## Requirements clear\n\nThe issue is clear enough for implementation. The coding worker may now create a branch and pull request.\n\n<!-- ai-requirements-clear -->'
+          comments="$(gh issue view "$ISSUE_NUMBER" --json comments --jq '.comments[].body')"
+          if ! grep -Fq '<!-- ai-requirements-clear -->' <<<"$comments"; then
+            gh issue comment "$ISSUE_NUMBER" --body $'## Requirements clear\n\nThe issue is clear enough for implementation. The coding worker may now create a branch and pull request.\n\n<!-- ai-requirements-clear -->'
+          fi
           gh issue edit "$ISSUE_NUMBER" --remove-label ai-ready --remove-label ai-awaiting-clarification --add-label ai-ready-to-implement

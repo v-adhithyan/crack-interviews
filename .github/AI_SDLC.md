@@ -10,6 +10,13 @@ exists. When the issue author replies, triage runs again. Only a clear result ad
 
 The implementation worker must read this file and `AGENTS.md` before changing code.
 
+When an allowlisted user adds `ai-ready-to-implement`, the implementation worker
+may create a branch and pull request. It must stop on unresolved requirements,
+failing checks, or unsafe changes; it must never merge or deploy.
+
+The implementation worker uses the OpenAI Codex GitHub Action and the same
+Actions secret named `OPENAI_API_KEY` used by requirements triage.
+
 Only issues authored by, or explicitly approved by, users in `AI_ALLOWED_USERS`
 are eligible. Configure it as an Actions secret or repository variable containing
 comma-separated GitHub usernames. It is checked before the AI receives the issue
