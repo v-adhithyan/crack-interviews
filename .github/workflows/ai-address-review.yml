@@ -1,8 +1,6 @@
 name: AI address pull request review
 
 on:
-  issue_comment:
-    types: [created]
   issues:
     types: [labeled]
 
@@ -16,8 +14,7 @@ jobs:
     if: >-
       github.event.issue.pull_request != null &&
       contains(github.event.issue.labels.*.name, 'ai-address-review') &&
-      ((github.event_name == 'issues' && github.event.label.name == 'ai-address-review') ||
-       (github.event_name == 'issue_comment' && github.event.comment.user.login != 'github-actions[bot]'))
+      github.event.label.name == 'ai-address-review'
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.AI_GH_TOKEN || github.token }}
