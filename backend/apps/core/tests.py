@@ -621,3 +621,11 @@ class QuestionAdminJsonImportTests(TestCase):
         self.assertEqual(question.title, "Sum Two Values")
         self.assertEqual(question.test_cases.count(), 2)
         self.assertFalse(question.test_cases.filter(name="Old").exists())
+
+
+class HealthTests(TestCase):
+    def test_anonymous_health_request_returns_heartbeat(self):
+        response = self.client.get(reverse("health"), HTTP_ACCEPT="application/json")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"status": "ok"})
