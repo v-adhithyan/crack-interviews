@@ -27,7 +27,7 @@ jobs:
        contains(github.event.issue.labels.*.name, 'ai-awaiting-clarification'))
     runs-on: ubuntu-latest
     env:
-      GH_TOKEN: ${{ github.token }}
+      GH_TOKEN: ${{ secrets.AI_GH_TOKEN || github.token }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-4o-mini' }}
       # Accept the current Actions secret and the documented repository variable.
@@ -36,6 +36,8 @@ jobs:
       AI_TRIGGER_ACTOR: ${{ github.actor }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.AI_GH_TOKEN || github.token }}
       - name: Ensure AI workflow labels exist
         env:
           ISSUE_NUMBER: ${{ inputs.issue_number || github.event.issue.number }}

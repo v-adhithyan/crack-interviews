@@ -11,7 +11,7 @@ jobs:
     if: github.event.label.name == 'ai-frontend-plan'
     runs-on: ubuntu-latest
     env:
-      GH_TOKEN: ${{ github.token }}
+      GH_TOKEN: ${{ secrets.AI_GH_TOKEN || github.token }}
       AI_ALLOWED_USERS: ${{ vars.AI_ALLOWED_USERS || secrets.AI_ALLOWED_USERS }}
       ISSUE_NUMBER: ${{ github.event.issue.number }}
       REPOSITORY: ${{ github.repository }}
@@ -44,7 +44,7 @@ jobs:
     if: github.event.label.name == 'ai-frontend-approved'
     runs-on: ubuntu-latest
     env:
-      GH_TOKEN: ${{ github.token }}
+      GH_TOKEN: ${{ secrets.AI_GH_TOKEN || github.token }}
       AI_ALLOWED_USERS: ${{ vars.AI_ALLOWED_USERS || secrets.AI_ALLOWED_USERS }}
       ISSUE_NUMBER: ${{ github.event.issue.number }}
       REPOSITORY: ${{ github.repository }}
@@ -59,6 +59,7 @@ jobs:
           grep -Fq '<!-- ai-frontend-plan -->' <<<"$comments"
       - uses: actions/checkout@v4
         with:
+          token: ${{ secrets.AI_GH_TOKEN || github.token }}
           ref: ${{ env.BRANCH }}
       - name: Prepare project dependencies
         run: |

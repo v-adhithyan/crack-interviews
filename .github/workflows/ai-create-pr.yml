@@ -14,7 +14,7 @@ jobs:
     if: github.event.label.name == (vars.AI_CREATE_PR_LABEL || 'ai-create-pr')
     runs-on: ubuntu-latest
     env:
-      GH_TOKEN: ${{ github.token }}
+      GH_TOKEN: ${{ secrets.AI_GH_TOKEN || github.token }}
       AI_ALLOWED_USERS: ${{ vars.AI_ALLOWED_USERS || secrets.AI_ALLOWED_USERS }}
       AI_CREATE_PR_LABEL: ${{ vars.AI_CREATE_PR_LABEL || 'ai-create-pr' }}
       DEFAULT_BRANCH: ${{ vars.AI_DEFAULT_BRANCH || github.event.repository.default_branch }}
