@@ -11,11 +11,13 @@ permissions:
 
 jobs:
   create-pr:
-    if: github.event.label.name == 'ai-create-pr'
+    if: github.event.label.name == (vars.AI_CREATE_PR_LABEL || 'ai-create-pr')
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
-      AI_ALLOWED_USERS: ${{ secrets.AI_ALLOWED_USERS || vars.AI_ALLOWED_USERS }}
+      AI_ALLOWED_USERS: ${{ vars.AI_ALLOWED_USERS || secrets.AI_ALLOWED_USERS }}
+      AI_CREATE_PR_LABEL: ${{ vars.AI_CREATE_PR_LABEL || 'ai-create-pr' }}
+      DEFAULT_BRANCH: ${{ vars.AI_DEFAULT_BRANCH || github.event.repository.default_branch }}
       ISSUE_NUMBER: ${{ github.event.issue.number }}
       REPOSITORY: ${{ github.repository }}
     steps:
@@ -24,18 +26,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          issue_json="$(gh issue view "$ISSUE_NUMBER" --json labels,comments,author)"
+          issue_json="$(gh issue view "$ISSUE_NUMBER" --repo "$REPOSITORY" --json labels,comments,author)"
           labels="$(python3 -c 'import json,sys; print(" ".join(x["name"] for x in json.load(sys.stdin)["labels"]))' <<<"$issue_json")"
           allowed=",${AI_ALLOWED_USERS:-},"
           if [[ "$allowed" != *",${{ github.actor }},"* ]]; then
             echo "The triggering user is not in AI_ALLOWED_USERS."
             exit 1
           fi
-          if [[ "$labels" != *"ai-create-pr"* ]]; then
+          if [[ "$labels" != *"$AI_CREATE_PR_LABEL"* ]]; then
             echo "The create-PR label is no longer present."
             exit 1
           fi
-          if ! grep -Fq '<!-- ai-requirements-clear -->' < <(gh issue view "$ISSUE_NUMBER" --json comments --jq '.comments[].body'); then
+          if ! grep -Fq '<!-- ai-requirements-clear -->' < <(gh issue view "$ISSUE_NUMBER" --repo "$REPOSITORY" --json comments --jq '.comments[].body'); then
             echo "Requirements have not been marked clear; refusing to create a PR."
             exit 1
           fi
@@ -44,7 +46,7 @@ jobs:
             echo "Implementation branch $branch does not exist."
             exit 1
           fi
-          existing_pr="$(gh pr list --head "$branch" --state all --json url --jq '.[0].url')"
+          existing_pr="$(gh pr list --repo "$REPOSITORY" --head "$branch" --state all --json url --jq '.[0].url')"
           echo "branch=$branch" >> "$GITHUB_OUTPUT"
           echo "existing_pr=$existing_pr" >> "$GITHUB_OUTPUT"
 
@@ -55,8 +57,8 @@ jobs:
           BRANCH: ${{ steps.validate.outputs.branch }}
         run: |
           set -euo pipefail
-          pr_url="$(gh pr create \
-            --base main \
+          pr_url="$(gh pr create --repo "$REPOSITORY" \
+            --base "$DEFAULT_BRANCH" \
             --head "$BRANCH" \
             --title "AI implementation for issue #$ISSUE_NUMBER" \
             --body $'Implemented from issue #'"$ISSUE_NUMBER"$'\n\nCloses #'"$ISSUE_NUMBER")"
@@ -70,5 +72,5 @@ jobs:
         run: |
           set -euo pipefail
           pr_url="${CREATED_PR:-$EXISTING_PR}"
-          gh issue comment "$ISSUE_NUMBER" --body "## Pull request ready\n\n$pr_url"
-          gh issue edit "$ISSUE_NUMBER" --remove-label ai-create-pr
+          gh issue comment "$ISSUE_NUMBER" --repo "$REPOSITORY" --body "## Pull request ready\n\n$pr_url"
+          gh issue edit "$ISSUE_NUMBER" --repo "$REPOSITORY" --remove-label "$AI_CREATE_PR_LABEL"
