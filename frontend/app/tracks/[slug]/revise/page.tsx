@@ -6,9 +6,10 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { AuthGate } from "@/components/AuthGate";
-import { AutoHeightCodeBlock } from "@/components/AutoHeightCodeBlock";
-import { getTrack, getTrackRevisionSubmissions, type RevisionSubmission, type Tag } from "@/lib/api";
+import { RevisionSolutionCard } from "@/components/RevisionSolutionCard";
+import { getTrack, getTrackRevisionSubmissions } from "@/lib/api";
 import { INTERVIEW_PREPARATION_TRACK, normalizedTag, trackReturnPath, withTrackContext, type TrackContext } from "@/lib/trackContext";
+import { addRevisionTags, filterRevisionByTag, getRevisionTagOptions, type TrackRevisionSubmission } from "@/lib/trackRevision";
 import { usePageTitle } from "@/lib/usePageTitle";
 
 export default function TrackRevisePage({ params }: { params: { slug: string } }) {
@@ -19,7 +20,7 @@ function TrackReviseContent({ slug }: { slug: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [items, setItems] = useState<Array<RevisionSubmission & { tags: Tag[] }>>([]);
+  const [items, setItems] = useState<TrackRevisionSubmission[]>([]);
   const [selectedTag, setSelectedTag] = useState(() => normalizedTag(searchParams.get("tag")) ?? "all");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -29,10 +30,7 @@ function TrackReviseContent({ slug }: { slug: string }) {
     async function loadItems() {
       try {
         const [submissions, track] = await Promise.all([getTrackRevisionSubmissions(slug), getTrack(slug)]);
-        const tagsByQuestion = new Map(
-          track.sections.flatMap((section) => section.questions).map((question) => [question.slug, question.tags] as const),
-        );
-        setItems(submissions.map((submission) => ({ ...submission, tags: tagsByQuestion.get(submission.question_slug) ?? [] })));
+        setItems(addRevisionTags(submissions, track.sections));
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to load solved interview questions.");
       } finally {
@@ -46,16 +44,8 @@ function TrackReviseContent({ slug }: { slug: string }) {
     setSelectedTag(normalizedTag(searchParams.get("tag")) ?? "all");
   }, [searchParams]);
 
-  const availableTags = useMemo(() => {
-    const tags = new Map<string, string>();
-    items.forEach((item) => item.tags.forEach((tag) => tags.set(tag.slug, tag.name)));
-    return Array.from(tags.entries()).sort((left, right) => left[1].localeCompare(right[1]));
-  }, [items]);
-
-  const filteredItems = useMemo(
-    () => selectedTag === "all" ? items : items.filter((item) => item.tags.some((tag) => tag.slug === selectedTag)),
-    [items, selectedTag],
-  );
+  const availableTags = useMemo(() => getRevisionTagOptions(items), [items]);
+  const filteredItems = useMemo(() => filterRevisionByTag(items, selectedTag), [items, selectedTag]);
 
   if (isLoading) {
     return <main className="grid min-h-screen place-items-center bg-paper text-sm font-bold text-muted">Loading solved questions...</main>;
@@ -135,9 +125,14 @@ function TrackReviseContent({ slug }: { slug: string }) {
 
         <div className="grid gap-6">
           {filteredItems.map((item, index) => (
-            <article key={item.id} className="overflow-hidden rounded-lg border border-[rgba(15,23,42,0.08)] bg-white/90 shadow-product">
-              <div className="flex items-start justify-between gap-4 border-b border-line bg-[#fffaf0] px-4 py-3">
-                <div>
+            <RevisionSolutionCard
+              key={item.id}
+              submission={item}
+              href={withTrackContext(`/questions/${item.question_slug}`, trackContext)}
+              linkLabel="Solve again"
+              solutionPrefix="Latest accepted "
+              heading={
+                <>
                   <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-normal text-emerald-700">
                     <CheckCircle2 size={14} />
                     Solved problem {index + 1}
@@ -148,18 +143,9 @@ function TrackReviseContent({ slug }: { slug: string }) {
                       <span key={tag.slug} className="rounded-[6px] bg-[#eef6ff] px-2 py-1 text-[11px] font-bold text-[#175cd3]">{tag.name}</span>
                     ))}
                   </span>
-                </div>
-                <Link href={withTrackContext(`/questions/${item.question_slug}`, trackContext)} className="shrink-0 text-sm font-bold text-muted hover:text-[#d08a00]">
-                  Solve again
-                </Link>
-              </div>
-              <div className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-muted">
-                Latest accepted {item.language === "java" ? "Java 17" : "Python 3"} solution
-              </div>
-              <div className="px-4 pb-4">
-                <AutoHeightCodeBlock code={item.code} language={item.language} />
-              </div>
-            </article>
+                </>
+              }
+            />
           ))}
         </div>
       </section>

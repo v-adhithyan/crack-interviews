@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { AuthGate } from "@/components/AuthGate";
-import { AutoHeightCodeBlock } from "@/components/AutoHeightCodeBlock";
+import { RevisionSolutionCard } from "@/components/RevisionSolutionCard";
 import { getRevisionSubmissions, type RevisionSubmission } from "@/lib/api";
 import { usePageTitle } from "@/lib/usePageTitle";
 
@@ -69,23 +69,18 @@ function ReviseContent() {
 
         <div className="grid gap-6">
           {items.map((item, index) => (
-            <article key={item.id} className="overflow-hidden rounded-lg border border-[rgba(15,23,42,0.08)] bg-white/90 shadow-product">
-              <div className="flex items-start justify-between gap-4 border-b border-line bg-[#fffaf0] px-4 py-3">
-                <div>
+            <RevisionSolutionCard
+              key={item.id}
+              submission={item}
+              href={`/questions/${item.question_slug}`}
+              linkLabel="Open problem"
+              heading={
+                <>
                   <p className="text-xs font-bold uppercase tracking-normal text-muted">Question {index + 1}</p>
                   <h2 className="text-lg font-[850]">{item.question_title}</h2>
-                </div>
-                <Link href={`/questions/${item.question_slug}`} className="shrink-0 text-sm font-bold text-muted hover:text-[#d08a00]">
-                  Open problem
-                </Link>
-              </div>
-              <div className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-muted">
-                {item.language === "java" ? "Java 17" : "Python 3"} solution
-              </div>
-              <div className="px-4 pb-4">
-                <AutoHeightCodeBlock code={item.code} language={item.language} />
-              </div>
-            </article>
+                </>
+              }
+            />
           ))}
         </div>
       </section>

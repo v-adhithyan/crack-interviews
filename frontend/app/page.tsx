@@ -172,7 +172,7 @@ function QuestionListPage() {
 
       <section className="mx-auto max-w-6xl px-6 py-8">
         <div className="mb-5">
-          <p className="text-sm font-bold text-muted">Let's crack the coding interview.</p>
+          <p className="text-sm font-bold text-muted">Let&apos;s crack the coding interview.</p>
           <h1 className="text-2xl font-[850]">Questions</h1>
         </div>
         <div className="mb-4 grid gap-3 md:grid-cols-[1fr_220px]">
