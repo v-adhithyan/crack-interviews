@@ -177,8 +177,11 @@ jobs:
 
             The pull request must include a summary, requirements implemented,
             checks and results, risks, limitations, and a link closing the issue.
-            If requirements are still ambiguous, stop without editing code and
-            comment on the issue with the exact missing decisions.
+            If requirements become ambiguous during implementation, do not edit code.
+            Comment with the exact missing decisions, include the marker
+            <!-- ai-implementation-clarification -->, remove ai-ready-to-implement,
+            and add ai-awaiting-clarification. This is required so an issue reply
+            can retrigger triage.
 
       - name: Announce pull request
         if: steps.triage.outputs.status == 'clear' && success()
