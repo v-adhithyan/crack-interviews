@@ -47,7 +47,7 @@ jobs:
           ISSUE_NUMBER: ${{ inputs.issue_number || github.event.issue.number }}
         run: |
           set -euo pipefail
-          for label in ai-ready ai-awaiting-clarification ai-ready-to-implement; do
+          for label in ai-ready ai-awaiting-clarification ai-ready-to-implement mockup-gen mockup-regen mockup-review-required mockup-approved; do
             gh label create "$label" --color FBCA04 --force >/dev/null
           done
       - name: Triage issue
@@ -101,15 +101,22 @@ jobs:
           fi
           gh issue edit "$ISSUE_NUMBER" --remove-label ai-ready --remove-label ai-awaiting-clarification --add-label ai-ready-to-implement
 
-      - name: Announce implementation start
+      - name: Check implementation and mockup approval
+        id: gate
         if: steps.triage.outputs.status == 'clear'
+        env:
+          ISSUE_NUMBER: ${{ inputs.issue_number || github.event.issue.number }}
+        run: python3 .github/scripts/mockups.py triage-gate
+
+      - name: Announce implementation start
+        if: steps.gate.outputs.ready == 'true'
         env:
           ISSUE_NUMBER: ${{ inputs.issue_number || github.event.issue.number }}
         run: |
           gh issue comment "$ISSUE_NUMBER" --body $'## AI implementation started\n\nRequirements are clear. I am preparing the implementation branch and test environment.\n\n<!-- ai-implementation-started -->'
 
       - name: Prepare project dependencies
-        if: steps.triage.outputs.status == 'clear'
+        if: steps.gate.outputs.ready == 'true'
         shell: bash
         env:
           ISSUE_NUMBER: ${{ inputs.issue_number || github.event.issue.number }}
@@ -119,7 +126,7 @@ jobs:
           npm ci --prefix frontend
 
       - name: Create implementation branch
-        if: steps.triage.outputs.status == 'clear'
+        if: steps.gate.outputs.ready == 'true'
         id: branch
         env:
           ISSUE_NUMBER: ${{ inputs.issue_number || github.event.issue.number }}
@@ -136,33 +143,40 @@ jobs:
             git push --set-upstream origin "$branch"
           fi
           echo "name=$branch" >> "$GITHUB_OUTPUT"
+          # Preserve the Markdown backticks in the format string.
+          # shellcheck disable=SC2016
           body=$(printf '## AI branch ready\n\nBranch created: [`%s`](https://github.com/%s/tree/%s)\n\nThe coding agent will work on this branch.\n\n<!-- ai-branch-created -->\n' "$branch" "$REPOSITORY" "$branch")
           gh issue comment "$ISSUE_NUMBER" --body "$body"
 
       - name: Announce coding stage
-        if: steps.triage.outputs.status == 'clear'
+        if: steps.gate.outputs.ready == 'true'
         env:
           ISSUE_NUMBER: ${{ inputs.issue_number || github.event.issue.number }}
         run: |
           gh issue comment "$ISSUE_NUMBER" --body $'## AI coding in progress\n\nDependencies are ready. Codex is inspecting the repository, implementing the issue, and running the required checks.\n\n<!-- ai-coding-started -->'
 
       - name: Install Codex Linux runtime
+        if: steps.gate.outputs.ready == 'true'
         run: npm install --global --include=optional @openai/codex@latest
 
       - name: Configure workflow-capable git push
+        if: steps.gate.outputs.ready == 'true'
         run: |
           set -euo pipefail
           test -n "$AI_GH_TOKEN" || { echo "AI_GH_TOKEN is missing."; exit 1; }
           git remote set-url origin "https://x-access-token:${AI_GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
 
       - name: Run OpenAI Codex implementation agent
-        if: steps.triage.outputs.status == 'clear'
+        if: steps.gate.outputs.ready == 'true'
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           permission-profile: ":danger-full-access"
           prompt: |
             Implement GitHub issue #${{ inputs.issue_number || github.event.issue.number }}.
+
+            Approved mockup PNG, when applicable: ${{ steps.gate.outputs.mockup }}
+            Download and view the approved mockup and follow its design in the implementation.
 
             Read AGENTS.md and .github/AI_SDLC.md first. Read the complete issue,
             all clarification replies, and the requirements-clear comment.
@@ -184,7 +198,7 @@ jobs:
             can retrigger triage.
 
       - name: Announce pull request
-        if: steps.triage.outputs.status == 'clear' && success()
+        if: steps.gate.outputs.ready == 'true' && success()
         env:
           ISSUE_NUMBER: ${{ inputs.issue_number || github.event.issue.number }}
           BRANCH: ai/issue-${{ inputs.issue_number || github.event.issue.number }}
@@ -208,7 +222,7 @@ jobs:
           fi
 
       - name: Announce implementation failure
-        if: steps.triage.outputs.status == 'clear' && failure()
+        if: steps.gate.outputs.ready == 'true' && failure()
         env:
           ISSUE_NUMBER: ${{ inputs.issue_number || github.event.issue.number }}
         run: |

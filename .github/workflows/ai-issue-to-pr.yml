@@ -20,7 +20,7 @@ jobs:
   implement:
     if: >-
       (github.event_name == 'workflow_dispatch') ||
-      (github.event_name == 'issues' && github.event.label.name == 'ai-ready-to-implement')
+      (github.event_name == 'issues' && contains(fromJSON('["ai-ready-to-implement","mockup-approved"]'), github.event.label.name))
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.AI_GH_TOKEN || github.token }}
@@ -28,34 +28,22 @@ jobs:
       AI_ALLOWED_USERS: ${{ secrets.AI_ALLOWED_USERS || vars.AI_ALLOWED_USERS }}
       AI_TRIGGER_ACTOR: ${{ github.actor }}
       ISSUE_NUMBER: ${{ inputs.issue_number || github.event.issue.number }}
+    concurrency:
+      group: ai-implement-${{ inputs.issue_number || github.event.issue.number }}
     steps:
-      - name: Check approval allowlist
-        shell: bash
-        run: |
-          set -euo pipefail
-          issue_json="$(gh issue view "$ISSUE_NUMBER" --json number,title,body,author,labels,comments)"
-          labels="$(python3 -c 'import json,sys; print(" ".join(x["name"] for x in json.load(sys.stdin)["labels"]))' <<<"$issue_json")"
-          comments="$(python3 -c 'import json,sys; print("\n".join(x["body"] for x in json.load(sys.stdin)["comments"]))' <<<"$issue_json")"
-          allowed="$(printf '%s' ",${AI_ALLOWED_USERS:-}," | tr -d '[:space:]')"
-          if [[ "$labels" != *"ai-ready-to-implement"* ]]; then
-            echo "Issue is not marked ai-ready-to-implement."
-            exit 1
-          fi
-          if ! grep -Fq '<!-- ai-requirements-clear -->' <<<"$comments"; then
-            echo "Requirements have not been marked clear; refusing implementation."
-            exit 1
-          fi
-          if [[ "$allowed" != *",$AI_TRIGGER_ACTOR,"* ]]; then
-            echo "The triggering user is not in AI_ALLOWED_USERS."
-            exit 1
-          fi
-
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.AI_GH_TOKEN || github.token }}
           fetch-depth: 0
 
+      - name: Check requirements, allowlist, and mockup approval
+        id: gate
+        env:
+          TRIGGER_LABEL: ${{ github.event.label.name }}
+        run: python3 .github/scripts/mockups.py gate
+
       - name: Prepare project dependencies
+        if: steps.gate.outputs.ready == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -63,15 +51,18 @@ jobs:
           npm ci --prefix frontend
 
       - name: Install Codex Linux runtime
+        if: steps.gate.outputs.ready == 'true'
         run: npm install --global --include=optional @openai/codex@latest
 
       - name: Configure workflow-capable git push
+        if: steps.gate.outputs.ready == 'true'
         run: |
           set -euo pipefail
           test -n "$AI_GH_TOKEN" || { echo "AI_GH_TOKEN is missing."; exit 1; }
           git remote set-url origin "https://x-access-token:${AI_GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
 
       - name: Run OpenAI Codex implementation agent
+        if: steps.gate.outputs.ready == 'true'
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
@@ -79,11 +70,14 @@ jobs:
           prompt: |
             Implement GitHub issue #${{ inputs.issue_number || github.event.issue.number }}.
 
+            Approved mockup PNG, when applicable: ${{ steps.gate.outputs.mockup }}
+            Download and view the approved mockup and follow its design in the implementation.
+
             Follow this exact process:
             1. Read AGENTS.md and .github/AI_SDLC.md.
             2. Read the complete issue, including clarification comments and the requirements-clear comment.
             3. Inspect the existing architecture and relevant tests before editing.
-            4. Create a focused branch for this issue and make the smallest complete implementation.
+            4. Use ai/issue-${{ inputs.issue_number || github.event.issue.number }}, creating it if needed, and make the smallest complete implementation.
             5. Add or update meaningful unit, integration, and regression tests.
             6. Run all applicable checks from AGENTS.md. Fix failures caused by this change.
             7. For UI changes, add browser coverage and attach before/after screenshots to the pull request when possible.

@@ -1,91 +1,27 @@
-name: AI frontend plan and implementation
+name: AI frontend mockups
 on:
   issues:
     types: [labeled]
 permissions:
   contents: write
   issues: write
-  pull-requests: write
 jobs:
-  plan:
-    if: github.event.label.name == 'ai-frontend-plan'
+  mockup:
+    if: contains(fromJSON('["mockup-gen","mockup-regen"]'), github.event.label.name)
     runs-on: ubuntu-latest
+    concurrency:
+      group: ai-mockup-${{ github.event.issue.number }}
     env:
       GH_TOKEN: ${{ secrets.AI_GH_TOKEN || github.token }}
-      AI_GH_TOKEN: ${{ secrets.AI_GH_TOKEN }}
-      AI_ALLOWED_USERS: ${{ vars.AI_ALLOWED_USERS || secrets.AI_ALLOWED_USERS }}
+      AI_ALLOWED_USERS: ${{ secrets.AI_ALLOWED_USERS || vars.AI_ALLOWED_USERS }}
+      AI_TRIGGER_ACTOR: ${{ github.actor }}
       ISSUE_NUMBER: ${{ github.event.issue.number }}
-      REPOSITORY: ${{ github.repository }}
+      TRIGGER_LABEL: ${{ github.event.label.name }}
     steps:
-      - name: Validate request
-        run: |
-          set -euo pipefail
-          allowed=",${AI_ALLOWED_USERS:-},"
-          [[ "$allowed" == *",${{ github.actor }},"* ]] || exit 1
-      - uses: actions/checkout@v4
-      - name: Install Codex Linux runtime
-        run: npm install --global --include=optional @openai/codex@latest
-      - name: Generate frontend design plan
-        uses: openai/codex-action@v1
-        with:
-          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
-          permission-profile: ':workspace'
-          prompt: |
-            Create a frontend design and implementation plan for GitHub issue #${{ github.event.issue.number }}.
-            Read AGENTS.md, .github/AI_SDLC.md, the issue, frontend architecture, and tests.
-            Do not edit files. Write UX flow, affected routes/components/state/API, accessibility,
-            visual decisions, tests, risks, and open questions to /tmp/frontend-plan.md.
-      - name: Post plan for approval
-        run: |
-          set -euo pipefail
-          plan="$(cat /tmp/frontend-plan.md)"
-          gh issue comment "$ISSUE_NUMBER" --repo "$REPOSITORY" --body "$(printf '## Frontend design plan\n\n%s\n\nApply the ai-frontend-approved label only after approving this plan.\n\n<!-- ai-frontend-plan -->' "$plan")"
-          gh issue edit "$ISSUE_NUMBER" --repo "$REPOSITORY" --remove-label ai-frontend-plan
-  implement:
-    if: github.event.label.name == 'ai-frontend-approved'
-    runs-on: ubuntu-latest
-    env:
-      GH_TOKEN: ${{ secrets.AI_GH_TOKEN || github.token }}
-      AI_GH_TOKEN: ${{ secrets.AI_GH_TOKEN }}
-      AI_ALLOWED_USERS: ${{ vars.AI_ALLOWED_USERS || secrets.AI_ALLOWED_USERS }}
-      ISSUE_NUMBER: ${{ github.event.issue.number }}
-      REPOSITORY: ${{ github.repository }}
-      BRANCH: ai/frontend-issue-${{ github.event.issue.number }}
-    steps:
-      - name: Validate approval
-        run: |
-          set -euo pipefail
-          allowed=",${AI_ALLOWED_USERS:-},"
-          [[ "$allowed" == *",${{ github.actor }},"* ]] || exit 1
-          comments="$(gh issue view "$ISSUE_NUMBER" --repo "$REPOSITORY" --json comments --jq '.comments[].body')"
-          grep -Fq '<!-- ai-frontend-plan -->' <<<"$comments"
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.AI_GH_TOKEN || github.token }}
-          ref: ${{ env.BRANCH }}
-      - name: Prepare project dependencies
-        run: |
-          python3 -m pip install -r backend/requirements_dev.txt
-          npm ci --prefix frontend
-      - name: Install Codex Linux runtime
-        run: npm install --global --include=optional @openai/codex@latest
-      - name: Configure workflow-capable git push
-        run: |
-          set -euo pipefail
-          test -n "$AI_GH_TOKEN" || { echo "AI_GH_TOKEN is missing."; exit 1; }
-          git remote set-url origin "https://x-access-token:${AI_GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-      - name: Implement approved frontend plan
-        uses: openai/codex-action@v1
-        with:
-          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
-          permission-profile: ':danger-full-access'
-          prompt: |
-            Implement the approved frontend plan for issue #${{ github.event.issue.number }}.
-            Read the issue and plan, implement only approved scope, add tests, and save before/after
-            PNG screenshots under artifacts/screenshots/. Run checks, commit, and push this branch.
-            Do not merge, deploy, or change secrets.
-      - name: Report implementation and remove approval label
-        if: success()
-        run: |
-          gh issue comment "$ISSUE_NUMBER" --repo "$REPOSITORY" --body "Frontend implementation committed and pushed to $BRANCH."
-          gh issue edit "$ISSUE_NUMBER" --repo "$REPOSITORY" --remove-label ai-frontend-approved
+      - name: Generate and publish mockup
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: python3 .github/scripts/mockups.py generate
