@@ -7,6 +7,7 @@ from pathlib import Path
 import subprocess
 import sys
 import urllib.request
+import urllib.error
 
 REQUEST_LABELS = {"mockup-gen", "mockup-regen"}
 REVIEW_LABEL = "mockup-review-required"
@@ -69,16 +70,30 @@ def generate(issue):
         + issue["title"] + "\n" + issue["body"]
         + "\n\nIssue creator feedback:\n" + "\n\n".join(feedback)
     )
+    # Keep image prompts within the model's request limits; issue threads can be large.
+    prompt = prompt[:12000]
     request = urllib.request.Request(
         "https://api.openai.com/v1/images/generations",
-        data=json.dumps({"model": "gpt-image-1", "prompt": prompt}).encode(),
+        data=json.dumps({
+            "model": os.environ.get("OPENAI_IMAGE_MODEL", "gpt-image-1"),
+            "prompt": prompt,
+            "size": "1024x1024",
+        }).encode(),
         headers={
             "Authorization": "Bearer " + os.environ["OPENAI_API_KEY"],
             "Content-Type": "application/json",
         },
     )
-    with urllib.request.urlopen(request, timeout=240) as response:
-        png = base64.b64decode(json.load(response)["data"][0]["b64_json"], validate=True)
+    try:
+        with urllib.request.urlopen(request, timeout=240) as response:
+            payload = json.load(response)
+    except urllib.error.HTTPError as error:
+        detail = error.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"OpenAI image generation failed ({error.code}): {detail}") from error
+    try:
+        png = base64.b64decode(payload["data"][0]["b64_json"], validate=True)
+    except (KeyError, IndexError, TypeError, ValueError) as error:
+        raise RuntimeError(f"OpenAI image response did not contain b64_json: {payload}") from error
     if not png.startswith(b"\x89PNG\r\n\x1a\n"):
         raise ValueError("Image API did not return a PNG")
     Path("mockup.png").write_bytes(png)
