@@ -36,6 +36,19 @@ jobs:
           token: ${{ secrets.AI_GH_TOKEN || github.token }}
           fetch-depth: 0
 
+      - name: Promote approved mockup to implementation
+        if: github.event_name == 'issues' && github.event.label.name == 'mockup-approved'
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          comments="$(gh issue view "$ISSUE_NUMBER" --repo "$REPOSITORY" --json comments --jq '.comments[].body')"
+          if ! grep -Fq '<!-- ai-requirements-clear -->' <<<"$comments"; then
+            gh issue comment "$ISSUE_NUMBER" --repo "$REPOSITORY" --body $'## Requirements clear\n\nThe approved mockup is accepted for implementation.\n\n<!-- ai-requirements-clear -->'
+          fi
+          gh issue edit "$ISSUE_NUMBER" --repo "$REPOSITORY" --add-label ai-ready-to-implement
+
       - name: Check requirements, allowlist, and mockup approval
         id: gate
         env:
