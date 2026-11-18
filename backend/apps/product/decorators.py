@@ -1,7 +1,6 @@
 from functools import wraps
 
 from django.core.exceptions import PermissionDenied
-from django.contrib.auth.mixins import AccessMixin
 from django.contrib.auth.views import redirect_to_login
 
 
@@ -25,10 +24,3 @@ def product_access_required(view_func):
 
 
     return wrapped
-
-
-class ProductAccessMixin(AccessMixin):
-    def dispatch(self, request, *args, **kwargs):
-        if not user_has_product_access(request.user):
-            return self.handle_no_permission()
-        return super().dispatch(request, *args, **kwargs)

@@ -187,10 +187,6 @@ class UserFeatureFlags(models.Model):
             self.ai_analysis_count = 0
             self.save(update_fields=("ai_analysis_window_started_at", "ai_analysis_count", "updated_at"))
 
-    @property
-    def ai_analysis_quota_remaining(self):
-        return max(0, self.ai_analysis_daily_limit - self.ai_analysis_count)
-
     def can_run_ai_analysis(self, now=None):
         self.reset_ai_analysis_usage_if_expired(now=now)
         return self.ai_analysis_daily_limit > 0 and self.ai_analysis_count < self.ai_analysis_daily_limit

@@ -551,8 +551,3 @@ def reserve_resume_analysis_ai_quota(user):
         feature_flags = get_user_feature_flags(user, create=True)
         feature_flags = UserFeatureFlags.objects.select_for_update().get(pk=feature_flags.pk)
         return feature_flags.consume_ai_analysis_quota()
-
-
-def reserve_mock_interview_quota(user):
-    feature_flags = get_user_feature_flags(user, create=True)
-    return feature_flags.consume_mock_interview_quota()
