@@ -64,7 +64,8 @@ jobs:
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
-          permission-profile: ":workspace"
+          permission-profile: ":danger-full-access"
+          safety-strategy: drop-sudo
           prompt: |
             Implement GitHub issue #${{ inputs.issue_number || github.event.issue.number }}.
 

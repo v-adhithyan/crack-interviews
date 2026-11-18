@@ -17,6 +17,10 @@ failing checks, or unsafe changes; it must never merge or deploy.
 The implementation worker uses the OpenAI Codex GitHub Action and the same
 Actions secret named `OPENAI_API_KEY` used by requirements triage.
 
+The Codex job uses the restricted-sudo full-access profile because it must reach
+GitHub's API to read the issue and create a pull request. It remains behind the
+allowlist and never merges or deploys.
+
 Only issues authored by, or explicitly approved by, users in `AI_ALLOWED_USERS`
 are eligible. Configure it as an Actions secret or repository variable containing
 comma-separated GitHub usernames. It is checked before the AI receives the issue
