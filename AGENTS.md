@@ -12,7 +12,7 @@
 ## Issue allowlist
 
 The issue triage workflow only processes issues authored by, or explicitly
-approved by, a user listed in the repository variable `AI_ALLOWED_USERS`. Set it
-to comma-separated GitHub logins, for example `alice,bob`. An allowlisted user can
-approve an issue by adding the `ai-ready` label or replying to a clarification.
-Keep it empty until the allowlist is configured.
+approved by, a user listed in `AI_ALLOWED_USERS`. Set it to comma-separated
+GitHub logins, for example `alice,bob`, as an Actions secret or repository
+variable. An allowlisted user can approve an issue by adding the `ai-ready` label
+or replying to a clarification. Keep it empty until the allowlist is configured.

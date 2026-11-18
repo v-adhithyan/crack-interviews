@@ -10,8 +10,8 @@ exists. When the issue author replies, triage runs again. Only a clear result ad
 
 The implementation worker must read this file and `AGENTS.md` before changing code.
 
-Only issues authored by, or explicitly approved by, users in the repository
-variable `AI_ALLOWED_USERS` are eligible. The variable contains comma-separated
-GitHub usernames and is checked before the AI receives the issue contents. An
-allowlisted user can approve an issue by adding `ai-ready` or replying to a
-clarification comment.
+Only issues authored by, or explicitly approved by, users in `AI_ALLOWED_USERS`
+are eligible. Configure it as an Actions secret or repository variable containing
+comma-separated GitHub usernames. It is checked before the AI receives the issue
+contents. An allowlisted user can approve an issue by adding `ai-ready` or
+replying to a clarification comment.
