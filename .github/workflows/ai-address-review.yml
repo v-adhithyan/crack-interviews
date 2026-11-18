@@ -1,0 +1,86 @@
+name: AI address pull request review
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  address-review:
+    if: >-
+      github.event.issue.pull_request != null &&
+      contains(github.event.issue.labels.*.name, 'ai-address-review')
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      AI_ALLOWED_USERS: ${{ vars.AI_ALLOWED_USERS || secrets.AI_ALLOWED_USERS }}
+      PR_NUMBER: ${{ github.event.issue.number }}
+      REPOSITORY: ${{ github.repository }}
+    steps:
+      - name: Validate reviewer authorization
+        shell: bash
+        run: |
+          set -euo pipefail
+          allowed=",${AI_ALLOWED_USERS:-},"
+          if [[ "$allowed" != *",${{ github.actor }},"* ]]; then
+            echo "The triggering user is not in AI_ALLOWED_USERS."
+            exit 1
+          fi
+
+      - name: Locate pull request branch
+        id: pr
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json headRefName --jq '.headRefName')"
+          if [[ -z "$branch" ]]; then
+            echo "Could not determine the pull request branch."
+            exit 1
+          fi
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr.outputs.branch }}
+          fetch-depth: 0
+
+      - name: Prepare project dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install -r backend/requirements_dev.txt
+          npm ci --prefix frontend
+
+      - name: Run OpenAI Codex review-fix agent
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          permission-profile: ':danger-full-access'
+          safety-strategy: drop-sudo
+          prompt: |
+            Address the review feedback on pull request #${{ github.event.issue.number }}.
+
+            1. Read AGENTS.md and .github/AI_SDLC.md.
+            2. Read the complete pull request conversation and review comments using GitHub.
+            3. Inspect the existing implementation and tests before editing.
+            4. Make only the changes needed to address actionable review feedback.
+            5. Add or update meaningful tests where behavior changes.
+            6. Run the applicable checks from AGENTS.md and fix failures caused by this change.
+            7. For UI changes, use the browser tooling and save before/after PNG screenshots under
+               artifacts/screenshots/, commit them to the branch, and include them in the pull request.
+            8. Do not change secrets, production data, deployment credentials, or unrelated files.
+            9. Do not merge or deploy. Commit and push fixes to the current pull request branch.
+
+            If the feedback is ambiguous, do not guess. Comment on the pull request with the
+            exact clarification needed and leave the code unchanged.
+
+      - name: Announce completion and remove review label
+        if: success()
+        run: |
+          set -euo pipefail
+          gh issue comment "$PR_NUMBER" --repo "$REPOSITORY" --body $'## AI review feedback addressed\n\nThe requested changes were implemented and checks were run. Please review the updated diff.'
+          gh issue edit "$PR_NUMBER" --repo "$REPOSITORY" --remove-label ai-address-review
