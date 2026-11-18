@@ -72,6 +72,11 @@ jobs:
         run: |
           set -euo pipefail
           pr_url="${CREATED_PR:-$EXISTING_PR}"
-          body=$'## Pull request ready\n\n'"$pr_url"
+          body=$(cat <<EOF
+          ## Pull request ready
+
+          $pr_url
+          EOF
+          )
           gh issue comment "$ISSUE_NUMBER" --repo "$REPOSITORY" --body "$body"
           gh issue edit "$ISSUE_NUMBER" --repo "$REPOSITORY" --remove-label "$AI_CREATE_PR_LABEL"
