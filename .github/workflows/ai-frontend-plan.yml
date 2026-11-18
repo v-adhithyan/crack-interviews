@@ -11,24 +11,24 @@ jobs:
     if: github.event.label.name == 'ai-frontend-plan'
     runs-on: ubuntu-latest
     env:
-      GH_TOKEN: ${{{ github.token }}
-      AI_ALLOWED_USERS: ${{{ vars.AI_ALLOWED_USERS || secrets.AI_ALLOWED_USERS }}
-      ISSUE_NUMBER: ${{{ github.event.issue.number }}
-      REPOSITORY: ${{{ github.repository }}
+      GH_TOKEN: ${{ github.token }}
+      AI_ALLOWED_USERS: ${{ vars.AI_ALLOWED_USERS || secrets.AI_ALLOWED_USERS }}
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+      REPOSITORY: ${{ github.repository }}
     steps:
       - name: Validate request
         run: |
           set -euo pipefail
-          allowed=",${AI_ALLOWED_USERS:-${,"
-          [[ "$allowed" == *",${{{ github.actor }},"* ]] || exit 1
+          allowed=",${AI_ALLOWED_USERS:-},"
+          [[ "$allowed" == *",${{ github.actor }},"* ]] || exit 1
       - uses: actions/checkout@v4
       - name: Generate frontend design plan
         uses: openai/codex-action@v1
         with:
-          openai-api-key: ${{{ secrets.OPENAI_API_KEY }}
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           permission-profile: ':workspace'
           prompt: |
-            Create a frontend design and implementation plan for GitHub issue #${{{ github.event.issue.number }}.
+            Create a frontend design and implementation plan for GitHub issue #${{ github.event.issue.number }}.
             Read AGENTS.md, .github/AI_SDLC.md, the issue, frontend architecture, and tests.
             Do not edit files. Write UX flow, affected routes/components/state/API, accessibility,
             visual decisions, tests, risks, and open questions to /tmp/frontend-plan.md.
@@ -42,22 +42,22 @@ jobs:
     if: github.event.label.name == 'ai-frontend-approved'
     runs-on: ubuntu-latest
     env:
-      GH_TOKEN: ${{{ github.token }}
-      AI_ALLOWED_USERS: ${{{ vars.AI_ALLOWED_USERS || secrets.AI_ALLOWED_USERS }}
-      ISSUE_NUMBER: ${{{ github.event.issue.number }}
-      REPOSITORY: ${{{ github.repository }}
-      BRANCH: ai/frontend-issue-${{{ github.event.issue.number }}
+      GH_TOKEN: ${{ github.token }}
+      AI_ALLOWED_USERS: ${{ vars.AI_ALLOWED_USERS || secrets.AI_ALLOWED_USERS }}
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+      REPOSITORY: ${{ github.repository }}
+      BRANCH: ai/frontend-issue-${{ github.event.issue.number }}
     steps:
       - name: Validate approval
         run: |
           set -euo pipefail
-          allowed=",${AI_ALLOWED_USERS:-${,"
-          [[ "$allowed" == *",${{{ github.actor }},"* ]] || exit 1
+          allowed=",${AI_ALLOWED_USERS:-},"
+          [[ "$allowed" == *",${{ github.actor }},"* ]] || exit 1
           comments="$(gh issue view "$ISSUE_NUMBER" --repo "$REPOSITORY" --json comments --jq '.comments[].body')"
           grep -Fq '<!-- ai-frontend-plan -->' <<<"$comments"
       - uses: actions/checkout@v4
         with:
-          ref: ${{{ env.BRANCH }}
+          ref: ${{ env.BRANCH }}
       - name: Prepare project dependencies
         run: |
           python3 -m pip install -r backend/requirements_dev.txt
@@ -65,11 +65,11 @@ jobs:
       - name: Implement approved frontend plan
         uses: openai/codex-action@v1
         with:
-          openai-api-key: ${{{ secrets.OPENAI_API_KEY }}
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           permission-profile: ':danger-full-access'
           safety-strategy: drop-sudo
           prompt: |
-            Implement the approved frontend plan for issue #${{{ github.event.issue.number }}.
+            Implement the approved frontend plan for issue #${{ github.event.issue.number }}.
             Read the issue and plan, implement only approved scope, add tests, and save before/after
             PNG screenshots under artifacts/screenshots/. Run checks, commit, and push this branch.
             Do not merge, deploy, or change secrets.
