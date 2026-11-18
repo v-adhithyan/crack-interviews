@@ -26,3 +26,18 @@ are eligible. Configure it as an Actions secret or repository variable containin
 comma-separated GitHub usernames. It is checked before the AI receives the issue
 contents. An allowlisted user can approve an issue by adding `ai-ready` or
 replying to a clarification comment.
+
+For frontend issues that need design review, apply `mockup-gen` before marking
+the issue ready for implementation. An allowlisted user can request a new image
+with `mockup-regen`. The workflow uses the issue creator's comments as feedback,
+publishes a PNG to `ai/mockup-issue-<number>`, and posts the image inline at its
+commit URL. A successful run replaces the request label with
+`mockup-review-required`. The issue creator applies `mockup-approved` after
+reviewing the latest image. Implementation requires both requirements clearance
+and current mockup approval for issues that enter design review. Regeneration
+invalidates the previous approval.
+
+Triage creates the mockup labels. The OpenAI key needs image generation access,
+and inline raw GitHub images require the viewer to be able to access the image
+URL. For a failed generation, rerun the job or remove and reapply the request
+label.
