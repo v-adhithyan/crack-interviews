@@ -1,0 +1,84 @@
+name: AI issue requirements triage
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: Issue to triage
+        required: true
+        type: string
+  issues:
+    types: [labeled]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  triage:
+    if: >-
+      (github.event_name == 'workflow_dispatch') ||
+      (github.event_name == 'issues' && github.event.label.name == 'ai-ready') ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request == null &&
+       contains(github.event.issue.labels.*.name, 'ai-awaiting-clarification'))
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-4o-mini' }}
+      AI_ALLOWED_USERS: ${{ vars.AI_ALLOWED_USERS }}
+      AI_TRIGGER_ACTOR: ${{ github.actor }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure AI workflow labels exist
+        env:
+          ISSUE_NUMBER: ${{ inputs.issue_number || github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          for label in ai-ready ai-awaiting-clarification ai-ready-to-implement; do
+            gh label create "$label" --color FBCA04 --force >/dev/null
+          done
+      - name: Triage issue
+        id: triage
+        shell: bash
+        env:
+          ISSUE_NUMBER: ${{ inputs.issue_number || github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          issue_json="$(gh issue view "$ISSUE_NUMBER" --json number,title,body,author,labels,comments)"
+          issue_author="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["author"]["login"])' <<<"$issue_json")"
+          allowed="$(printf '%s' ",${AI_ALLOWED_USERS:-}," | tr -d '[:space:]')"
+          if [[ "$allowed" != *",$issue_author,"* && "$allowed" != *",$AI_TRIGGER_ACTOR,"* ]]; then
+            echo "Neither issue author nor approving actor is in AI_ALLOWED_USERS; skipping."
+            exit 0
+          fi
+          result="$(printf '%s' "$issue_json" | python3 .github/scripts/triage_issue.py)"
+          printf '%s' "$result" > /tmp/ai-triage.json
+          echo "status=$(python3 -c 'import json; print(json.load(open("/tmp/ai-triage.json"))["status"])')" >> "$GITHUB_OUTPUT"
+      - name: Ask for clarification
+        if: steps.triage.outputs.status == 'needs_clarification'
+        env:
+          ISSUE_NUMBER: ${{ inputs.issue_number || github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          questions="$(python3 - <<'PY'
+          import json
+          result=json.load(open('/tmp/ai-triage.json'))
+          lines=['## Clarification needed', '', 'Implementation is paused until these questions are answered:', '']
+          lines += [f'{i}. {question}' for i, question in enumerate(result['questions'], 1)]
+          lines += ['', '<!-- ai-clarification-request -->']
+          print('\n'.join(lines))
+          PY
+          )"
+          gh issue comment "$ISSUE_NUMBER" --body "$questions"
+          gh issue edit "$ISSUE_NUMBER" --remove-label ai-ready --add-label ai-awaiting-clarification
+      - name: Mark ready for implementation
+        if: steps.triage.outputs.status == 'clear'
+        env:
+          ISSUE_NUMBER: ${{ inputs.issue_number || github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          gh issue comment "$ISSUE_NUMBER" --body $'## Requirements clear\n\nThe issue is clear enough for implementation. The coding worker may now create a branch and pull request.\n\n<!-- ai-requirements-clear -->'
+          gh issue edit "$ISSUE_NUMBER" --remove-label ai-ready --remove-label ai-awaiting-clarification --add-label ai-ready-to-implement
