@@ -4,6 +4,7 @@ import tempfile
 
 from datetime import timedelta
 from unittest.mock import patch
+from urllib.parse import urlencode
 
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -27,9 +28,11 @@ from .tasks import run_resume_analysis
 
 class ProductAccessTests(TestCase):
     def test_anonymous_user_is_redirected_to_login(self):
-        response = self.client.get(reverse("product_dashboard"))
+        dashboard_url = f"{reverse('product_dashboard')}?source=history"
+        response = self.client.get(dashboard_url)
 
-        self.assertRedirects(response, f"{reverse('login')}?next={reverse('product_dashboard')}")
+        next_query = urlencode({"next": dashboard_url}, safe="/")
+        self.assertRedirects(response, f"{reverse('login')}?{next_query}")
 
     def test_staff_user_can_access_product_dashboard(self):
         user = get_user_model().objects.create_user(

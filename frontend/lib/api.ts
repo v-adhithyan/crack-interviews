@@ -141,7 +141,7 @@ export function getCachedAuthUser() {
   return cachedAuthUser;
 }
 
-export function setCachedAuthUser(user: AuthUser | null) {
+function setCachedAuthUser(user: AuthUser | null) {
   cachedAuthUser = user;
   notifyAuthListeners();
 }
@@ -158,15 +158,15 @@ export function getAuthToken() {
   return window.localStorage.getItem(AUTH_TOKEN_KEY);
 }
 
-export function setAuthToken(token: string) {
+function setAuthToken(token: string) {
   window.localStorage.setItem(AUTH_TOKEN_KEY, token);
 }
 
-export function clearAuthToken() {
+function clearAuthToken() {
   window.localStorage.removeItem(AUTH_TOKEN_KEY);
 }
 
-export function clearAuthSession() {
+function clearAuthSession() {
   if (typeof window !== "undefined") {
     clearAuthToken();
   }
