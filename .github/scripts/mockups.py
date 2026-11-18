@@ -75,7 +75,7 @@ def generate(issue):
     request = urllib.request.Request(
         "https://api.openai.com/v1/images/generations",
         data=json.dumps({
-            "model": os.environ.get("OPENAI_IMAGE_MODEL", "gpt-image-1"),
+            "model": os.environ.get("OPENAI_IMAGE_MODEL", "dall-e-3"),
             "prompt": prompt,
             "size": "1024x1024",
         }).encode(),
