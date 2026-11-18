@@ -135,16 +135,15 @@ jobs:
         run: |
           gh issue comment "$ISSUE_NUMBER" --body $'## AI coding in progress\n\nDependencies are ready. Codex is inspecting the repository, implementing the issue, and running the required checks.\n\n<!-- ai-coding-started -->'
 
+      - name: Install Codex Linux runtime
+        run: npm install --global --include=optional @openai/codex@latest
+
       - name: Run OpenAI Codex implementation agent
         if: steps.triage.outputs.status == 'clear'
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
-          # Codex must reach api.github.com to read the issue and open the PR.
-          # Keep sudo disabled while allowing network access in the trusted,
-          # allowlisted implementation job.
           permission-profile: ":danger-full-access"
-          safety-strategy: drop-sudo
           prompt: |
             Implement GitHub issue #${{ inputs.issue_number || github.event.issue.number }}.
 

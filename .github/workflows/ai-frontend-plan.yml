@@ -22,6 +22,8 @@ jobs:
           allowed=",${AI_ALLOWED_USERS:-},"
           [[ "$allowed" == *",${{ github.actor }},"* ]] || exit 1
       - uses: actions/checkout@v4
+      - name: Install Codex Linux runtime
+        run: npm install --global --include=optional @openai/codex@latest
       - name: Generate frontend design plan
         uses: openai/codex-action@v1
         with:
@@ -62,12 +64,13 @@ jobs:
         run: |
           python3 -m pip install -r backend/requirements_dev.txt
           npm ci --prefix frontend
+      - name: Install Codex Linux runtime
+        run: npm install --global --include=optional @openai/codex@latest
       - name: Implement approved frontend plan
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           permission-profile: ':danger-full-access'
-          safety-strategy: drop-sudo
           prompt: |
             Implement the approved frontend plan for issue #${{ github.event.issue.number }}.
             Read the issue and plan, implement only approved scope, add tests, and save before/after

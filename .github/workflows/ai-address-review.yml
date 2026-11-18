@@ -59,12 +59,14 @@ jobs:
           python3 -m pip install -r backend/requirements_dev.txt
           npm ci --prefix frontend
 
+      - name: Install Codex Linux runtime
+        run: npm install --global --include=optional @openai/codex@latest
+
       - name: Run OpenAI Codex review-fix agent
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           permission-profile: ':danger-full-access'
-          safety-strategy: drop-sudo
           prompt: |
             Address the review feedback on pull request #${{ github.event.issue.number }}.
 
