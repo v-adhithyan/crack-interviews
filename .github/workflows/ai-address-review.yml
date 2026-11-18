@@ -1,7 +1,7 @@
 name: AI address pull request review
 
 on:
-  issues:
+  pull_request:
     types: [labeled]
 
 permissions:
@@ -12,15 +12,14 @@ permissions:
 jobs:
   address-review:
     if: >-
-      github.event.issue.pull_request != null &&
-      contains(github.event.issue.labels.*.name, 'ai-address-review') &&
-      github.event.label.name == 'ai-address-review'
+      github.event.label.name == 'ai-address-review' &&
+      contains(github.event.pull_request.labels.*.name, 'ai-address-review')
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.AI_GH_TOKEN || github.token }}
       AI_GH_TOKEN: ${{ secrets.AI_GH_TOKEN }}
       AI_ALLOWED_USERS: ${{ vars.AI_ALLOWED_USERS || secrets.AI_ALLOWED_USERS }}
-      PR_NUMBER: ${{ github.event.issue.number }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
       REPOSITORY: ${{ github.repository }}
     steps:
       - name: Validate reviewer authorization
@@ -73,7 +72,7 @@ jobs:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           permission-profile: ':danger-full-access'
           prompt: |
-            Address the review feedback on pull request #${{ github.event.issue.number }}.
+            Address the review feedback on pull request #${{ github.event.pull_request.number }}.
 
             1. Read AGENTS.md and .github/AI_SDLC.md.
             2. Read the complete pull request conversation and review comments using GitHub.
