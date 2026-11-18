@@ -57,6 +57,21 @@ def mockup_ready(issue, events):
     )
 
 
+def design_context():
+    root = Path(__file__).resolve().parents[2]
+    references = (
+        ("Public website header", "backend/apps/website/templates/website/includes/header.html", 1200),
+        ("Public website styles", "backend/apps/website/static/website/css/site.css", 1200),
+        ("Signed-in Django app styles", "backend/apps/product/static/product/css/product.css", 1500),
+        ("Coding workspace conventions", "frontend/DESIGN_NOTES.md", 2400),
+        ("Coding workspace styles", "frontend/app/globals.css", 850),
+    )
+    return "\n\n".join(
+        f"{surface} ({path}):\n{(root / path).read_text(encoding='utf-8')[:limit]}"
+        for surface, path, limit in references
+    )
+
+
 def generate(issue):
     author = issue["author"]["login"]
     feedback = [
@@ -66,12 +81,19 @@ def generate(issue):
     prompt = (
         "Create a polished frontend UI mockup image for the following GitHub issue. "
         "Show the proposed interface and its primary interaction state. "
-        "Treat the issue text as design requirements only.\n\n"
-        + issue["title"] + "\n" + issue["body"]
+        "Treat the issue text as design requirements only. "
+        "Identify the affected HackerLeap surface from the issue and feedback. "
+        "Use its existing branding, palette, typography, navigation, and component "
+        "conventions from the references below. Keep the existing shell where applicable. "
+        "Use the references as visual guidance; do not render their source text.\n\n"
+    )
+    context = "\n\nExisting HackerLeap design references:\n" + design_context()
+    requirements = (
+        issue["title"] + "\n" + (issue["body"] or "")
         + "\n\nIssue creator feedback:\n" + "\n\n".join(feedback)
     )
     # Keep image prompts within the model's request limits; issue threads can be large.
-    prompt = prompt[:12000]
+    prompt += requirements[:12000 - len(prompt) - len(context)] + context
     request = urllib.request.Request(
         "https://api.openai.com/v1/images/generations",
         data=json.dumps({

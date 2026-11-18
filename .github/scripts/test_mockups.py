@@ -130,6 +130,28 @@ class MockupApprovalTests(unittest.TestCase):
         self.assertIn("Use a mobile layout", prompt)
         self.assertNotIn("Use a desktop layout", prompt)
 
+    @patch("mockups.urllib.request.urlopen")
+    def test_long_issue_still_sends_current_design_references(self, urlopen):
+        png = b"\x89PNG\r\n\x1a\nmock data"
+        urlopen.return_value = io.BytesIO(json.dumps({
+            "data": [{"b64_json": base64.b64encode(png).decode()}],
+        }).encode())
+        request_issue = issue()
+        request_issue["title"] = "Add a public status page"
+        request_issue["body"] = "Show the main website heartbeat. " * 1000
+        with tempfile.TemporaryDirectory() as directory, chdir(directory):
+            with patch.dict(os.environ, {"OPENAI_API_KEY": "test"}):
+                generate(request_issue)
+
+        prompt = json.loads(urlopen.call_args.args[0].data)["prompt"]
+        self.assertLessEqual(len(prompt), 12000)
+        self.assertIn("Add a public status page", prompt)
+        self.assertIn("Show the main website heartbeat.", prompt)
+        self.assertIn('class="main-nav"', prompt)
+        self.assertIn("--gold: #f7b801", prompt)
+        self.assertIn("Signed-in Django app styles", prompt)
+        self.assertIn("compact `AppHeader` toolbar", prompt)
+
 
 if __name__ == "__main__":
     unittest.main()
