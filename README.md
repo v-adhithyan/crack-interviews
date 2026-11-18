@@ -11,6 +11,46 @@ Demo link is in this linkedin post: [Click to watch demo](https://www.linkedin.c
 See [the architecture overview](docs/architecture.md) for system, AI, request-flow,
 and deployment diagrams.
 
+## How an idea becomes a pull request
+
+Imagine you want a hint button. Open an issue and tell us who needs it, what
+the button should do, and how you'll know it works. GitHub Actions uses AI
+to help turn that issue into a tested change a person can review.
+
+1. **Tell the AI what to build.** An approved contributor adds `ai-ready`
+   to start triage. If the AI has questions, it posts them and adds
+   `ai-awaiting-clarification`. Reply on the issue so triage can run again.
+   Once the details are clear, the workflow posts a “Requirements clear”
+   comment and adds `ai-ready-to-implement`.
+2. **See the design first when it needs review.** Ask an approved contributor
+   to add `mockup-gen` before implementation starts. The workflow posts a
+   PNG on the issue and adds `mockup-review-required`. If the button needs
+   to move, leave feedback and ask for `mockup-regen` to get a new PNG.
+   Regeneration resets approval. The issue creator adds `mockup-approved`
+   after checking the latest image. Issues that enter design review need
+   both clear requirements and current mockup approval before coding starts.
+3. **Build it and open a pull request.** Codex works on `ai/issue-<number>`,
+   runs the relevant checks, and opens a pull request (PR) for a human to
+   review. If a pushed branch already has the changes but has no PR, an
+   approved contributor can request one with `ai-create-pr` (the default
+   label, configurable via `AI_CREATE_PR_LABEL`).
+4. **Review it together.** Leave feedback on the PR. An approved contributor
+   can add `ai-address-review` to the PR to have Codex address the feedback
+   on the same branch and rerun checks. People review and decide when to
+   merge. The AI worker never merges or deploys.
+
+The repository's `AI_ALLOWED_USERS` setting lists who can use or approve
+AI automation. If you aren't listed, you can still open an issue and ask
+a maintainer to help start it. See the [AI workflow rules](.github/AI_SDLC.md)
+for maintainer setup and the [contributor instructions](AGENTS.md) for checks.
+
+To contribute code, use the [local setup](#running-locally) or
+[Docker setup](#run-with-docker). For backend changes, run
+`python manage.py check`, `python manage.py makemigrations --check --dry-run`,
+and the relevant Django tests from `backend`. For frontend changes, run
+`npm run lint` and `npm run build` from `frontend`. Include test results in
+your PR and link the issue it closes.
+
 ## Stack
 
 - Backend: Django, Django REST Framework, SQLite
@@ -48,7 +88,7 @@ App: http://localhost:3000
 From a fresh checkout, start the backend first:
 
 ```bash
-cd /Users/adhithyan.vijayakumar/repos/crack-interviews/backend
+cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -59,10 +99,10 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
-Then start the frontend in a second terminal:
+Then open a second terminal at the repository root and start the frontend:
 
 ```bash
-cd /Users/adhithyan.vijayakumar/repos/crack-interviews/frontend
+cd frontend
 npm install
 cp .env.example .env.local
 npm run dev
