@@ -16,11 +16,7 @@ from .models import AIIntegration
 
 
 def uses_shared_openai_key(user):
-    return (
-        settings.AI_USE_SHARED_KEY_FOR_LOCAL_DEV
-        or user.is_staff
-        or user.email.lower().endswith("@hackerleap.com")
-    )
+    return settings.AI_USE_SHARED_KEY_FOR_LOCAL_DEV or user.is_staff
 
 
 def _cipher():

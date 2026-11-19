@@ -31,19 +31,22 @@ class AIIntegrationTests(TestCase):
     def test_shared_key_eligibility(self):
         self.assertRaisesMessage(ImproperlyConfigured, "Set your ChatGPT API key", get_openai_api_key, self.user)
         self.user.email = "person@HACKERLEAP.COM"
-        self.assertEqual(get_openai_api_key(self.user), "shared-test-key")
-        self.user.email = "person@hackerleap.com.example.org"
-        self.assertRaises(ImproperlyConfigured, get_openai_api_key, self.user)
+        self.assertRaisesMessage(ImproperlyConfigured, "Set your ChatGPT API key", get_openai_api_key, self.user)
         with override_settings(AI_USE_SHARED_KEY_FOR_LOCAL_DEV=True):
             self.assertEqual(get_openai_api_key(self.user), "shared-test-key")
+        self.user.email = "staff@example.com"
         self.user.is_staff = True
         self.assertEqual(get_openai_api_key(self.user), "shared-test-key")
 
     @override_settings(HACKERLEAP_AI_MODE="chatgpt")
-    def test_effective_mode_falls_back_until_personal_key_is_configured(self):
+    def test_company_email_uses_manual_mode_until_personal_key_is_configured(self):
+        self.user.email = "person@hackerleap.com"
+        self.user.save(update_fields=["email"])
+        self.assertContains(self.client.get(self.url), "Save API key")
         self.assertEqual(get_effective_resume_analysis_mode(self.user), "manual")
         self.assertRedirects(self.save_key("test-personal-key"), self.url)
         self.assertEqual(get_effective_resume_analysis_mode(self.user), "chatgpt")
+        self.assertEqual(get_openai_api_key(self.user), "test-personal-key")
 
     def test_mock_interview_voice_and_feedback_direct_user_to_settings_without_key(self):
         session = MockInterviewSession.objects.create(user=self.user, topic="URL Shortener")
