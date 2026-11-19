@@ -41,3 +41,11 @@ Release type: **patch**.
 - remove extension usage allowance — v-adhithyan (aavispeaks@gmail.com), `a976f79`
 
 - public resume builder - initial commit — v-adhithyan (aavispeaks@gmail.com), `a825787`
+
+## 1.0.3 - 2026-11-19
+
+Release type: **patch**.
+
+- Merge pull request #22 from v-adhithyan/ai/issue-21 — Adhithyan Vijayakumar (aavispeaks@gmail.com), `f768483`
+
+- Limit public signups to ten per IST day — github-actions[bot] (41898282+github-actions[bot]@users.noreply.github.com), `f534c19`
