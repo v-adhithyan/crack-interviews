@@ -49,3 +49,11 @@ Release type: **patch**.
 - Merge pull request #22 from v-adhithyan/ai/issue-21 — Adhithyan Vijayakumar (aavispeaks@gmail.com), `f768483`
 
 - Limit public signups to ten per IST day — github-actions[bot] (41898282+github-actions[bot]@users.noreply.github.com), `f534c19`
+
+## 1.0.4 - 2026-11-19
+
+Release type: **patch**.
+
+- Merge pull request #25 from v-adhithyan/ai/issue-24 — Adhithyan Vijayakumar (aavispeaks@gmail.com), `67baf31`
+
+- Add five approved resume builder comparisons — github-actions[bot] (41898282+github-actions[bot]@users.noreply.github.com), `93c6903`
