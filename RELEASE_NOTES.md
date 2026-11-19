@@ -25,3 +25,19 @@ Initial release: `1.0.0`.
 Release type: **patch**.
 
 - fix release notes bump — v-adhithyan (aavispeaks@gmail.com), `cb759c0`
+
+## 1.0.2 - 2026-11-19
+
+Release type: **patch**.
+
+- Merge pull request #1 from v-adhithyan/growth-hacking/public-resume-builder — Adhithyan Vijayakumar (aavispeaks@gmail.com), `1ff81fc`
+
+- Keep public navigation labels on one line — Codex (codex@openai.com), `d8e0a52`
+
+- Resolve main conflicts and align public resume PDF actions — github-actions[bot] (41898282+github-actions[bot]@users.noreply.github.com), `9b5662a`
+
+- add public growth hacking page — v-adhithyan (aavispeaks@gmail.com), `b790709`
+
+- remove extension usage allowance — v-adhithyan (aavispeaks@gmail.com), `a976f79`
+
+- public resume builder - initial commit — v-adhithyan (aavispeaks@gmail.com), `a825787`
