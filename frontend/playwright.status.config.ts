@@ -10,6 +10,7 @@ export default defineConfig({
     {
       command: "python manage.py runserver 127.0.0.1:8100 --noreload",
       cwd: "../backend",
+      env: { DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,www.hackerleap.com" },
       url: "http://127.0.0.1:8100/api/health/",
     },
     {

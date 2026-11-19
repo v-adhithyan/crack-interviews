@@ -1,3 +1,4 @@
+from urllib.parse import urlsplit
 from xml.sax.saxutils import escape
 
 from django.conf import settings
@@ -140,8 +141,14 @@ def website_page(request, slug):
 
 
 def status_page(request):
+    coding_origin = settings.HACKERLEAP_CODE
+    website_host = request.get_host().split(":", 1)[0].lower().rstrip(".")
+    is_local_coding_origin = urlsplit(coding_origin).hostname in {"localhost", "127.0.0.1", "::1"}
+    if website_host in {"hackerleap.com", "www.hackerleap.com"} and is_local_coding_origin:
+        coding_origin = "https://code.hackerleap.com"
+
     return render(request, "website/status.html", {
-        "coding_health_url": f"{settings.HACKERLEAP_CODE.rstrip('/')}/health",
+        "coding_health_url": f"{coding_origin.rstrip('/')}/health",
     })
 
 

@@ -4,7 +4,7 @@ DEBUG = False
 
 STORAGES["staticfiles"] = {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"}
 
-HACKERLEAP_CODE = os.getenv("HACKERLEAP_CODE", "http://localhost:3000")
+HACKERLEAP_CODE = os.getenv("HACKERLEAP_CODE", "https://code.hackerleap.com")
 
 JAVA_RELEASE = int(os.getenv("JAVA_RELEASE", "8"))
 

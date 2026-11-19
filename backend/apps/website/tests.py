@@ -1,3 +1,7 @@
+import os
+import runpy
+from unittest.mock import patch
+
 from django.contrib import admin
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.messages import get_messages
@@ -8,6 +12,8 @@ from django.test import RequestFactory
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
+
+from config.settings import base
 
 from .admin import BlogPostAdmin
 from .admin import EarlyAccessUserAdmin
@@ -430,6 +436,25 @@ class ErrorPageTests(TestCase):
 
 
 class StatusPageTests(TestCase):
+    def test_status_page_uses_public_coding_heartbeat_by_default_in_production(self):
+        with patch.dict(os.environ), patch.object(base, "STORAGES", base.STORAGES.copy()):
+            os.environ.pop("HACKERLEAP_CODE", None)
+            production_settings = runpy.run_module("config.settings.prod")
+
+        with self.settings(HACKERLEAP_CODE=production_settings["HACKERLEAP_CODE"]):
+            response = self.client.get(reverse("status_page"))
+
+        self.assertContains(response, 'data-health-url="https://code.hackerleap.com/health"')
+
+    def test_production_keeps_explicit_coding_platform_url(self):
+        with (
+            patch.dict(os.environ, {"HACKERLEAP_CODE": "https://code.example.com"}),
+            patch.object(base, "STORAGES", base.STORAGES.copy()),
+        ):
+            production_settings = runpy.run_module("config.settings.prod")
+
+        self.assertEqual(production_settings["HACKERLEAP_CODE"], "https://code.example.com")
+
     @override_settings(HACKERLEAP_CODE="https://code.example.com/")
     def test_anonymous_status_page_exposes_two_service_checks(self):
         response = self.client.get(reverse("status_page"))
@@ -439,6 +464,22 @@ class StatusPageTests(TestCase):
         self.assertContains(response, 'data-health-url="https://code.example.com/health"')
         self.assertContains(response, f'data-health-url="{reverse("health")}"')
         self.assertContains(response, "Refresh this page to check the status again.")
+
+    @override_settings(
+        ALLOWED_HOSTS=["hackerleap.com", "www.hackerleap.com"],
+        HACKERLEAP_CODE="http://localhost:3000",
+    )
+    def test_public_status_page_checks_the_public_coding_platform(self):
+        for host in ("hackerleap.com", "www.hackerleap.com"):
+            with self.subTest(host=host):
+                response = self.client.get(reverse("status_page"), HTTP_HOST=host, secure=True)
+                self.assertContains(response, 'data-health-url="https://code.hackerleap.com/health"')
+                self.assertNotContains(response, 'data-health-url="http://localhost:3000/health"')
+
+    @override_settings(ALLOWED_HOSTS=["www.hackerleap.com"], HACKERLEAP_CODE="https://code.example.com/")
+    def test_public_status_page_keeps_configured_nonlocal_coding_platform(self):
+        response = self.client.get(reverse("status_page"), HTTP_HOST="www.hackerleap.com", secure=True)
+        self.assertContains(response, 'data-health-url="https://code.example.com/health"')
 
     def test_status_page_is_linked_from_footer_and_sitemap(self):
         path = reverse("status_page")
