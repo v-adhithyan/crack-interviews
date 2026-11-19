@@ -30,7 +30,7 @@ jobs:
       group: ai-triage-${{ github.event.issue.number || inputs.issue_number }}
       cancel-in-progress: true
     env:
-      GH_TOKEN: ${{ secrets.AI_GH_TOKEN || github.token }}
+      GH_TOKEN: ${{ github.token }}
       AI_GH_TOKEN: ${{ secrets.AI_GH_TOKEN }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-4o-mini' }}
@@ -163,6 +163,8 @@ jobs:
         if: steps.gate.outputs.ready == 'true'
         run: |
           set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           test -n "$AI_GH_TOKEN" || { echo "AI_GH_TOKEN is missing."; exit 1; }
           git remote set-url origin "https://x-access-token:${AI_GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
 

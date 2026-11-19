@@ -12,7 +12,7 @@ jobs:
     concurrency:
       group: ai-mockup-${{ github.event.issue.number }}
     env:
-      GH_TOKEN: ${{ secrets.AI_GH_TOKEN || github.token }}
+      GH_TOKEN: ${{ github.token }}
       AI_ALLOWED_USERS: ${{ secrets.AI_ALLOWED_USERS || vars.AI_ALLOWED_USERS }}
       AI_TRIGGER_ACTOR: ${{ github.actor }}
       ISSUE_NUMBER: ${{ github.event.issue.number }}

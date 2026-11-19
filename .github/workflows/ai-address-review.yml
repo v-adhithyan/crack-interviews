@@ -30,7 +30,7 @@ jobs:
     outputs:
       run: ${{ steps.check.outputs.run }}
     env:
-      GH_TOKEN: ${{ secrets.AI_GH_TOKEN || github.token }}
+      GH_TOKEN: ${{ github.token }}
       PR_NUMBER: ${{ inputs.pr_number || github.event.pull_request.number || github.event.issue.number }}
       REPOSITORY: ${{ github.repository }}
     steps:
@@ -52,7 +52,7 @@ jobs:
       needs.should-run.outputs.run == 'true'
     runs-on: ubuntu-latest
     env:
-      GH_TOKEN: ${{ secrets.AI_GH_TOKEN || github.token }}
+      GH_TOKEN: ${{ github.token }}
       AI_GH_TOKEN: ${{ secrets.AI_GH_TOKEN }}
       AI_ALLOWED_USERS: ${{ vars.AI_ALLOWED_USERS || secrets.AI_ALLOWED_USERS }}
       PR_NUMBER: ${{ inputs.pr_number || github.event.pull_request.number || github.event.issue.number }}
@@ -99,6 +99,8 @@ jobs:
       - name: Configure workflow-capable git push
         run: |
           set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           test -n "$AI_GH_TOKEN" || { echo "AI_GH_TOKEN is missing."; exit 1; }
           git remote set-url origin "https://x-access-token:${AI_GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
 

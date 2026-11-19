@@ -23,7 +23,7 @@ jobs:
       (github.event_name == 'issues' && contains(fromJSON('["ai-ready-to-implement","mockup-approved"]'), github.event.label.name))
     runs-on: ubuntu-latest
     env:
-      GH_TOKEN: ${{ secrets.AI_GH_TOKEN || github.token }}
+      GH_TOKEN: ${{ github.token }}
       AI_GH_TOKEN: ${{ secrets.AI_GH_TOKEN }}
       AI_ALLOWED_USERS: ${{ secrets.AI_ALLOWED_USERS || vars.AI_ALLOWED_USERS }}
       AI_TRIGGER_ACTOR: ${{ github.actor }}
@@ -71,6 +71,8 @@ jobs:
         if: steps.gate.outputs.ready == 'true'
         run: |
           set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           test -n "$AI_GH_TOKEN" || { echo "AI_GH_TOKEN is missing."; exit 1; }
           git remote set-url origin "https://x-access-token:${AI_GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
 
