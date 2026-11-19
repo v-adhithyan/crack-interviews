@@ -67,3 +67,9 @@ Release type: **patch**.
 - Account for footer reads in signup cache tests — github-actions[bot] (41898282+github-actions[bot]@users.noreply.github.com), `2fb67f9`
 
 - Publish resume comparisons and link them in the footer — github-actions[bot] (41898282+github-actions[bot]@users.noreply.github.com), `8dce524`
+
+## 1.0.6 - 2026-11-19
+
+Release type: **patch**.
+
+- Add per-user ChatGPT API key settings (#31) — github-actions[bot] (41898282+github-actions[bot]@users.noreply.github.com), `0b74532`
