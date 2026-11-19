@@ -8,7 +8,7 @@ from django.urls import reverse
 from apps.website.models import EarlyAccessUser
 
 from .ai_integrations import get_openai_api_key
-from .models import AIIntegration, ResumeAnalysis
+from .models import AIIntegration, MockInterviewSession, ResumeAnalysis
 from .services import get_effective_resume_analysis_mode
 from .tasks import run_resume_analysis
 
@@ -44,6 +44,15 @@ class AIIntegrationTests(TestCase):
         self.assertEqual(get_effective_resume_analysis_mode(self.user), "manual")
         self.assertRedirects(self.save_key("test-personal-key"), self.url)
         self.assertEqual(get_effective_resume_analysis_mode(self.user), "chatgpt")
+
+    def test_mock_interview_voice_and_feedback_direct_user_to_settings_without_key(self):
+        session = MockInterviewSession.objects.create(user=self.user, topic="URL Shortener")
+
+        for endpoint in ("mock_interview_token", "mock_interview_finish"):
+            with self.subTest(endpoint=endpoint):
+                response = self.client.post(reverse(endpoint, kwargs={"session_uuid": session.uuid}))
+                self.assertEqual(response.status_code, 400)
+                self.assertIn("Set your ChatGPT API key in Settings → Integrations → AI", response.json()["detail"])
 
     def test_settings_are_access_controlled(self):
         self.client.logout()
