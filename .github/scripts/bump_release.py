@@ -30,7 +30,10 @@ def commits(before: str | None, after: str) -> list[tuple[str, str, str, str]]:
     rows = []
     for row in output.strip("\x1e").split("\x1e"):
         if row:
-            rows.append(tuple(row.split("\x1f", 3)))
+            fields = row.strip().split("\x1f", 3)
+            if len(fields) == 4:
+                sha, author, email, subject = fields
+                rows.append((sha.strip(), author.strip(), email.strip(), subject.strip()))
     return rows
 
 
