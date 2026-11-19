@@ -225,8 +225,28 @@ jobs:
           pr_number="${{ steps.release.outputs.pr_number }}"
           if gh pr merge "$pr_number" --squash --auto; then
             echo "Release PR #$pr_number queued for automatic merge."
+            {
+              echo "### Release PR"
+              echo "- Auto-merge queued for release PR #$pr_number."
+            } >> "$GITHUB_STEP_SUMMARY"
           elif gh pr merge "$pr_number" --squash --delete-branch; then
             echo "Release PR #$pr_number merged after successful deployment."
+            {
+              echo "### Release PR"
+              echo "- Release PR #$pr_number was merged after successful deployment."
+            } >> "$GITHUB_STEP_SUMMARY"
+          elif gh pr merge "$pr_number" --squash --admin --delete-branch; then
+            echo "Release PR #$pr_number administrator-merged after successful deployment."
+            {
+              echo "### Release PR"
+              echo "- Release PR #$pr_number was administrator-merged after successful deployment."
+            } >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "Release PR could not be merged; leaving it open for review."
+            pr_url="$(gh pr view "$pr_number" --json url --jq '.url')"
+            echo "Release PR could not be merged; leaving it open for review: $pr_url"
+            {
+              echo "### Release PR"
+              echo "- Manual merge required: [$pr_url]($pr_url)"
+              echo "- Deployment succeeded, but repository branch rules prevented automatic merging."
+            } >> "$GITHUB_STEP_SUMMARY"
           fi
