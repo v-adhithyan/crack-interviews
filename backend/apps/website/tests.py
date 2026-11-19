@@ -1,5 +1,7 @@
 import os
 import runpy
+from datetime import timedelta
+from importlib import import_module
 from unittest.mock import patch
 
 from django.contrib import admin
@@ -7,6 +9,8 @@ from django.contrib.auth.models import AnonymousUser
 from django.contrib.messages import get_messages
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
+from django.db import connection
+from django.db.migrations.executor import MigrationExecutor
 from django.test import override_settings
 from django.test import RequestFactory
 from django.test import TestCase
@@ -496,8 +500,8 @@ class PublishResumeGuidesTests(TestCase):
         "hackerleap-vs-teal",
     )
 
-    def test_comparisons_appear_in_blog_and_sitemap(self):
-        call_command("publish_resume_guides")
+    def test_migrated_comparisons_appear_in_footer_blog_and_sitemap(self):
+        home = self.client.get(reverse("home_page"))
         index = self.client.get(reverse("blog_index"))
         sitemap = self.client.get("/sitemap.xml")
         descriptions = set()
@@ -506,6 +510,7 @@ class PublishResumeGuidesTests(TestCase):
             with self.subTest(slug=slug):
                 post = BlogPost.objects.get(slug=slug)
                 url = reverse("blog_detail", kwargs={"slug": slug})
+                self.assertContains(home, f'<a href="{url}">HackerLeap vs.')
                 self.assertContains(index, url)
                 self.assertContains(sitemap, url)
                 response = self.client.get(url)
@@ -516,15 +521,22 @@ class PublishResumeGuidesTests(TestCase):
                 descriptions.add(post.excerpt)
 
         self.assertEqual(len(descriptions), len(self.comparison_slugs))
+
+    def test_publish_command_still_imports_legacy_guides(self):
+        call_command("publish_resume_guides")
         legacy_post = BlogPost.objects.get(slug="resume-builder-comparison")
         self.assertTrue(legacy_post.excerpt.startswith(legacy_post.title + ". "))
         self.assertTrue(legacy_post.content.startswith("Reviewed "))
 
     def test_republishing_preserves_cms_edits_and_draft_status(self):
         slug = self.comparison_slugs[0]
-        post = BlogPost.objects.create(
-            slug=slug, title="Edited title", excerpt="Edited excerpt", content="Edited body"
-        )
+        post = BlogPost.objects.get(slug=slug)
+        post.title = "Edited title"
+        post.excerpt = "Edited excerpt"
+        post.content = "Edited body"
+        post.status = BlogPost.Status.DRAFT
+        post.published_at = None
+        post.save()
 
         call_command("publish_resume_guides")
         call_command("publish_resume_guides")
@@ -535,3 +547,31 @@ class PublishResumeGuidesTests(TestCase):
         self.assertEqual(post.content, "Edited body")
         self.assertEqual(post.status, BlogPost.Status.DRAFT)
         self.assertIsNone(post.published_at)
+
+
+    def test_comparison_migration_preserves_an_existing_draft(self):
+        slug = self.comparison_slugs[0]
+        BlogPost.objects.filter(slug=slug).update(
+            title="Existing draft", status=BlogPost.Status.DRAFT, published_at=None
+        )
+        migration = import_module("apps.website.migrations.0008_publish_resume_comparisons")
+        prior_state = MigrationExecutor(connection).loader.project_state(migration.Migration.dependencies)
+
+        migration.publish_resume_comparisons(prior_state.apps, connection.schema_editor())
+
+        post = BlogPost.objects.get(slug=slug)
+        self.assertEqual(post.title, "Existing draft")
+        self.assertEqual(post.status, BlogPost.Status.DRAFT)
+        self.assertIsNone(post.published_at)
+
+    def test_footer_hides_unavailable_comparisons(self):
+        draft_slug, future_slug, *other_slugs = self.comparison_slugs
+        BlogPost.objects.filter(slug=draft_slug).update(status=BlogPost.Status.DRAFT)
+        BlogPost.objects.filter(slug=future_slug).update(published_at=timezone.now() + timedelta(days=1))
+
+        response = self.client.get(reverse("home_page"))
+
+        for slug in (draft_slug, future_slug):
+            self.assertNotContains(response, reverse("blog_detail", kwargs={"slug": slug}))
+        for slug in other_slugs:
+            self.assertContains(response, reverse("blog_detail", kwargs={"slug": slug}))
