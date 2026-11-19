@@ -23,6 +23,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST
 
 from apps.core.jobs import enqueue_background_job
+from .ai_integrations import require_personal_openai_key
 from .decorators import product_access_required, user_has_product_access
 from .forms import AnalysisPromptForm
 from .models import Resume, ResumeAnalysis, ResumeDraft, UserFeatureFlags
@@ -156,7 +157,13 @@ def submit(request):
             return JsonResponse({'detail': 'Unsupported resume selection.'}, status=400)
         # Serialize quota consumption with other code that locks feature flags.
         UserFeatureFlags.objects.select_for_update().filter(user=request.user).first()
-        automatic = get_effective_resume_analysis_mode(request.user) == 'chatgpt' and reserve_resume_analysis_ai_quota(request.user)
+        automatic = get_effective_resume_analysis_mode(request.user) == 'chatgpt'
+        if automatic:
+            try:
+                require_personal_openai_key(request.user)
+            except ValidationError as exc:
+                return JsonResponse({'detail': exc.messages[0]}, status=400)
+            automatic = reserve_resume_analysis_ai_quota(request.user)
         analysis = ResumeAnalysis.objects.create(user=request.user, resume=resume, resume_text=text, builder_snapshot=snapshot,
             job_description=description, generated_prompt=build_resume_match_prompt(description, text, snapshot),
             status='queued' if automatic else 'prompt_ready', ai_provider='chatgpt' if automatic else 'manual',

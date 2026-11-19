@@ -24,6 +24,7 @@ from django.views.decorators.http import require_POST, require_GET
 from apps.website.models import EarlyAccessUser
 from apps.core.jobs import enqueue_background_job
 
+from .ai_integrations import require_personal_openai_key
 from .decorators import product_access_required
 from .forms import AnalysisPromptForm
 from .forms import AnalysisResultForm
@@ -131,6 +132,12 @@ def dashboard(request):
                 configured_ai_mode = get_configured_resume_analysis_mode(request.user)
                 ai_mode = selected_ai_mode(request.user)
                 manual_due_to_quota = configured_ai_mode in {"chatgpt", "claude"} and ai_mode == "manual"
+                if ai_mode == "chatgpt":
+                    try:
+                        require_personal_openai_key(request.user)
+                    except ValidationError as exc:
+                        messages.error(request, exc.messages[0])
+                        return redirect("product_dashboard")
                 if ai_mode in {"chatgpt", "claude"}:
                     if reserve_resume_analysis_ai_quota(request.user):
                         analysis = ResumeAnalysis.objects.create(
@@ -165,6 +172,7 @@ def dashboard(request):
                         resume_text=resume.parsed_text,
                         builder_snapshot=resume.builder_snapshot,
                         mode=ai_mode,
+                        user=request.user,
                     )
                 except (ImproperlyConfigured, NotImplementedError, ValidationError) as exc:
                     messages.error(request, str(exc))

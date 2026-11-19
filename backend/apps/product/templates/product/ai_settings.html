@@ -1,0 +1,54 @@
+{% extends "product/base.html" %}
+
+{% block title %}AI integrations | HackerLeap{% endblock %}
+
+{% block body %}
+<div class="product-layout">
+    {% include "product/includes/sidebar.html" %}
+    <div class="product-main-shell">
+        {% include "product/includes/topbar.html" %}
+        <main class="product-main">
+            <section class="analysis-card">
+                <p>Settings / Integrations</p>
+                <h1>AI</h1>
+                {% if shared %}
+                    <p>Your account uses the shared ChatGPT integration.</p>
+                {% else %}
+                    <p>{% if configured %}A ChatGPT API key is configured.{% else %}Add your ChatGPT API key to use AI features.{% endif %}</p>
+                    <form method="post" class="job-form ai-integration-form">
+                        {% csrf_token %}
+                        {{ form.non_field_errors }}
+                        {{ form.provider.label_tag }}
+                        {{ form.provider }}
+                        {{ form.provider.errors }}
+                        <p id="unsupported-provider" role="status" hidden>Claude is currently unsupported. Choose ChatGPT.</p>
+                        {{ form.api_key.label_tag }}
+                        {{ form.api_key }}
+                        {{ form.api_key.errors }}
+                        <p id="key-help">You can replace your saved API key. For security, you can’t view it after saving.</p>
+                        <button type="submit">{% if configured %}Replace API key{% else %}Save API key{% endif %}</button>
+                    </form>
+                {% endif %}
+            </section>
+        </main>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if not shared %}
+<script>
+    const provider = document.getElementById("id_provider");
+    const notice = document.getElementById("unsupported-provider");
+    const form = provider.form;
+    function updateProviderFields() {
+        const unsupported = provider.value !== "chatgpt";
+        notice.hidden = !unsupported;
+        form.elements.api_key.disabled = unsupported;
+        form.querySelector('button[type="submit"]').disabled = unsupported;
+    }
+    provider.addEventListener("change", updateProviderFields);
+    updateProviderFields();
+</script>
+{% endif %}
+{% endblock %}

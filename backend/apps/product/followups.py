@@ -7,6 +7,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
+from .ai_integrations import get_openai_api_key
 from .models import AnalysisFollowup
 
 logger = logging.getLogger(__name__)
@@ -67,7 +68,7 @@ def run_followup(job_id):
     job = AnalysisFollowup.objects.get(pk=job_id)
     try:
         from openai import OpenAI
-        response = OpenAI(api_key=settings.OPENAI_API_KEY, timeout=90, max_retries=0).chat.completions.create(
+        response = OpenAI(api_key=get_openai_api_key(job.analysis.user), timeout=90, max_retries=0).chat.completions.create(
             model=settings.OPENAI_MODEL,
             messages=[{'role': 'system', 'content': INSTRUCTIONS}, {'role': 'user', 'content': job.prompt}],
             response_format={'type': 'json_object'}, max_completion_tokens=10000)

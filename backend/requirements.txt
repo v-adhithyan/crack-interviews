@@ -10,3 +10,5 @@ openai==1.59.7
 mysqlclient==2.2.7
 Markdown==3.7
 WeasyPrint==70.0
+
+cryptography==46.0.5

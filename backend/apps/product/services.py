@@ -10,6 +10,8 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
+from .ai_integrations import get_openai_api_key
+
 ANALYZER_INSTRUCTIONS = """You are HackerLeap Resume Match Analyzer.
 
 Your only task is to compare a software engineering job description with a candidate resume and return a structured JSON analysis.
@@ -302,8 +304,7 @@ Run a live mock system design interview. Follow these rules:
 
 def create_mock_interview_realtime_token(user, session):
     from .interview_simulator import runtime_prompt
-    if not settings.OPENAI_API_KEY:
-        raise ImproperlyConfigured("OPENAI_API_KEY is required for mock voice interviews.")
+    api_key = get_openai_api_key(user)
 
     safety_identifier = hashlib.sha256(f"hackerleap-user-{user.id}".encode("utf-8")).hexdigest()
     transcript_text = session.transcript_text.strip()
@@ -339,7 +340,7 @@ def create_mock_interview_realtime_token(user, session):
         "https://api.openai.com/v1/realtime/client_secrets",
         data=json.dumps(payload).encode("utf-8"),
         headers={
-            "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
+            "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
             "OpenAI-Safety-Identifier": safety_identifier,
         },
@@ -350,16 +351,14 @@ def create_mock_interview_realtime_token(user, session):
         with urllib.request.urlopen(request, timeout=20) as response:
             return json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")
-        raise ValidationError(f"Unable to create voice interview session. OpenAI returned {exc.code}: {detail[:240]}") from exc
+        raise ValidationError(f"Unable to create voice interview session. OpenAI returned HTTP {exc.code}.") from exc
     except urllib.error.URLError as exc:
         raise ValidationError("Unable to reach OpenAI for voice interview setup. Please try again.") from exc
 
 
 def generate_mock_interview_feedback(session):
     from .interview_simulator import FEEDBACK_INSTRUCTIONS, interview_context
-    if not settings.OPENAI_API_KEY:
-        raise ImproperlyConfigured("OPENAI_API_KEY is required for mock interview feedback.")
+    api_key = get_openai_api_key(session.user)
 
     transcript = session.transcript_text.strip()
     if not transcript:
@@ -367,7 +366,7 @@ def generate_mock_interview_feedback(session):
 
     from openai import OpenAI
 
-    response = OpenAI(api_key=settings.OPENAI_API_KEY).chat.completions.create(
+    response = OpenAI(api_key=api_key).chat.completions.create(
         model=settings.OPENAI_FEEDBACK_MODEL,
         messages=[
             {"role": "system", "content": FEEDBACK_INSTRUCTIONS if getattr(session, "is_simulator", False) else MOCK_INTERVIEW_FEEDBACK_INSTRUCTIONS},
@@ -475,8 +474,10 @@ class ClaudeResumeMatchClient(ResumeMatchAIClient):
         raise NotImplementedError("Claude resume match analysis integration is not implemented yet.")
 
 
-def get_resume_match_client(mode=None):
+def get_resume_match_client(mode=None, *, user=None):
     selected_mode = normalize_resume_analysis_mode(mode or settings.HACKERLEAP_AI_MODE)
+    if selected_mode == "chatgpt" and user is not None:
+        return ChatGPTResumeMatchClient(api_key=get_openai_api_key(user))
     clients = {
         ManualResumeMatchClient.provider_name: ManualResumeMatchClient,
         ChatGPTResumeMatchClient.provider_name: ChatGPTResumeMatchClient,
@@ -488,8 +489,8 @@ def get_resume_match_client(mode=None):
         raise ImproperlyConfigured(f"Unsupported HACKERLEAP_AI_MODE: {selected_mode}") from exc
 
 
-def run_resume_match_analysis(*, job_description, resume_text, mode=None, builder_snapshot=None):
-    return get_resume_match_client(mode=mode).analyze(
+def run_resume_match_analysis(*, job_description, resume_text, mode=None, builder_snapshot=None, user=None):
+    return get_resume_match_client(mode=mode, user=user).analyze(
         job_description=job_description,
         resume_text=resume_text,
         builder_snapshot=builder_snapshot,

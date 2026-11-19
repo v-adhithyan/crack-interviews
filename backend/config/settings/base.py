@@ -170,3 +170,5 @@ PUBLIC_RESUME_IP_EXPORTS_PER_HOUR = int(os.getenv('PUBLIC_RESUME_IP_EXPORTS_PER_
 PUBLIC_RESUME_CLIENT_IP_HEADER = os.getenv('PUBLIC_RESUME_CLIENT_IP_HEADER', '')
 PUBLIC_SITE_URL = os.getenv('PUBLIC_SITE_URL', 'https://www.hackerleap.com').rstrip('/')
 MIDDLEWARE.insert(0, 'apps.product.public_resume_middleware.PublicResumePrivacyMiddleware')
+
+AI_USE_SHARED_KEY_FOR_LOCAL_DEV = False

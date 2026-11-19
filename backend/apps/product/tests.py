@@ -1227,6 +1227,7 @@ class ResumeUploadTests(TestCase):
             job_description="Python backend role.",
             resume_text="Python Django resume.",
             mode="chatgpt",
+            user=analysis.user,
             builder_snapshot={},
         )
         self.assertEqual(analysis.status, ResumeAnalysis.Status.RESULT_ADDED)
@@ -1248,7 +1249,7 @@ class ResumeUploadTests(TestCase):
 
         analysis.refresh_from_db()
         self.assertEqual(analysis.status, ResumeAnalysis.Status.FAILED)
-        self.assertEqual(analysis.error_message, "Provider timed out")
+        self.assertEqual(analysis.error_message, "Unable to complete AI analysis right now. Please try again later.")
         self.assertIsNotNone(analysis.completed_at)
 
 

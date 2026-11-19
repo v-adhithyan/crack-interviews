@@ -11,6 +11,7 @@ from django.template.loader import render_to_string
 from django.core.cache import cache
 from io import BytesIO
 
+from .ai_integrations import require_personal_openai_key
 from .resume_builder import render_document_pdf
 from .resume_fonts import FAMILIES, faces
 from django.shortcuts import get_object_or_404, redirect, render
@@ -56,7 +57,10 @@ def create(request, analysis_uuid):
                     return redirect('analysis_followup_detail', job_uuid=job.uuid)
                 if AnalysisFollowup.objects.filter(analysis__user=request.user, created_at__gte=timezone.now()-timedelta(hours=24)).count() >= 20:
                     raise ValidationError('You can create up to 20 follow-up batches per 24 hours.')
-                automatic = get_effective_resume_analysis_mode(request.user) == 'chatgpt' and reserve_resume_analysis_ai_quota(request.user)
+                automatic = get_effective_resume_analysis_mode(request.user) == 'chatgpt'
+                if automatic:
+                    require_personal_openai_key(request.user)
+                    automatic = reserve_resume_analysis_ai_quota(request.user)
                 job = AnalysisFollowup.objects.create(analysis=analysis, request_key=key, questions=questions,
                     include_cover_letter=cover, prompt=prompt, status='queued' if automatic else 'manual')
             if automatic:

@@ -2,6 +2,7 @@ from . import public_resume_views as public_resume
 from django.contrib.auth.views import LogoutView
 from django.urls import path
 
+from .ai_integrations import ai_settings
 from . import resume_edit_views
 from . import resume_pdf_views
 from . import followup_views
@@ -12,6 +13,7 @@ from . import views
 from . import resume_builder_views as builder
 
 urlpatterns = [
+    path("app/settings/integrations/ai/", ai_settings, name="ai_integration_settings"),
     path('resume-builder/', public_resume.landing, name='public_resume_landing'),
     path('resume-builder/edit/', public_resume.editor, name='public_resume_editor'),
     path('resume-builder/session/', public_resume.session_token, name='public_resume_session'),

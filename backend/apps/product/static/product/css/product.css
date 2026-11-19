@@ -1719,3 +1719,40 @@ th {
     }
 
 }
+
+.user-menu-settings {
+    display: block;
+    padding: 8px;
+    margin-bottom: 8px;
+    border-radius: 7px;
+    color: inherit;
+    font-weight: 700;
+}
+
+.user-menu-settings:hover,
+.user-menu-settings:focus-visible {
+    background: #fff3c6;
+}
+
+.user-menu-settings span {
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.ai-integration-form {
+    max-width: 38rem;
+}
+
+.ai-integration-form input,
+.ai-integration-form select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #d4cbb7;
+    border-radius: 7px;
+    font: inherit;
+}
+
+.ai-integration-form button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
