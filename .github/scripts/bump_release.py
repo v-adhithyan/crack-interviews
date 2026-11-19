@@ -37,7 +37,13 @@ def commits(before: str | None, after: str) -> list[tuple[str, str, str, str]]:
 def bump_level(rows: list[tuple[str, str, str, str]]) -> str:
     level = "patch"
     for sha, author, email, subject in rows:
-        body = git("show", "-s", "--format=%B", sha)
+        try:
+            body = git("show", "-s", "--format=%B", sha)
+        except subprocess.CalledProcessError:
+            # A force-pushed or shallow event range can contain a SHA that is
+            # not available in the checkout. The subject is still sufficient
+            # for the conventional-commit bump decision.
+            body = ""
         if "BREAKING CHANGE:" in body or re.match(r"^[a-z]+!:", subject):
             return "major"
         if re.match(r"^feat(?:ure)?(?:\([^)]*\))?:", subject):
