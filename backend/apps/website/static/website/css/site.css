@@ -323,9 +323,13 @@ input {
 .main-nav {
     display: flex;
     justify-content: center;
-    gap: clamp(24px, 4vw, 58px);
+    gap: clamp(16px, 2vw, 28px);
     font-size: 16px;
     font-weight: 700;
+}
+
+.main-nav a {
+    white-space: nowrap;
 }
 
 .main-nav a,
@@ -1232,11 +1236,7 @@ input {
     line-height: 1.6;
 }
 
-@media (max-width: 980px) {
-    .page-shell {
-        width: min(100% - 32px, 760px);
-    }
-
+@media (max-width: 1120px) {
     .header-inner {
         flex-wrap: wrap;
         justify-content: center;
@@ -1248,6 +1248,12 @@ input {
         width: 100%;
         flex-wrap: wrap;
         gap: 18px 28px;
+    }
+}
+
+@media (max-width: 980px) {
+    .page-shell {
+        width: min(100% - 32px, 760px);
     }
 
     .hero-grid,

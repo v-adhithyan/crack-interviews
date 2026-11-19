@@ -10,7 +10,7 @@ from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import PublicResumePdfJob, PublicResumeTransfer, PublicBuilderCounter, ResumeDraft
+from .models import PublicResumePdfJob, PublicResumeTransfer, PublicBuilderCounter, ResumeDraft, ResumePrunePlan
 from .resume_builder import blank_content, DEFAULT_TYPOGRAPHY
 from .resume_pdf_jobs import generate_resume_pdf, cleanup_expired_pdfs
 
@@ -53,6 +53,18 @@ class PublicResumeTests(TestCase):
         self.assertNotIn('X-Robots-Tag', landing)
         self.assertContains(self.client.get('/sitemap.xml'), '/resume-builder/</loc>')
         self.assertContains(self.client.get('/robots.txt'), 'Disallow: /resume-builder/pdf/')
+
+    def test_cleanup_expires_public_exports_and_private_prune_plans(self):
+        expired_at = timezone.now() - timedelta(seconds=1)
+        export = self.export()
+        PublicResumePdfJob.objects.filter(pk=export.pk).update(expires_at=expired_at)
+        user = get_user_model().objects.create_user(username='prune-owner')
+        plan = ResumePrunePlan.objects.create(user=user, expires_at=expired_at)
+
+        cleanup_expired_pdfs()
+
+        self.assertFalse(PublicResumePdfJob.objects.filter(pk=export.pk).exists())
+        self.assertFalse(ResumePrunePlan.objects.filter(pk=plan.pk).exists())
 
     def test_preview_escapes_text_forces_defaults_and_does_not_save(self):
         self.content['typography']['font'] = 'garamond'
