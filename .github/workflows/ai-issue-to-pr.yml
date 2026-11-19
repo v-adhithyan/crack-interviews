@@ -1,0 +1,112 @@
+name: AI issue to pull request
+
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: Issue to implement
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  actions: read
+
+jobs:
+  implement:
+    if: >-
+      (github.event_name == 'workflow_dispatch') ||
+      (github.event_name == 'issues' && contains(fromJSON('["ai-ready-to-implement","mockup-approved"]'), github.event.label.name))
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      AI_GH_TOKEN: ${{ secrets.AI_GH_TOKEN }}
+      AI_ALLOWED_USERS: ${{ secrets.AI_ALLOWED_USERS || vars.AI_ALLOWED_USERS }}
+      AI_TRIGGER_ACTOR: ${{ github.actor }}
+      ISSUE_NUMBER: ${{ inputs.issue_number || github.event.issue.number }}
+    concurrency:
+      group: ai-implement-${{ inputs.issue_number || github.event.issue.number }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.AI_GH_TOKEN || github.token }}
+          fetch-depth: 0
+
+      - name: Promote approved mockup to implementation
+        if: github.event_name == 'issues' && github.event.label.name == 'mockup-approved'
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          comments="$(gh issue view "$ISSUE_NUMBER" --repo "$REPOSITORY" --json comments --jq '.comments[].body')"
+          if ! grep -Fq '<!-- ai-requirements-clear -->' <<<"$comments"; then
+            gh issue comment "$ISSUE_NUMBER" --repo "$REPOSITORY" --body $'## Requirements clear\n\nThe approved mockup is accepted for implementation.\n\n<!-- ai-requirements-clear -->'
+          fi
+          gh issue edit "$ISSUE_NUMBER" --repo "$REPOSITORY" --add-label ai-ready-to-implement
+
+      - name: Check requirements, allowlist, and mockup approval
+        id: gate
+        env:
+          TRIGGER_LABEL: ${{ github.event.label.name }}
+        run: python3 .github/scripts/mockups.py gate
+
+      - name: Prepare project dependencies
+        if: steps.gate.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install -r backend/requirements_dev.txt
+          npm ci --prefix frontend
+
+      - name: Install Codex Linux runtime
+        if: steps.gate.outputs.ready == 'true'
+        run: npm install --global --include=optional @openai/codex@latest
+
+      - name: Configure workflow-capable git push
+        if: steps.gate.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          test -n "$AI_GH_TOKEN" || { echo "AI_GH_TOKEN is missing."; exit 1; }
+          git remote set-url origin "https://x-access-token:${AI_GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+      - name: Run OpenAI Codex implementation agent
+        if: steps.gate.outputs.ready == 'true'
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          permission-profile: ":danger-full-access"
+          prompt: |
+            Implement GitHub issue #${{ inputs.issue_number || github.event.issue.number }}.
+
+            Approved mockup PNG, when applicable: ${{ steps.gate.outputs.mockup }}
+            Download and view the approved mockup and follow its design in the implementation.
+
+            Follow this exact process:
+            1. Read AGENTS.md and .github/AI_SDLC.md.
+            2. Read the complete issue, including clarification comments and the requirements-clear comment.
+            3. Inspect the existing architecture and relevant tests before editing.
+            4. Use ai/issue-${{ inputs.issue_number || github.event.issue.number }}, creating it if needed, and make the smallest complete implementation.
+            5. Add or update meaningful unit, integration, and regression tests.
+            6. Run all applicable checks from AGENTS.md. Fix failures caused by this change.
+            7. For UI changes, add browser coverage and attach before/after screenshots to the pull request when possible.
+            8. Do not change secrets, production data, deployment credentials, or unrelated files.
+            9. Do not merge or deploy. Open a pull request targeting the default branch.
+
+            The pull request must include:
+            - A concise summary of behavior changed.
+            - The requirements implemented.
+            - Tests and checks run with their results.
+            - Risks, limitations, and any follow-up work.
+            - A link closing the issue.
+
+            If requirements become ambiguous during implementation, do not edit code.
+            Comment with the exact missing decisions, include the marker
+            <!-- ai-implementation-clarification -->, remove ai-ready-to-implement,
+            and add ai-awaiting-clarification so an issue reply retriggers triage.

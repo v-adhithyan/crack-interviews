@@ -1,0 +1,38 @@
+{% extends "product/base.html" %}{% load static %}
+{% block title %}Review Resume Pruning | HackerLeap{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{% static 'product/css/resume_builder.css' %}"><style>
+.rb-list .outline-small{white-space:normal;max-width:100%;box-sizing:border-box;text-align:center}.prune-card{background:#fff;border:1px solid #dce0e7;border-radius:12px;padding:22px;margin:18px 0}.prune-card pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit}.prune-card select{max-width:100%;padding:10px}.prune-warning{color:#854d0e;background:#fffbeb;padding:12px;border-radius:8px}.prune-choice{display:flex;gap:12px;align-items:flex-start}.prune-choice input{width:20px;height:20px;flex-shrink:0}.prune-preview{width:100%;height:750px;border:1px solid #ddd;background:#fff}.prune-actions{display:flex;gap:16px;flex-wrap:wrap;margin:18px 0}.prune-backup{overflow-wrap:anywhere}
+</style>{% endblock %}
+{% block body %}<div class="product-layout">{% include "product/includes/sidebar.html" %}<div class="product-main-shell">{% include "product/includes/topbar.html" %}<main class="product-main rb-list">
+<a href="{% url 'resume_pruner' %}">← Resume pruner</a><h1>Review resume pruning</h1>
+<p>Protected bases will not be altered. Review expires {{ plan.expires_at|date:"M j, H:i" }}.</p>
+<p><a class="outline-small" href="{% url 'resume_prune_backup' plan.uuid %}">Download backup of all reviewed resumes (JSON)</a></p>
+{% if failure %}<p role="alert" class="prune-warning">{{ failure }}</p>{% endif %}
+{% if plan.stage == 'assign' %}
+<h2>1. Choose the groups</h2><p>Suggestions use word overlap, not semantic understanding. The percentage is similarity, not confidence. Change any group or leave a draft unassigned.</p>
+<form method="post">{% csrf_token %}<input type="hidden" name="revision" value="{{ plan.revision }}"><input type="hidden" name="action" value="assign">
+{% for source in sources %}<section class="prune-card"><h3>{{ source.title }}</h3><p>Closest base similarity: {{ source.suggestion.score }}%</p><label for="group-{{ source.id }}">Group under base</label><select id="group-{{ source.id }}" name="group_{{ source.id }}"><option value="">Leave untouched</option>{% for base in bases %}<option value="{{ base.id }}" {% if source.selected == base.id %}selected{% endif %}>{{ base.title }}</option>{% endfor %}</select></section>{% endfor %}<button class="rb-primary">Review missing content →</button></form>
+{% elif plan.stage == 'review' %}
+<h2>2. Approve additions and deletions</h2><p>Original wording is preserved. Similar statements may describe the same achievement. Changed dates, roles or metrics need your judgement. Choose at most one replacement per summary or contact field.</p>
+<form method="post">{% csrf_token %}<input type="hidden" name="revision" value="{{ plan.revision }}"><input type="hidden" name="action" value="preview">
+<p><button class="rb-secondary" type="button" id="select-unique">Select suggestions without warnings</button></p>
+{% for item in candidates %}<section class="prune-card"><p><strong>Into {{ item.base_title }}</strong> · From {{ item.source_titles }}</p><label class="prune-choice"><input type="checkbox" name="suggestion" value="{{ item.id }}" data-warning="{{ item.warning|yesno:'yes,no' }}" {% if item.selected %}checked{% endif %}><strong>{{ item.label }}</strong></label>{% if item.warning %}<p class="prune-warning">{{ item.warning }}</p>{% endif %}{% if item.current %}<details><summary>Current or similar content</summary><pre>{{ item.current }}</pre></details>{% endif %}<pre>{{ item.value }}</pre></section>{% empty %}<p>No missing content found. You can consolidate duplicate drafts into a copy of the base.</p>{% endfor %}
+<h3>Which source drafts should be deleted?</h3><p>Unchecked drafts are kept. Content you do not accept will not be copied. Deleting a source discards those rejected additions too—review carefully.</p>
+{% for source in sources %}{% if source.selected %}<p><label class="prune-choice"><input type="checkbox" name="delete" value="{{ source.id }}" {% if source.delete_selected %}checked{% endif %}>Delete “{{ source.title }}” after creating the consolidated copy</label></p>{% endif %}{% endfor %}<button class="rb-primary">Preview consolidated resumes →</button></form>
+{% elif plan.stage == 'preview' %}
+<h2>3. Check the final result</h2><p>These are temporary content previews; they do not count toward your 20 resumes. Check final PDF page breaks in Resume Builder after consolidation. New consolidated copies will not be protected bases automatically.</p>
+{% for output in previews %}<section class="prune-card"><h3>{{ output.title }}</h3><iframe class="prune-preview" title="Preview: {{ output.title }}" sandbox="" referrerpolicy="no-referrer" srcdoc="{{ output.html|force_escape }}"></iframe></section>{% endfor %}
+<section class="prune-card"><h3>Will create {{ previews|length }} consolidated resume{{ previews|length|pluralize }}</h3><h3>Will permanently delete {{ deletions|length }} source resume{{ deletions|length|pluralize }}</h3><ul>{% for title in deletions %}<li>{{ title }}</li>{% empty %}<li>None</li>{% endfor %}</ul><p>Your protected bases and all unselected resumes remain unchanged.</p>
+<form method="post" action="{% url 'resume_prune_apply' plan.uuid %}">{% csrf_token %}<input type="hidden" name="revision" value="{{ plan.revision }}"><p><label class="prune-choice"><input type="checkbox" required name="confirm" value="yes">I reviewed the previews and approve the listed creations and permanent deletions. I understand unselected content from deleted drafts will be lost.</label></p><button class="rb-primary">Confirm consolidation</button></form></section>
+{% elif plan.stage == 'complete' %}
+<h2>Consolidation complete</h2><p>Your original protected bases are unchanged.</p>{% for id in plan.result_ids %}<p><a class="outline-small" href="{% url 'resume_builder_edit' id %}">Open consolidated resume {{ forloop.counter }}</a></p>{% endfor %}<p><a href="{% url 'resume_builder_list' %}">View all resumes</a></p>
+{% endif %}
+{% if plan.stage == 'review' or plan.stage == 'preview' %}<form method="post" class="prune-actions">{% csrf_token %}<input type="hidden" name="revision" value="{{ plan.revision }}"><input type="hidden" name="action" value="back"><button class="rb-secondary">Restart grouping and selection</button></form>{% endif %}
+</main></div></div>{% endblock %}
+
+{% block scripts %}{{ block.super }}<script>
+const uniqueButton = document.getElementById('select-unique');
+if (uniqueButton) uniqueButton.addEventListener('click', () => {
+ document.querySelectorAll('input[name="suggestion"][data-warning="no"]').forEach(input => {input.checked = true;});
+});
+</script>{% endblock %}

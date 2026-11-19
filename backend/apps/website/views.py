@@ -1,5 +1,7 @@
+from urllib.parse import urlsplit
 from xml.sax.saxutils import escape
 
+from django.conf import settings
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.contrib import messages
@@ -138,6 +140,18 @@ def website_page(request, slug):
     return render(request, "website/page/detail.html", {"page": page})
 
 
+def status_page(request):
+    coding_origin = settings.HACKERLEAP_CODE
+    website_host = request.get_host().split(":", 1)[0].lower().rstrip(".")
+    is_local_coding_origin = urlsplit(coding_origin).hostname in {"localhost", "127.0.0.1", "::1"}
+    if website_host in {"hackerleap.com", "www.hackerleap.com"} and is_local_coding_origin:
+        coding_origin = "https://code.hackerleap.com"
+
+    return render(request, "website/status.html", {
+        "coding_health_url": f"{coding_origin.rstrip('/')}/health",
+    })
+
+
 def sitemap_xml(request):
     now = timezone.now()
     urls = [
@@ -147,6 +161,7 @@ def sitemap_xml(request):
         {"loc": request.build_absolute_uri(reverse("pricing_page")), "changefreq": "monthly", "priority": "0.8"},
         {"loc": request.build_absolute_uri(reverse("privacy_policy")), "changefreq": "yearly", "priority": "0.3"},
         {"loc": request.build_absolute_uri(reverse("terms_of_service")), "changefreq": "yearly", "priority": "0.3"},
+        {"loc": request.build_absolute_uri(reverse("status_page")), "changefreq": "monthly", "priority": "0.3"},
         {"loc": request.build_absolute_uri(reverse("refund_policy")), "changefreq": "yearly", "priority": "0.3"},
     ]
 

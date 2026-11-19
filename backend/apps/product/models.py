@@ -187,10 +187,6 @@ class UserFeatureFlags(models.Model):
             self.ai_analysis_count = 0
             self.save(update_fields=("ai_analysis_window_started_at", "ai_analysis_count", "updated_at"))
 
-    @property
-    def ai_analysis_quota_remaining(self):
-        return max(0, self.ai_analysis_daily_limit - self.ai_analysis_count)
-
     def can_run_ai_analysis(self, now=None):
         self.reset_ai_analysis_usage_if_expired(now=now)
         return self.ai_analysis_daily_limit > 0 and self.ai_analysis_count < self.ai_analysis_daily_limit
@@ -255,6 +251,7 @@ class MockInterviewSession(models.Model):
     class Status(models.TextChoices):
         CREATED = "created", "Created"
         ACTIVE = "active", "Active"
+        PAUSED = "paused", "Paused"
         COMPLETED = "completed", "Completed"
         FAILED = "failed", "Failed"
 
@@ -269,6 +266,8 @@ class MockInterviewSession(models.Model):
     transcript_text = models.TextField(blank=True)
     feedback_json = models.JSONField(blank=True, null=True)
     error_message = models.TextField(blank=True)
+    paused_at = models.DateTimeField(blank=True, null=True)
+    paused_duration = models.DurationField(default=timedelta)
     started_at = models.DateTimeField(blank=True, null=True)
     ended_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -285,7 +284,7 @@ class MockInterviewSession(models.Model):
     def expires_at(self):
         if self.is_free_style or not self.started_at:
             return None
-        return self.started_at + self.DURATION
+        return self.started_at + self.DURATION + self.paused_duration
 
     @property
     def remaining_seconds(self):
@@ -296,7 +295,7 @@ class MockInterviewSession(models.Model):
         expires_at = self.expires_at
         if not expires_at:
             return int(self.DURATION.total_seconds())
-        return max(0, int((expires_at - timezone.now()).total_seconds()))
+        return max(0, int((expires_at - (self.paused_at or timezone.now())).total_seconds()))
 
     @property
     def remaining_display(self):
@@ -326,6 +325,23 @@ class MockInterviewSession(models.Model):
             return None
 
 
+class InterviewSimulatorSession(MockInterviewSession):
+    """Separate simulator context; shared voice-session lifecycle and transcript engine."""
+    mockinterviewsession_ptr = models.OneToOneField(MockInterviewSession, parent_link=True,
+        primary_key=True, on_delete=models.CASCADE, related_name='simulator')
+    setup = models.JSONField(default=dict)
+    resume_snapshot = models.JSONField(default=dict)
+    resume_text = models.TextField()
+    prompt_snapshot = models.TextField()
+
+    class Meta:
+        db_table = 'product_interview_simulator_session'
+
+    @property
+    def is_simulator(self):
+        return True
+
+
 class MockInterviewTurn(models.Model):
     class Role(models.TextChoices):
         USER = "user", "User"
@@ -345,7 +361,24 @@ class MockInterviewTurn(models.Model):
         return f"{self.get_role_display()}: {self.text[:80]}"
 
 
+class ResumeDraftQuerySet(models.QuerySet):
+    def delete(self):
+        from django.db import transaction
+        from django.db.models.deletion import ProtectedError
+        with transaction.atomic():
+            protected = [draft for draft in self.select_for_update() if draft.is_base]
+            if protected:
+                raise ProtectedError('Unmark base resumes before deleting them.', protected)
+            return super().delete()
+
+
 class ResumeDraft(models.Model):
+    objects = ResumeDraftQuerySet.as_manager()
+    is_base = models.BooleanField(default=False)
+
+    def delete(self, using=None, keep_parents=False):
+        return type(self).objects.using(using or self._state.db).filter(pk=self.pk).delete()
+
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="resume_drafts")
     title = models.CharField(max_length=120, default="Untitled resume")
@@ -441,4 +474,19 @@ class PublicResumePdfJob(models.Model):
     error = models.CharField(max_length=250, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     started_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(db_index=True)
+
+
+class ResumePrunePlan(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    snapshots = models.JSONField(default=dict)
+    assignments = models.JSONField(default=dict)
+    candidates = models.JSONField(default=list)
+    outputs = models.JSONField(default=list)
+    delete_ids = models.JSONField(default=list)
+    result_ids = models.JSONField(default=list)
+    stage = models.CharField(max_length=16, default='assign')
+    revision = models.PositiveIntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField(db_index=True)

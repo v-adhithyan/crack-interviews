@@ -16,9 +16,9 @@
 <div class="progress-meta"><span id="pdf-progress-stage">{{ progress.stage }}</span><strong id="pdf-progress-percent">{{ progress.progress|default_if_none:0 }}%</strong></div>
 <p>Queued → Generating → Ready. Progress reflects completed stages, not elapsed time.</p>
 </div>
-<a id="pdf-ready" class="outline-action" href="{% url 'public_resume_pdf_file' job.uuid %}{% if download %}?download=1{% endif %}" hidden>{% if download %}Download PDF{% else %}Open PDF{% endif %}</a>
-<button id="pdf-check" type="button" hidden>Check again</button>
-<noscript><p>Refresh this page to check progress: {{ job.get_status_display }}. {{ job.error }}</p>{% if job.status == 'ready' %}<a href="{% url 'public_resume_pdf_file' job.uuid %}{% if download %}?download=1{% endif %}">Open PDF</a>{% endif %}</noscript>
+<a id="pdf-ready" class="site-button site-button-primary" href="{% url 'public_resume_pdf_file' job.uuid %}{% if download %}?download=1{% endif %}" hidden>{% if download %}Download PDF{% else %}Open PDF{% endif %}</a>
+<button id="pdf-check" class="site-button site-button-secondary" type="button" hidden>Check again</button>
+<noscript><p>Refresh this page to check progress: {{ job.get_status_display }}. {{ job.error }}</p>{% if job.status == 'ready' %}<a class="site-button site-button-primary" href="{% url 'public_resume_pdf_file' job.uuid %}{% if download %}?download=1{% endif %}">Open PDF</a>{% endif %}</noscript>
 </section>
 <p>Files expire after 30 minutes. You can continue editing while the PDF is generated.</p>
 <p>Return to your original editor tab to keep editing or request a new PDF. Closing that tab loses unsaved edits unless you downloaded a recovery copy.</p>

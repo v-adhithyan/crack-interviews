@@ -1,12 +1,18 @@
 import importlib
+from io import StringIO
+from unittest.mock import patch
 
 from django.apps import apps
 from django.db import connection
+from django.core.management import call_command
+from django.contrib.auth import get_user_model
+from django.db.migrations.recorder import MigrationRecorder
 from django.test import TransactionTestCase
 
 from .models import MockInterviewSession
 from .management.commands.repair_mock_interview_schema import (
     SHARE_UUID_MIGRATION,
+    PRODUCT_SCALE_MIGRATION,
     should_drop_orphan_share_uuid,
 )
 
@@ -37,3 +43,34 @@ class MockInterviewSchemaRepairTests(TransactionTestCase):
                 for column in connection.introspection.get_table_description(cursor, table_name)
             }
         self.assertNotIn("share_uuid", columns)
+
+    def test_retired_product_scale_schema_cleanup_preserves_sessions_and_is_repeatable(self):
+        user = get_user_model().objects.create_user('schema-test')
+        session = MockInterviewSession.objects.create(user=user, topic='Saved interview')
+        table = connection.ops.quote_name(MockInterviewSession._meta.db_table)
+        with connection.cursor() as cursor:
+            cursor.execute(f"ALTER TABLE {table} ADD COLUMN track varchar(24) NOT NULL DEFAULT 'product_scale'")
+        recorder = MigrationRecorder(connection)
+        recorder.record_applied('product', PRODUCT_SCALE_MIGRATION)
+
+        for _ in range(2):
+            call_command('repair_mock_interview_schema', stdout=StringIO())
+        with connection.cursor() as cursor:
+            columns = {c.name for c in connection.introspection.get_table_description(cursor, MockInterviewSession._meta.db_table)}
+        self.assertNotIn('track', columns)
+        self.assertNotIn(('product', PRODUCT_SCALE_MIGRATION), recorder.applied_migrations())
+        session.refresh_from_db()
+        self.assertEqual(session.topic, 'Saved interview')
+        MockInterviewSession.objects.create(user=user, topic='New interview')
+
+    def test_cleanup_recovers_when_column_removed_but_migration_record_remains(self):
+        recorder = MigrationRecorder(connection)
+        recorder.record_applied('product', PRODUCT_SCALE_MIGRATION)
+        call_command('repair_mock_interview_schema', stdout=StringIO())
+        self.assertNotIn(('product', PRODUCT_SCALE_MIGRATION), recorder.applied_migrations())
+
+    def test_fresh_database_preflight_does_not_require_interview_table(self):
+        with patch.object(connection.introspection, 'table_names', return_value=[]):
+            output = StringIO()
+            call_command('repair_mock_interview_schema', stdout=output)
+        self.assertIn('migrations will create it', output.getvalue())

@@ -1,0 +1,17 @@
+.simulator-setup { max-width: 920px; }
+.simulator-form { display: grid; gap: 22px; padding-top: 16px; }
+.simulator-field { display: grid; gap: 8px; }
+.simulator-field[hidden] { display: none; }
+.simulator-field label { font-weight: 650; }
+.simulator-field input:not([type=checkbox]), .simulator-field select, .simulator-field textarea { width: 100%; box-sizing: border-box; padding: 12px 14px; font: inherit; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; color: #111827; }
+.simulator-field textarea { resize: vertical; }
+.simulator-field :is(input, select, textarea):focus-visible { outline: 3px solid #e7ae00; outline-offset: 2px; }
+.simulator-check { display: flex; align-items: flex-start; gap: 12px; line-height: 1.5; }
+.simulator-check input { width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px; accent-color: #a76b00; }
+.simulator-note { color: #475569; line-height: 1.6; }
+.simulator-form button[type=submit] { justify-self: start; border: 1px solid #e6ad00; border-radius: 10px; padding: 14px 22px; background: #ffc400; color: #111827; font: inherit; font-weight: 750; cursor: pointer; }
+@media(max-width: 600px) { .simulator-form button[type=submit] { width: 100%; } }
+
+.simulator-quota { display: grid; gap: 8px; min-width: 220px; }
+.simulator-quota strong { display: block; font-size: 32px; line-height: 1.1; }
+.simulator-quota small { display: block; color: #475569; line-height: 1.5; }

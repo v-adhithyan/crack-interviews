@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "HackerLeap \u2014 Job to Resume Analysis",
   "version": "0.1.0",
-  "description": "Copy Ashby, Greenhouse and LinkedIn job descriptions and analyze them against a saved HackerLeap resume.",
+  "description": "Analyze Ashby, Greenhouse, LinkedIn, Personio and Lever jobs against a saved HackerLeap resume.",
   "permissions": [
     "activeTab",
     "scripting",

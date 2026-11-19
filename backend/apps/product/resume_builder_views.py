@@ -167,12 +167,14 @@ def draft_use(request, draft_uuid):
 @product_access_required
 @require_POST
 def draft_delete(request, draft_uuid):
-    draft = draft_for(request, draft_uuid)
-    deleted, _ = ResumeDraft.objects.filter(pk=draft.pk,
-                                            revision=request.POST.get('revision', '')).delete() if request.POST.get(
-        'revision', '').isdigit() else (0, {})
-    if not deleted:
-        return HttpResponse('Draft changed. Reload the list before deleting.', status=409)
+    with transaction.atomic():
+        get_user_model().objects.select_for_update().get(pk=request.user.pk)
+        draft = get_object_or_404(ResumeDraft.objects.select_for_update(), uuid=draft_uuid, user=request.user)
+        if draft.is_base:
+            return HttpResponse('Unmark this base resume before deleting it.', status=409)
+        if request.POST.get('revision') != str(draft.revision):
+            return HttpResponse('Draft changed. Reload the list before deleting.', status=409)
+        draft.delete()
     return redirect('resume_builder_list')
 
 

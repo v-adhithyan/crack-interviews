@@ -1,0 +1,49 @@
+{% extends "product/base.html" %}
+{% load static %}
+{% block title %}Mock Interview Simulator | HackerLeap{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{% static 'product/css/simulator.css' %}">{% endblock %}
+{% block body %}
+<div class="product-layout">
+{% include "product/includes/sidebar.html" %}
+<div class="product-main-shell">
+{% include "product/includes/topbar.html" %}
+<main class="product-main">
+<section class="dashboard-hero">
+<div><p class="eyebrow">PREPARE FOR YOUR NEXT CONVERSATION</p><h1>Mock interview simulator</h1>
+<p>Practice a hiring manager, behavioural or other interview round with a voice interviewer tailored to your role.</p></div>
+<aside class="active-resume-card simulator-quota"><span>Voice sessions remaining</span><strong>{{ quota_remaining }}</strong><small>Shared with system design. Resets 24 hours after your first session.</small></aside>
+</section>
+<p><a class="outline-small" href="{% url 'simulator_history' %}">Simulator history</a></p>
+<section class="analysis-card simulator-setup">
+<h2>{% if source %}Start another interview{% else %}Set up your interview{% endif %}</h2>
+{% if source %}<p>Your previous setup and resume snapshot are restored. Keep them unchanged to reuse the exact saved prompt, or edit them for a new scenario. Previous answers and feedback are not included.</p>{% endif %}
+<p>Paste company values, vision or mission from information you trust when enabling those criteria. The interviewer will not look them up.</p>
+<form method="post" class="simulator-form">
+{% csrf_token %}
+{{ form.non_field_errors }}
+{% for field in form %}
+<div class="simulator-field" data-field="{{ field.name }}">
+{% if field.field.widget.input_type == 'checkbox' %}<label class="simulator-check">{{ field }} <span>{{ field.label }}</span></label>
+{% else %}<label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span aria-hidden="true">*</span>{% endif %}</label>{{ field }}{% endif %}
+{% for error in field.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
+</div>
+{% endfor %}
+<p class="simulator-note">Your selected resume and interview context are saved privately with this session and sent to the AI provider when you start. Sessions last up to 60 minutes. AI feedback is practice guidance, not a hiring decision.</p>
+<button type="submit">Create interview room <span aria-hidden="true">→</span></button>
+</form>
+</section>
+</main></div></div>
+{% endblock %}
+{% block scripts %}{{ block.super }}
+<script>
+(() => {
+ const round = document.getElementById('id_round_type');
+ const toggle = (name, show) => { const row = document.querySelector('[data-field="' + name + '"]'); row.hidden = !show; };
+ const refresh = () => { toggle('custom_round', round.value === 'other');
+  ['values', 'vision', 'mission'].forEach(name => toggle(name, document.getElementById('id_match_' + name).checked)); };
+ round.addEventListener('change', refresh);
+ ['values', 'vision', 'mission'].forEach(name => document.getElementById('id_match_' + name).addEventListener('change', refresh));
+ refresh();
+})();
+</script>
+{% endblock %}

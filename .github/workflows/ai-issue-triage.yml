@@ -1,0 +1,231 @@
+name: AI issue requirements triage
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: Issue to triage
+        required: true
+        type: string
+  issues:
+    types: [labeled]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  actions: read
+
+jobs:
+  triage:
+    if: >-
+      (github.event_name == 'workflow_dispatch') ||
+      (github.event_name == 'issues' && github.event.label.name == 'ai-ready') ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request == null &&
+       contains(github.event.issue.labels.*.name, 'ai-awaiting-clarification'))
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ai-triage-${{ github.event.issue.number || inputs.issue_number }}
+      cancel-in-progress: true
+    env:
+      GH_TOKEN: ${{ github.token }}
+      AI_GH_TOKEN: ${{ secrets.AI_GH_TOKEN }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-4o-mini' }}
+      # Accept the current Actions secret and the documented repository variable.
+      # The secret takes precedence so existing setup works without re-entry.
+      AI_ALLOWED_USERS: ${{ secrets.AI_ALLOWED_USERS || vars.AI_ALLOWED_USERS }}
+      AI_TRIGGER_ACTOR: ${{ github.actor }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.AI_GH_TOKEN || github.token }}
+      - name: Ensure AI workflow labels exist
+        env:
+          ISSUE_NUMBER: ${{ inputs.issue_number || github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          for label in ai-ready ai-awaiting-clarification ai-ready-to-implement mockup-gen mockup-regen mockup-review-required mockup-approved; do
+            gh label create "$label" --color FBCA04 --force >/dev/null
+          done
+      - name: Triage issue
+        id: triage
+        shell: bash
+        env:
+          ISSUE_NUMBER: ${{ inputs.issue_number || github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          issue_json="$(gh issue view "$ISSUE_NUMBER" --json number,title,body,author,labels,comments)"
+          issue_author="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["author"]["login"])' <<<"$issue_json")"
+          allowed="$(printf '%s' ",${AI_ALLOWED_USERS:-}," | tr -d '[:space:]')"
+          if [[ "$allowed" != *",$issue_author,"* && "$allowed" != *",$AI_TRIGGER_ACTOR,"* ]]; then
+            echo "Neither issue author nor approving actor is in AI_ALLOWED_USERS; skipping."
+            exit 0
+          fi
+          result="$(printf '%s' "$issue_json" | python3 .github/scripts/triage_issue.py)"
+          printf '%s' "$result" > /tmp/ai-triage.json
+          echo "status=$(python3 -c 'import json; print(json.load(open("/tmp/ai-triage.json"))["status"])')" >> "$GITHUB_OUTPUT"
+      - name: Ask for clarification
+        if: steps.triage.outputs.status == 'needs_clarification'
+        env:
+          ISSUE_NUMBER: ${{ inputs.issue_number || github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          existing_comments="$(gh issue view "$ISSUE_NUMBER" --json comments --jq '.comments[].body')"
+          if grep -Fq '<!-- ai-clarification-request -->' <<<"$existing_comments"; then
+            echo "A clarification request already exists; not posting a duplicate."
+            exit 0
+          fi
+          questions="$(python3 - <<'PY'
+          import json
+          result=json.load(open('/tmp/ai-triage.json'))
+          lines=['## Clarification needed', '', 'Implementation is paused until these questions are answered:', '']
+          lines += [f'{i}. {question}' for i, question in enumerate(result['questions'], 1)]
+          lines += ['', '<!-- ai-clarification-request -->']
+          print('\n'.join(lines))
+          PY
+          )"
+          gh issue comment "$ISSUE_NUMBER" --body "$questions"
+          gh issue edit "$ISSUE_NUMBER" --remove-label ai-ready --add-label ai-awaiting-clarification
+      - name: Mark ready for implementation
+        if: steps.triage.outputs.status == 'clear'
+        env:
+          ISSUE_NUMBER: ${{ inputs.issue_number || github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          comments="$(gh issue view "$ISSUE_NUMBER" --json comments --jq '.comments[].body')"
+          if ! grep -Fq '<!-- ai-requirements-clear -->' <<<"$comments"; then
+            gh issue comment "$ISSUE_NUMBER" --body $'## Requirements clear\n\nThe issue is clear enough for implementation. The coding worker may now create a branch and pull request.\n\n<!-- ai-requirements-clear -->'
+          fi
+          gh issue edit "$ISSUE_NUMBER" --remove-label ai-ready --remove-label ai-awaiting-clarification --add-label ai-ready-to-implement
+
+      - name: Check implementation and mockup approval
+        id: gate
+        if: steps.triage.outputs.status == 'clear'
+        env:
+          ISSUE_NUMBER: ${{ inputs.issue_number || github.event.issue.number }}
+        run: python3 .github/scripts/mockups.py triage-gate
+
+      - name: Announce implementation start
+        if: steps.gate.outputs.ready == 'true'
+        env:
+          ISSUE_NUMBER: ${{ inputs.issue_number || github.event.issue.number }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --body $'## AI implementation started\n\nRequirements are clear. I am preparing the implementation branch and test environment.\n\n<!-- ai-implementation-started -->'
+
+      - name: Prepare project dependencies
+        if: steps.gate.outputs.ready == 'true'
+        shell: bash
+        env:
+          ISSUE_NUMBER: ${{ inputs.issue_number || github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          python3 -m pip install -r backend/requirements_dev.txt
+          npm ci --prefix frontend
+
+      - name: Create implementation branch
+        if: steps.gate.outputs.ready == 'true'
+        id: branch
+        env:
+          ISSUE_NUMBER: ${{ inputs.issue_number || github.event.issue.number }}
+          REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="ai/issue-${ISSUE_NUMBER}"
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+            git fetch origin "$branch"
+            git switch -C "$branch" "origin/$branch"
+          else
+            git switch -c "$branch"
+            git push --set-upstream origin "$branch"
+          fi
+          echo "name=$branch" >> "$GITHUB_OUTPUT"
+          # Preserve the Markdown backticks in the format string.
+          # shellcheck disable=SC2016
+          body=$(printf '## AI branch ready\n\nBranch created: [`%s`](https://github.com/%s/tree/%s)\n\nThe coding agent will work on this branch.\n\n<!-- ai-branch-created -->\n' "$branch" "$REPOSITORY" "$branch")
+          gh issue comment "$ISSUE_NUMBER" --body "$body"
+
+      - name: Announce coding stage
+        if: steps.gate.outputs.ready == 'true'
+        env:
+          ISSUE_NUMBER: ${{ inputs.issue_number || github.event.issue.number }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --body $'## AI coding in progress\n\nDependencies are ready. Codex is inspecting the repository, implementing the issue, and running the required checks.\n\n<!-- ai-coding-started -->'
+
+      - name: Install Codex Linux runtime
+        if: steps.gate.outputs.ready == 'true'
+        run: npm install --global --include=optional @openai/codex@latest
+
+      - name: Configure workflow-capable git push
+        if: steps.gate.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          test -n "$AI_GH_TOKEN" || { echo "AI_GH_TOKEN is missing."; exit 1; }
+          git remote set-url origin "https://x-access-token:${AI_GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+      - name: Run OpenAI Codex implementation agent
+        if: steps.gate.outputs.ready == 'true'
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          permission-profile: ":danger-full-access"
+          prompt: |
+            Implement GitHub issue #${{ inputs.issue_number || github.event.issue.number }}.
+
+            Approved mockup PNG, when applicable: ${{ steps.gate.outputs.mockup }}
+            Download and view the approved mockup and follow its design in the implementation.
+
+            Read AGENTS.md and .github/AI_SDLC.md first. Read the complete issue,
+            all clarification replies, and the requirements-clear comment.
+            Inspect the existing architecture and relevant tests before editing.
+            Work on the already-created issue branch, implement the smallest complete change, and
+            add meaningful unit, integration, and regression tests. Run all
+            applicable checks from AGENTS.md and fix failures caused by this change.
+            For UI changes, add browser coverage and attach before/after screenshots
+            to the pull request when possible. Do not change secrets, production
+            data, deployment credentials, or unrelated files. Do not merge or
+            deploy. Open a pull request targeting the default branch.
+
+            The pull request must include a summary, requirements implemented,
+            checks and results, risks, limitations, and a link closing the issue.
+            If requirements become ambiguous during implementation, do not edit code.
+            Comment with the exact missing decisions, include the marker
+            <!-- ai-implementation-clarification -->, remove ai-ready-to-implement,
+            and add ai-awaiting-clarification. This is required so an issue reply
+            can retrigger triage.
+
+      - name: Announce pull request
+        if: steps.gate.outputs.ready == 'true' && success()
+        env:
+          ISSUE_NUMBER: ${{ inputs.issue_number || github.event.issue.number }}
+          BRANCH: ai/issue-${{ inputs.issue_number || github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          pr_url="$(gh pr list --head "$BRANCH" --json url --jq '.[0].url' || true)"
+          if [[ -n "$pr_url" ]]; then
+            body=$(cat <<EOF
+          ## AI pull request ready
+
+          Review the pull request: $pr_url
+
+          The implementation is complete and waiting for human review.
+
+          <!-- ai-pr-ready -->
+          EOF
+            )
+            gh issue comment "$ISSUE_NUMBER" --body "$body"
+          else
+            gh issue comment "$ISSUE_NUMBER" --body $'## AI implementation finished\n\nCodex completed without finding a pull request. Check the workflow logs before retrying.\n\n<!-- ai-pr-missing -->'
+          fi
+
+      - name: Announce implementation failure
+        if: steps.gate.outputs.ready == 'true' && failure()
+        env:
+          ISSUE_NUMBER: ${{ inputs.issue_number || github.event.issue.number }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --body $'## AI implementation blocked\n\nThe coding workflow failed before opening a pull request. Check the workflow logs, fix the cause, and rerun the workflow.\n\n<!-- ai-implementation-failed -->'

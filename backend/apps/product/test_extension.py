@@ -38,6 +38,22 @@ class ExtensionTests(TestCase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(ResumeAnalysis.objects.get().status, 'prompt_ready')
 
+    def test_personio_and_lever_submission(self):
+        for source, url in [
+            ('personio', 'https://example.jobs.personio.de/job/12345?language=en'),
+            ('lever', 'https://jobs.eu.lever.co/example/' + str(uuid4())),
+        ]:
+            with self.subTest(source=source):
+                body = copy.deepcopy(self.body)
+                body['request_id'] = str(uuid4())
+                body['job'].update(source=source, url=url)
+                response = self.submit(body)
+                self.assertEqual(response.status_code, 201)
+                analysis = ResumeAnalysis.objects.get(submission_key=body['request_id'])
+                self.assertEqual(analysis.status, 'prompt_ready')
+                self.assertIn('Build Python services.', analysis.job_description)
+                self.assertEqual(analysis.builder_snapshot['content'], self.draft.content)
+
     def test_private_metadata_only_and_no_cache(self):
         response = self.client.get(self.list_url)
         self.assertIn('no-store', response['Cache-Control'])

@@ -1,0 +1,28 @@
+name: AI frontend mockups
+on:
+  issues:
+    types: [labeled]
+permissions:
+  contents: write
+  issues: write
+jobs:
+  mockup:
+    if: contains(fromJSON('["mockup-gen","mockup-regen"]'), github.event.label.name)
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ai-mockup-${{ github.event.issue.number }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      AI_ALLOWED_USERS: ${{ secrets.AI_ALLOWED_USERS || vars.AI_ALLOWED_USERS }}
+      AI_TRIGGER_ACTOR: ${{ github.actor }}
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+      TRIGGER_LABEL: ${{ github.event.label.name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.AI_GH_TOKEN || github.token }}
+      - name: Generate and publish mockup
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_IMAGE_MODEL: ${{ vars.OPENAI_IMAGE_MODEL || 'gpt-image-2' }}
+        run: python3 .github/scripts/mockups.py generate

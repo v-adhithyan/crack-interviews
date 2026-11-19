@@ -1,8 +1,8 @@
 # HackerLeap Safari extension
 
-Separate Safari copy of the Chrome extension. Supports Ashby, Greenhouse and LinkedIn,
+Separate Safari copy of the Chrome extension. Supports Ashby, Greenhouse, LinkedIn, Personio and Lever,
 with the same saved-resume selection and authenticated Django analysis flow.
-Chrome files remain unchanged. Keep extraction/security fixes in both copies.
+Keep extraction/security fixes in both copies.
 
 ## Local installation
 
@@ -38,7 +38,7 @@ Distribution requires Apple's packaging/signing workflow; this folder is not a s
 Safari must support `storage.session`, `scripting.executeScript` and MV3 module workers.
 Test with current desktop Safari; iOS and private browsing are not validated.
 See ../chrome/README.md for backend setup, quotas and extraction limitations.
-No additional backend changes or migrations are needed for Safari.
+Deploy the backend source-allowlist update for Personio/Lever and reload Django. No migration is needed.
 
 ## Automated tests
 
@@ -56,7 +56,7 @@ not prove Safari permission, login, clipboard or service-worker behavior.
 ## Native Safari acceptance checklist (still required)
 
 - Load without manifest/background errors and copy a job description.
-- Test Ashby, Greenhouse, LinkedIn standalone and selected-job search pages.
+- Test Ashby, Greenhouse, LinkedIn standalone and selected-job search pages, Personio and Lever descriptions and `/apply` links.
 - Grant/deny Connect; sign in; reopen popup; reload/select a resume.
 - Submit in manual AI mode and verify the correct analysis page opens.
 - Close the popup during submission; retry must reuse the existing analysis.
@@ -66,3 +66,5 @@ not prove Safari permission, login, clipboard or service-worker behavior.
 
 Native Safari testing could not be completed in this environment: Computer Use access
 was unavailable and Xcode's converter was not installed. Do not treat this as release validation.
+
+Personio and Lever `/apply` pages fetch only their corresponding public description, without credentials or tracking parameters. Application fields are never read. On failure, the popup shows the description URL to open manually. Reload/re-add the temporary extension after updating these files; for an Xcode-packaged extension, update its resources and rebuild.

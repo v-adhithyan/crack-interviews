@@ -6,6 +6,8 @@ from . import resume_edit_views
 from . import resume_pdf_views
 from . import followup_views
 from . import extension_views
+from . import interview_simulator
+from . import resume_pruner_views as pruner
 from . import views
 from . import resume_builder_views as builder
 
@@ -22,6 +24,26 @@ urlpatterns = [
     path('resume-builder/pdf/<uuid:job_uuid>/status/', public_resume.pdf_status, name='public_resume_pdf_status'),
     path('resume-builder/pdf/<uuid:job_uuid>/file/', public_resume.pdf_file, name='public_resume_pdf_file'),
     path('signup/', public_resume.signup, name='public_signup'),
+    path('app/mock-interview/<uuid:session_uuid>/pause/', views.mock_interview_pause, name='mock_interview_pause'),
+    path('app/mock-interview/<uuid:session_uuid>/state/', views.mock_interview_state, name='mock_interview_state'),
+    path('app/interview-simulator/<uuid:session_uuid>/pause/', views.mock_interview_pause, name='simulator_pause'),
+    path('app/interview-simulator/<uuid:session_uuid>/state/', views.mock_interview_state, name='simulator_state'),
+
+    path('app/resume-pruner/', pruner.start, name='resume_pruner'),
+    path('app/resume-pruner/base/<uuid:draft_uuid>/', pruner.mark_base, name='resume_prune_base'),
+    path('app/resume-pruner/<uuid:plan_uuid>/', pruner.review, name='resume_prune_review'),
+    path('app/resume-pruner/<uuid:plan_uuid>/backup/', pruner.backup, name='resume_prune_backup'),
+    path('app/resume-pruner/<uuid:plan_uuid>/apply/', pruner.apply, name='resume_prune_apply'),
+    path('app/resume-pruner/<uuid:plan_uuid>/discard/', pruner.discard, name='resume_prune_discard'),
+
+    path("app/interview-simulator/", interview_simulator.setup, name="simulator_setup"),
+    path("app/interview-simulator/history/", interview_simulator.history, name="simulator_history"),
+    path("app/interview-simulator/<uuid:source_uuid>/reuse/", interview_simulator.setup, name="simulator_reuse"),
+    path("app/interview-simulator/<uuid:session_uuid>/", views.mock_interview_room, name="simulator_room"),
+    path("app/interview-simulator/<uuid:session_uuid>/token/", views.mock_interview_token, name="simulator_token"),
+    path("app/interview-simulator/<uuid:session_uuid>/turns/", views.mock_interview_turns, name="simulator_turns"),
+    path("app/interview-simulator/<uuid:session_uuid>/finish/", views.mock_interview_finish, name="simulator_finish"),
+    path("app/interview-simulator/<uuid:session_uuid>/feedback/", views.mock_interview_feedback, name="simulator_feedback"),
 
     path("app/extension/", extension_views.bridge, name="extension_bridge"),
     path("app/extension/resumes/", extension_views.resumes, name="extension_resumes"),

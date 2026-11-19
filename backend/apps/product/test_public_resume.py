@@ -103,6 +103,22 @@ class PublicResumeTests(TestCase):
             self.assertIn('noindex', stranger.get(url)['X-Robots-Tag'])
         self.assertEqual(self.client.get(reverse('public_resume_pdf_detail', args=[job.uuid])).status_code, 200)
 
+    def test_pdf_detail_uses_shared_site_actions(self):
+        job = self.export()
+        page = self.client.get(reverse('public_resume_pdf_detail', args=[job.uuid]) + '?download=1')
+        self.assertContains(
+            page,
+            f'<a id="pdf-ready" class="site-button site-button-primary" '
+            f'href="/resume-builder/pdf/{job.uuid}/file/?download=1" hidden>Download PDF</a>',
+            html=True,
+        )
+        self.assertContains(
+            page,
+            '<button id="pdf-check" class="site-button site-button-secondary" '
+            'type="button" hidden>Check again</button>',
+            html=True,
+        )
+
     @patch('apps.product.resume_pdf_jobs.render_pdf', return_value=b'%PDF-test')
     def test_worker_ready_file_expiry_and_cleanup(self, renderer):
         job = self.export()
