@@ -155,7 +155,8 @@ LOGGING = {
     "loggers": {
         name: {"handlers": ["pdf_console"], "level": "INFO", "propagate": False}
         for name in (
-            "apps.product.resume_builder", "apps.product.resume_pdf_jobs", "apps.product.resume_pdf_views"
+            "apps.product.resume_builder", "apps.product.resume_pdf_jobs", "apps.product.resume_pdf_views",
+            "apps.product.public_resume_views",
         )
     },
 }

@@ -3,14 +3,17 @@ import hashlib
 import json
 import logging
 import secrets
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 from functools import wraps
+from math import ceil
+from zoneinfo import ZoneInfo
 
 from django.conf import settings
 from django.contrib.auth import get_user_model, login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django import forms
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.http import HttpResponse, JsonResponse, FileResponse
@@ -298,9 +301,45 @@ class FreeSignupForm(UserCreationForm):
         return email
 
 
+SIGNUP_DAILY_LIMIT = 10
+SIGNUP_TIME_ZONE = ZoneInfo('Asia/Kolkata')
+SIGNUP_COUNTER_KEY = 'signup:daily'
+
+
+def signup_reset_at():
+    tomorrow = timezone.now().astimezone(SIGNUP_TIME_ZONE).date() + timedelta(days=1)
+    return datetime.combine(tomorrow, time.min, SIGNUP_TIME_ZONE)
+
+
+def cache_signup_closed(reset_at):
+    seconds = (reset_at - timezone.now()).total_seconds()
+    if seconds > 0:
+        cache.set(SIGNUP_COUNTER_KEY, reset_at, timeout=ceil(seconds))
+
+
+def signup_closed(request, reset_at):
+    logger.info('Public signup request after daily limit method=%s reset_at=%s',
+                request.method, reset_at.isoformat())
+    response = render(request, 'product/auth/free_signup.html', {
+        'signup_reset_at': reset_at,
+    }, status=429)
+    response['Retry-After'] = str(max(0, ceil((reset_at - timezone.now()).total_seconds())))
+    return response
+
+
 @private
 @require_http_methods(['GET', 'POST'])
 def signup(request):
+    authenticated = request.user.is_authenticated
+    if not authenticated:
+        reset_at = signup_reset_at()
+        if cache.get(SIGNUP_COUNTER_KEY) == reset_at:
+            return signup_closed(request, reset_at)
+        if request.method == 'GET' and PublicBuilderCounter.objects.filter(
+            key=SIGNUP_COUNTER_KEY, expires_at=reset_at, count__gte=SIGNUP_DAILY_LIMIT,
+        ).exists():
+            cache_signup_closed(reset_at)
+            return signup_closed(request, reset_at)
     # Only an internal, same-session handoff is accepted as a destination.
     next_url = reverse('resume_builder_list')
     transfer_id = request.GET.get('transfer', '')
@@ -320,12 +359,22 @@ def signup(request):
             pass
     if pending:
         next_url = reverse('public_resume_claim', args=[pending.uuid])
-    if request.user.is_authenticated:
+    if authenticated:
         return redirect(next_url)
     form = FreeSignupForm(request.POST or None)
     if request.method == 'POST':
         with transaction.atomic():
             gate()
+            reset_at = signup_reset_at()
+            daily, _ = PublicBuilderCounter.objects.get_or_create(
+                key=SIGNUP_COUNTER_KEY, defaults={'expires_at': reset_at},
+            )
+            if daily.expires_at != reset_at:
+                daily.count = 0
+                daily.expires_at = reset_at
+            if daily.count >= SIGNUP_DAILY_LIMIT:
+                transaction.on_commit(lambda: cache_signup_closed(reset_at))
+                return signup_closed(request, reset_at)
             if not consume('signup:' + ip_key(request), 5, 3600):
                 return limited()
             if form.is_valid():
@@ -334,6 +383,10 @@ def signup(request):
                 EarlyAccessUser.objects.update_or_create(email=form.cleaned_data['email'], defaults={
                     'user': user, 'is_beta_active': True, 'signup_completed_at': timezone.now()})
                 UserFeatureFlags.objects.create(user=user, can_access_coding_platform=True)
+                daily.count += 1
+                daily.save(update_fields=['count', 'expires_at'])
+                if daily.count == SIGNUP_DAILY_LIMIT:
+                    transaction.on_commit(lambda: cache_signup_closed(reset_at))
                 metric('signup')
                 login(request, user)
                 return redirect(next_url)
