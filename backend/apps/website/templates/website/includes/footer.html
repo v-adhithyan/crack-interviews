@@ -1,3 +1,5 @@
+{% load footer_content %}
+{% footer_resume_comparisons as resume_comparisons %}
 <footer class="site-footer">
     <div class="page-shell footer-grid">
         <div class="footer-brand">
@@ -35,6 +37,12 @@
             <h2>Company</h2>
             <a href="{% url 'about_page' %}">About</a>
             <a href="{% url 'blog_index' %}">Blog</a>
+            {% if resume_comparisons %}
+                <h2>Resume builder comparisons</h2>
+                {% for slug, label in resume_comparisons %}
+                    <a href="{% url 'blog_detail' slug=slug %}">{{ label }}</a>
+                {% endfor %}
+            {% endif %}
         </nav>
         <nav aria-label="Legal">
             <h2>Legal</h2>

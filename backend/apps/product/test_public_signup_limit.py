@@ -38,9 +38,11 @@ class PublicSignupLimitTests(TestCase):
                                  fetch_redirect_response=False)
 
         with self.assertLogs('apps.product.public_resume_views', level='INFO') as logs:
-            with self.assertNumQueries(0):
+            with self.assertNumQueries(2) as queries:
                 page = Client().get(self.url + '?transfer=ignored')
                 rejected = self.signup(11)
+            for query in queries.captured_queries:
+                self.assertIn('FROM "website_blogpost"', query['sql'])
         self.assertEqual(len(logs.records), 2)
         for response in (page, rejected):
             self.assertContains(response, '12:00 AM, 20 November 2026', status_code=429)
@@ -61,13 +63,15 @@ class PublicSignupLimitTests(TestCase):
 
         cache.delete(SIGNUP_COUNTER_KEY)
         self.assertEqual(self.signup(11).status_code, 429)
-        with self.assertNumQueries(0):
+        with self.assertNumQueries(1) as queries:
             self.assertEqual(Client().get(self.url).status_code, 429)
+        self.assertIn('FROM "website_blogpost"', queries.captured_queries[0]['sql'])
 
         cache.delete(SIGNUP_COUNTER_KEY)
         self.assertEqual(Client().get(self.url).status_code, 429)
-        with self.assertNumQueries(0):
+        with self.assertNumQueries(1) as queries:
             self.assertEqual(self.signup(11).status_code, 429)
+        self.assertIn('FROM "website_blogpost"', queries.captured_queries[0]['sql'])
 
     def test_invalid_and_duplicate_submissions_do_not_use_daily_slots(self):
         self.assertContains(self.signup(1, password2='different'), 'didn’t match')
