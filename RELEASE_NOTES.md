@@ -57,3 +57,13 @@ Release type: **patch**.
 - Merge pull request #25 from v-adhithyan/ai/issue-24 — Adhithyan Vijayakumar (aavispeaks@gmail.com), `67baf31`
 
 - Add five approved resume builder comparisons — github-actions[bot] (41898282+github-actions[bot]@users.noreply.github.com), `93c6903`
+
+## 1.0.5 - 2026-11-19
+
+Release type: **patch**.
+
+- Merge pull request #29 from v-adhithyan/ai/issue-27 — Adhithyan Vijayakumar (aavispeaks@gmail.com), `b558e21`
+
+- Account for footer reads in signup cache tests — github-actions[bot] (41898282+github-actions[bot]@users.noreply.github.com), `2fb67f9`
+
+- Publish resume comparisons and link them in the footer — github-actions[bot] (41898282+github-actions[bot]@users.noreply.github.com), `8dce524`
