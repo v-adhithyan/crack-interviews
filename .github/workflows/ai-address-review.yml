@@ -3,6 +3,8 @@ name: AI address pull request review
 on:
   pull_request:
     types: [labeled]
+  issue_comment:
+    types: [created]
   workflow_dispatch:
     inputs:
       pr_number:
@@ -16,17 +18,44 @@ permissions:
   pull-requests: write
 
 jobs:
-  address-review:
+  should-run:
     if: >-
       (github.event_name == 'workflow_dispatch' ||
-       (github.event.label.name == 'ai-address-review' &&
-        contains(github.event.pull_request.labels.*.name, 'ai-address-review')))
+       (github.event_name == 'pull_request' &&
+        github.event.label.name == 'ai-address-review') ||
+       (github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request != null &&
+        github.event.comment.user.login != 'github-actions[bot]'))
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.check.outputs.run }}
+    env:
+      GH_TOKEN: ${{ secrets.AI_GH_TOKEN || github.token }}
+      PR_NUMBER: ${{ inputs.pr_number || github.event.pull_request.number || github.event.issue.number }}
+      REPOSITORY: ${{ github.repository }}
+    steps:
+      - id: check
+        shell: bash
+        run: |
+          set -euo pipefail
+          labels="$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json labels --jq '[.labels[].name] | join(" ")')"
+          if [[ " $labels " == *" ai-address-review "* ]]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "ai-address-review is not present; skipping."
+          fi
+
+  address-review:
+    needs: should-run
+    if: >-
+      needs.should-run.outputs.run == 'true'
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.AI_GH_TOKEN || github.token }}
       AI_GH_TOKEN: ${{ secrets.AI_GH_TOKEN }}
       AI_ALLOWED_USERS: ${{ vars.AI_ALLOWED_USERS || secrets.AI_ALLOWED_USERS }}
-      PR_NUMBER: ${{ inputs.pr_number || github.event.pull_request.number }}
+      PR_NUMBER: ${{ inputs.pr_number || github.event.pull_request.number || github.event.issue.number }}
       REPOSITORY: ${{ github.repository }}
     steps:
       - name: Validate reviewer authorization
