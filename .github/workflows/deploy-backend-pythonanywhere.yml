@@ -218,7 +218,11 @@ jobs:
       - name: Merge release PR after successful deployment
         if: success() && steps.release.outputs.pr_number != ''
         env:
-          GH_TOKEN: ${{ github.token }}
+          # The repository token can create the release PR but cannot bypass
+          # protected-main rules. Prefer the explicitly configured admin-capable
+          # bot token for the merge, while retaining a fallback for repositories
+          # that allow the normal Actions token to merge.
+          GH_TOKEN: ${{ secrets.AI_GH_TOKEN || github.token }}
         shell: bash
         run: |
           set -euo pipefail
