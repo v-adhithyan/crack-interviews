@@ -79,7 +79,7 @@ jobs:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           permission-profile: ':danger-full-access'
           prompt: |
-            Address the review feedback on pull request #${{ github.event.pull_request.number }}.
+            Address the review feedback on pull request #${{ env.PR_NUMBER }}.
 
             1. Read AGENTS.md and .github/AI_SDLC.md.
             2. Read the complete pull request conversation and review comments using GitHub.
