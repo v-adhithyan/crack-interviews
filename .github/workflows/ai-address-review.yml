@@ -93,11 +93,16 @@ jobs:
             9. Do not merge or deploy. Commit and push fixes to the current pull request branch.
 
             If the feedback is ambiguous, do not guess. Comment on the pull request with the
-            exact clarification needed and leave the code unchanged.
+            exact clarification needed, include the marker <!-- ai-review-clarification -->,
+            and leave the code unchanged.
 
       - name: Announce completion and remove review label
         if: success()
         run: |
           set -euo pipefail
+          comments="$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json comments --jq '.comments[].body')"
+          if grep -Fq '<!-- ai-review-clarification -->' <<<"$comments"; then
+            exit 0
+          fi
           gh issue comment "$PR_NUMBER" --repo "$REPOSITORY" --body $'## AI review feedback addressed\n\nThe requested changes were implemented and checks were run. Please review the updated diff.'
           gh issue edit "$PR_NUMBER" --repo "$REPOSITORY" --remove-label ai-address-review
