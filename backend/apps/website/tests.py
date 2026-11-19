@@ -485,3 +485,53 @@ class StatusPageTests(TestCase):
         path = reverse("status_page")
         self.assertContains(self.client.get(reverse("home_page")), f'<a href="{path}">Status</a>', html=True)
         self.assertContains(self.client.get(reverse("sitemap_xml")), f"<loc>http://testserver{path}</loc>")
+
+
+class PublishResumeGuidesTests(TestCase):
+    comparison_slugs = (
+        "hackerleap-vs-resume-io",
+        "hackerleap-vs-zety",
+        "hackerleap-vs-canva",
+        "hackerleap-vs-novoresume",
+        "hackerleap-vs-teal",
+    )
+
+    def test_comparisons_appear_in_blog_and_sitemap(self):
+        call_command("publish_resume_guides")
+        index = self.client.get(reverse("blog_index"))
+        sitemap = self.client.get("/sitemap.xml")
+        descriptions = set()
+
+        for slug in self.comparison_slugs:
+            with self.subTest(slug=slug):
+                post = BlogPost.objects.get(slug=slug)
+                url = reverse("blog_detail", kwargs={"slug": slug})
+                self.assertContains(index, url)
+                self.assertContains(sitemap, url)
+                response = self.client.get(url)
+                self.assertContains(response, f'<meta name="description" content="{post.excerpt}">', html=True)
+                self.assertContains(response, 'href="/resume-builder/"')
+                self.assertContains(response, "<h2>")
+                self.assertNotContains(response, "Excerpt:")
+                descriptions.add(post.excerpt)
+
+        self.assertEqual(len(descriptions), len(self.comparison_slugs))
+        legacy_post = BlogPost.objects.get(slug="resume-builder-comparison")
+        self.assertTrue(legacy_post.excerpt.startswith(legacy_post.title + ". "))
+        self.assertTrue(legacy_post.content.startswith("Reviewed "))
+
+    def test_republishing_preserves_cms_edits_and_draft_status(self):
+        slug = self.comparison_slugs[0]
+        post = BlogPost.objects.create(
+            slug=slug, title="Edited title", excerpt="Edited excerpt", content="Edited body"
+        )
+
+        call_command("publish_resume_guides")
+        call_command("publish_resume_guides")
+
+        post.refresh_from_db()
+        self.assertEqual(post.title, "Edited title")
+        self.assertEqual(post.excerpt, "Edited excerpt")
+        self.assertEqual(post.content, "Edited body")
+        self.assertEqual(post.status, BlogPost.Status.DRAFT)
+        self.assertIsNone(post.published_at)
