@@ -38,7 +38,7 @@ from .models import MockInterviewTurn
 from .services import build_resume_match_prompt
 from .services import create_mock_interview_realtime_token
 from .services import generate_mock_interview_feedback
-from .services import get_configured_resume_analysis_mode
+from .services import get_resume_analysis_mode_and_quota_status
 from .services import get_effective_resume_analysis_mode
 from .services import get_user_feature_flags
 from .services import reserve_resume_analysis_ai_quota
@@ -93,10 +93,6 @@ def is_manual_ai_mode(user):
     return get_effective_resume_analysis_mode(user) == "manual"
 
 
-def selected_ai_mode(user):
-    return get_effective_resume_analysis_mode(user)
-
-
 @product_access_required
 def code_platform_redirect(request):
     if not user_has_coding_platform_access(request.user):
@@ -128,9 +124,7 @@ def dashboard(request):
             analysis_form = AnalysisPromptForm(request.POST)
             if analysis_form.is_valid():
                 job_description = analysis_form.cleaned_data["job_description"]
-                configured_ai_mode = get_configured_resume_analysis_mode(request.user)
-                ai_mode = selected_ai_mode(request.user)
-                manual_due_to_quota = configured_ai_mode in {"chatgpt", "claude"} and ai_mode == "manual"
+                ai_mode, manual_due_to_quota = get_resume_analysis_mode_and_quota_status(request.user)
                 if ai_mode in {"chatgpt", "claude"}:
                     if reserve_resume_analysis_ai_quota(request.user):
                         analysis = ResumeAnalysis.objects.create(
@@ -165,6 +159,7 @@ def dashboard(request):
                         resume_text=resume.parsed_text,
                         builder_snapshot=resume.builder_snapshot,
                         mode=ai_mode,
+                        user=request.user,
                     )
                 except (ImproperlyConfigured, NotImplementedError, ValidationError) as exc:
                     messages.error(request, str(exc))

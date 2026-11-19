@@ -156,7 +156,9 @@ def submit(request):
             return JsonResponse({'detail': 'Unsupported resume selection.'}, status=400)
         # Serialize quota consumption with other code that locks feature flags.
         UserFeatureFlags.objects.select_for_update().filter(user=request.user).first()
-        automatic = get_effective_resume_analysis_mode(request.user) == 'chatgpt' and reserve_resume_analysis_ai_quota(request.user)
+        automatic = get_effective_resume_analysis_mode(request.user) == 'chatgpt'
+        if automatic:
+            automatic = reserve_resume_analysis_ai_quota(request.user)
         analysis = ResumeAnalysis.objects.create(user=request.user, resume=resume, resume_text=text, builder_snapshot=snapshot,
             job_description=description, generated_prompt=build_resume_match_prompt(description, text, snapshot),
             status='queued' if automatic else 'prompt_ready', ai_provider='chatgpt' if automatic else 'manual',

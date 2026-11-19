@@ -1,3 +1,4 @@
+from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.db import transaction
 from django.utils import timezone
 
@@ -21,12 +22,16 @@ def run_resume_analysis(analysis_id):
             job_description=analysis.job_description,
             resume_text=analysis.resume_text,
             mode=analysis.ai_provider,
+            user=analysis.user,
             builder_snapshot=analysis.builder_snapshot,
         )
     except Exception as exc:
         ResumeAnalysis.objects.filter(id=analysis_id).update(
             status=ResumeAnalysis.Status.FAILED,
-            error_message=str(exc) or "Unable to complete AI analysis right now. Please try again later.",
+            error_message=(
+                str(exc) if isinstance(exc, (ImproperlyConfigured, ValidationError, NotImplementedError))
+                else "Unable to complete AI analysis right now. Please try again later."
+            ),
             completed_at=timezone.now(),
             updated_at=timezone.now(),
         )

@@ -17,6 +17,7 @@
                     <strong>{{ request.user.first_name|default:request.user.username }}</strong>
                     <span>{{ request.user.email|default:request.user.username }}</span>
                 </div>
+                <a class="user-menu-settings" href="{% url 'ai_integration_settings' %}">Settings <span>› Integrations › AI</span></a>
                 <form method="post" action="{% url 'logout' %}">
                     {% csrf_token %}
                     <button type="submit">Logout</button>

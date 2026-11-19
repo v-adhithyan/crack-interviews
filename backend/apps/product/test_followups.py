@@ -35,6 +35,16 @@ class FollowupTests(TestCase):
         return json.dumps({'answers': [{'question_id': i, 'answer': 'Example answer'} for i, _ in enumerate(job.questions, 1)],
                           'cover_letter': 'Dear hiring team' if job.include_cover_letter else '', **extra})
 
+    @override_settings(HACKERLEAP_AI_MODE="chatgpt", AI_USE_SHARED_KEY_FOR_LOCAL_DEV=False)
+    @patch("apps.product.followup_views.enqueue_background_job")
+    @patch("apps.product.followup_views.reserve_resume_analysis_ai_quota")
+    def test_chatgpt_without_personal_key_uses_manual_mode(self, reserve_quota, enqueue):
+        job = self.create()
+        self.assertEqual(job.status, "manual")
+        self.assertContains(self.client.get(reverse("analysis_followup_detail", args=[job.uuid])), "Copy prompt")
+        reserve_quota.assert_not_called()
+        enqueue.assert_not_called()
+
     def test_manual_snapshot_and_duplicate_requests(self):
         job = self.create(cover_letter='on')
         self.assertEqual(job.status, 'manual')

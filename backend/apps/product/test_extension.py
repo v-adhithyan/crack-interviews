@@ -31,6 +31,18 @@ class ExtensionTests(TestCase):
     def submit(self, body=None, client=None):
         return (client or self.client).post(self.submit_url, body or self.body, content_type='application/json')
 
+    @override_settings(HACKERLEAP_AI_MODE="chatgpt", AI_USE_SHARED_KEY_FOR_LOCAL_DEV=False)
+    @patch("apps.product.extension_views.enqueue_background_job")
+    @patch("apps.product.extension_views.reserve_resume_analysis_ai_quota")
+    def test_chatgpt_without_personal_key_uses_manual_mode(self, reserve_quota, enqueue):
+        response = self.submit()
+        self.assertEqual(response.status_code, 201)
+        analysis = ResumeAnalysis.objects.get(submission_key=self.body["request_id"])
+        self.assertEqual(analysis.status, "prompt_ready")
+        self.assertContains(self.client.get(response.json()["url"]), "Save analysis result")
+        reserve_quota.assert_not_called()
+        enqueue.assert_not_called()
+
     def test_linkedin_submission(self):
         self.body['job']['source'] = 'linkedin'
         self.body['job']['url'] = 'https://www.linkedin.com/jobs/view/1234567890/'
