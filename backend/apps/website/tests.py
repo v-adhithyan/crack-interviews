@@ -465,6 +465,22 @@ class StatusPageTests(TestCase):
         self.assertContains(response, f'data-health-url="{reverse("health")}"')
         self.assertContains(response, "Refresh this page to check the status again.")
 
+    @override_settings(
+        ALLOWED_HOSTS=["hackerleap.com", "www.hackerleap.com"],
+        HACKERLEAP_CODE="http://localhost:3000",
+    )
+    def test_public_status_page_checks_the_public_coding_platform(self):
+        for host in ("hackerleap.com", "www.hackerleap.com"):
+            with self.subTest(host=host):
+                response = self.client.get(reverse("status_page"), HTTP_HOST=host, secure=True)
+                self.assertContains(response, 'data-health-url="https://code.hackerleap.com/health"')
+                self.assertNotContains(response, 'data-health-url="http://localhost:3000/health"')
+
+    @override_settings(ALLOWED_HOSTS=["www.hackerleap.com"], HACKERLEAP_CODE="https://code.example.com/")
+    def test_public_status_page_keeps_configured_nonlocal_coding_platform(self):
+        response = self.client.get(reverse("status_page"), HTTP_HOST="www.hackerleap.com", secure=True)
+        self.assertContains(response, 'data-health-url="https://code.example.com/health"')
+
     def test_status_page_is_linked_from_footer_and_sitemap(self):
         path = reverse("status_page")
         self.assertContains(self.client.get(reverse("home_page")), f'<a href="{path}">Status</a>', html=True)

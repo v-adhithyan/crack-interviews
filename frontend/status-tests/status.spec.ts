@@ -20,6 +20,21 @@ test("checks both real hosts anonymously and fits a narrow viewport", async ({ p
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(360);
 });
 
+test("public status checks the hosted coding platform even with local Django defaults", async ({ page, request }) => {
+  await page.route("**/status/", async (route) => {
+    const response = await request.get("/status/", { headers: { Host: "www.hackerleap.com" } });
+    await route.fulfill({ response });
+  });
+  await page.route(codingHeartbeat, (route) => route.abort());
+  await page.route("https://code.hackerleap.com/health", (route) =>
+    route.fulfill({ json: { status: "ok" }, headers: { "Access-Control-Allow-Origin": "*" } }),
+  );
+
+  await page.goto("/status/");
+  await expect(page.locator("summary").filter({ hasText: "Coding Platform" })).toContainText("Operational");
+  await expect(page.getByRole("status")).toContainText("2 of 2 services reachable");
+});
+
 test("reports invalid and failing heartbeats independently and recovers on refresh", async ({ page }) => {
   await page.route(codingHeartbeat, (route) =>
     route.fulfill({ status: 200, json: { status: "unexpected" }, headers: { "Access-Control-Allow-Origin": "*" } }),
