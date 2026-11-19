@@ -15,6 +15,7 @@ concurrency:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   deploy:
@@ -28,12 +29,31 @@ jobs:
           fetch-depth: 0
 
       - name: Bump version and generate release notes
+        id: release
         env:
           RELEASE_BEFORE: ${{ github.event.before }}
           RELEASE_AFTER: ${{ github.sha }}
+          RELEASE_EVENT: ${{ github.event_name }}
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
+
+          # Release metadata changes must never create another release. On a
+          # On a push, only backend or frontend changes are release-worthy. The
+          # release PR contains neither, so it cannot recursively create one.
+          if [[ "$RELEASE_EVENT" == "push" ]]; then
+            before="$RELEASE_BEFORE"
+            if [[ -z "$before" || "$before" == "0000000000000000000000000000000000000000" ]]; then
+              before="$(git rev-list --max-parents=0 "$RELEASE_AFTER")"
+            fi
+            if ! git diff --quiet "$before" "$RELEASE_AFTER" -- backend/ frontend/; then
+              :
+            else
+              echo "No backend changes; skipping release metadata PR."
+              exit 0
+            fi
+          fi
 
           python3 .github/scripts/bump_release.py
 
@@ -43,12 +63,24 @@ jobs:
           fi
 
           version="$(tr -d '[:space:]' < VERSION)"
+          release_branch="automation/release-v${version}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add VERSION RELEASE_NOTES.md
           git commit -m "chore(release): v${version}"
-          git tag -a "v${version}" -m "Release v${version}"
-          git push origin HEAD:main "v${version}"
+          git push origin "HEAD:${release_branch}"
+
+          existing_pr="$(gh pr list --base main --head "${release_branch}" --state open --json number --jq '.[0].number')"
+          if [[ -z "$existing_pr" ]]; then
+            existing_pr="$(gh pr create \
+              --base main \
+              --head "${release_branch}" \
+              --title "chore(release): v${version}" \
+              --body "Automated release metadata for v${version}. Merge this PR to publish the version and release notes.")"
+          else
+            echo "Release PR #${existing_pr} already exists."
+          fi
+          echo "pr_number=${existing_pr##*/}" >> "$GITHUB_OUTPUT"
 
       - name: Detect backend changes
         id: changes
@@ -79,9 +111,37 @@ jobs:
             else
               echo "run_migrations=false"
             fi
+            if [[ -n "$changed_files" ]]; then
+              echo "backend_changed=true"
+            else
+              echo "backend_changed=false"
+            fi
+            frontend_files="$(git diff --name-only "$before" "$after" -- frontend/ || true)"
+            if [[ -n "$frontend_files" ]]; then
+              echo "frontend_changed=true"
+            else
+              echo "frontend_changed=false"
+            fi
           } >> "$GITHUB_OUTPUT"
 
+      - name: Summarize deployment scope
+        shell: bash
+        run: |
+          {
+            echo "### Deployment scope"
+            if [[ "${{ steps.changes.outputs.backend_changed }}" == "true" ]]; then
+              echo "- Backend changes detected: PythonAnywhere deployment will run."
+            fi
+            if [[ "${{ steps.changes.outputs.frontend_changed }}" == "true" ]]; then
+              echo "- Frontend changes detected: the configured Vercel deployment will run."
+            fi
+            if [[ "${{ steps.changes.outputs.backend_changed }}" != "true" && "${{ steps.changes.outputs.frontend_changed }}" != "true" ]]; then
+              echo "- No frontend or backend changes detected; deployment is skipped."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Configure SSH
+        if: steps.changes.outputs.backend_changed == 'true'
         shell: bash
         env:
           PYTHONANYWHERE_SSH_KEY: ${{ secrets.PYTHONANYWHERE_SSH_KEY }}
@@ -96,6 +156,7 @@ jobs:
           ssh-keyscan -H "$PYTHONANYWHERE_HOST" >> ~/.ssh/known_hosts
 
       - name: Deploy on PythonAnywhere
+        if: steps.changes.outputs.backend_changed == 'true'
         shell: bash
         env:
           PYTHONANYWHERE_HOST: ${{ secrets.PYTHONANYWHERE_HOST }}
@@ -146,9 +207,21 @@ jobs:
           REMOTE_SCRIPT
 
       - name: Reload PythonAnywhere web app
+        if: steps.changes.outputs.backend_changed == 'true'
         uses: jensvog/pythonanywhere-webapp-reload-action@v1
         with:
           host: ${{ secrets.PYTHONANYWHERE_API_HOST || 'www.pythonanywhere.com' }}
           username: ${{ secrets.PYTHONANYWHERE_USER }}
           api-token: ${{ secrets.PYTHONANYWHERE_API_TOKEN }}
           domain-name: ${{ secrets.PYTHONANYWHERE_DOMAIN_NAME }}
+
+      - name: Enable automatic merge for release PR
+        if: success() && steps.release.outputs.pr_number != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! gh pr merge "${{ steps.release.outputs.pr_number }}" --squash --auto; then
+            echo "Release PR could not be queued for auto-merge; leaving it open for review."
+          fi
