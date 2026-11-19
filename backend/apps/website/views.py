@@ -155,6 +155,7 @@ def status_page(request):
 def sitemap_xml(request):
     now = timezone.now()
     urls = [
+        {"loc": request.build_absolute_uri(reverse("public_resume_landing")), "changefreq": "monthly", "priority": "0.9"},
         {"loc": request.build_absolute_uri(reverse("home_page")), "changefreq": "weekly", "priority": "1.0"},
         {"loc": request.build_absolute_uri(reverse("blog_index")), "changefreq": "weekly", "priority": "0.8"},
         {"loc": request.build_absolute_uri(reverse("pricing_page")), "changefreq": "monthly", "priority": "0.8"},
@@ -208,6 +209,15 @@ def robots_txt(request):
         [
             "User-agent: *",
             "Allow: /",
+            "Disallow: /app/",
+            "Disallow: /api/",
+            "Disallow: /admin/",
+            "Disallow: /resume-builder/edit/",
+            "Disallow: /resume-builder/preview/",
+            "Disallow: /resume-builder/export/",
+            "Disallow: /resume-builder/pdf/",
+            "Disallow: /resume-builder/transfer/",
+            "Disallow: /resume-builder/claim/",
             f"Sitemap: {sitemap_url}",
             "",
         ]

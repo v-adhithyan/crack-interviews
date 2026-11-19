@@ -1,11 +1,11 @@
-{% extends "product/base.html" %}
+{% extends "website/public_app_base.html" %}
 
 {% block title %}Create beta account | HackerLeap{% endblock %}
 
 {% block body %}
-<main class="auth-page">
+<div class="auth-page">
     <section class="auth-panel signup-panel" aria-labelledby="signup-title">
-        {% include "product/includes/brand.html" %}
+
         <div>
             <h1 id="signup-title">Create your beta account</h1>
             <p>Your invite is ready. Set your password to start using HackerLeap.</p>
@@ -44,7 +44,7 @@
             <p class="auth-hint">Forgot password is not implemented yet. Please remember your password.</p>
         </form>
     </section>
-</main>
+</div>
 {% endblock %}
 
 {% block scripts %}

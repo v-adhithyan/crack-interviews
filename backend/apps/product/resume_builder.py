@@ -178,4 +178,12 @@ def render_document_pdf(html):
     if not result.stdout.startswith(b'%PDF-') or len(result.stdout) > 5_000_000:
         logger.error('PDF renderer returned invalid output python=%s size=%d bytes elapsed_seconds=%.2f stderr=%s', interpreter, len(result.stdout), monotonic() - started, result.stderr.decode('utf-8', errors='replace')[-8000:])
         raise RuntimeError("Unable to generate this PDF. Try shortening the resume.")
+    for line in result.stderr.decode('utf-8', errors='replace').splitlines():
+        if line.startswith('PDF_METRICS '):
+            try:
+                stats = json.loads(line[len('PDF_METRICS '):])
+                if set(stats) == {'peak_memory_bytes', 'cpu_ms', 'pages'} and all(type(value) is int and value >= 0 for value in stats.values()):
+                    logger.info('PDF renderer resources peak_memory_bytes=%d cpu_ms=%d pages=%d', stats['peak_memory_bytes'], stats['cpu_ms'], stats['pages'])
+            except (ValueError, TypeError):
+                pass
     return result.stdout

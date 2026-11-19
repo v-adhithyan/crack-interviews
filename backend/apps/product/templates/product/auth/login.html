@@ -1,11 +1,11 @@
-{% extends "product/base.html" %}
+{% extends "website/public_app_base.html" %}
 
 {% block title %}Login | HackerLeap{% endblock %}
 
 {% block body %}
-<main class="auth-page">
+<div class="auth-page">
     <section class="auth-panel" aria-labelledby="login-title">
-        {% include "product/includes/brand.html" %}
+
         <div>
             <h1 id="login-title">Welcome back</h1>
             <p>Sign in to continue to your HackerLeap dashboard.</p>
@@ -24,8 +24,9 @@
             {% for error in form.password.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
 
             <button type="submit">Login</button>
+            <p><a href="{% url 'public_signup' %}?next={{ next|urlencode }}">Create a free account</a></p>
             <p class="auth-hint">Forgot password is not implemented yet. Please remember your password.</p>
         </form>
     </section>
-</main>
+</div>
 {% endblock %}

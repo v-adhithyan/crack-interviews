@@ -4,6 +4,7 @@
   const root = document.getElementById('resume-builder');
   if (!root) return;
   const initial = JSON.parse(document.getElementById('resume-initial').textContent);
+  const isPublic = initial.public === true;
   let content = initial.content, title = initial.title, revision = initial.revision;
   content.typography = {...initial.typography_defaults, ...(content.typography || {})};
   content.projects = content.projects || [];
@@ -13,7 +14,7 @@
   const fields = document.getElementById('resume-fields');
   const status = document.getElementById('save-status');
   const error = document.getElementById('save-error');
-  const csrf = root.querySelector('[name=csrfmiddlewaretoken]').value;
+  let csrf = root.querySelector('[name=csrfmiddlewaretoken]').value;
   const schemas = {
     skills: {label: ['Group', 80], items: ['Skills', 1200, true]},
     experience: {company: ['Company', 150], role: ['Role', 150], context: ['Industry / location', 180], dates: ['Dates', 100], bullets: ['Achievements — one bullet per line', 8000, true]},
@@ -26,14 +27,14 @@
   function message(text) {error.textContent = text; error.hidden = !text;}
   function updateActions() {
     const dirty = generation !== savedGeneration || saving || conflict;
-    root.querySelectorAll('.rb-actions button').forEach(button => {button.disabled = dirty;});
+    root.querySelectorAll('.rb-actions button').forEach(button => {button.disabled = isPublic ? false : dirty;});
     document.getElementById('save-draft').disabled = saving || conflict;
     root.querySelectorAll('input[name=revision]').forEach(input => {input.value = String(revision);});
   }
   function changed() {
     generation++; previewSequence++; // Invalidate responses immediately, even before debounce fires.
     clearTimeout(saveTimer); clearTimeout(previewTimer);
-    if (!conflict) {status.textContent = 'Unsaved changes'; saveTimer = setTimeout(save, 900);}
+    if (!conflict) {status.textContent = isPublic ? 'Not saved — this tab only' : 'Unsaved changes'; if (!isPublic) saveTimer = setTimeout(save, 900);}
     previewTimer = setTimeout(preview, 350);
     updateActions();
   }
@@ -49,6 +50,8 @@
   function renderFields() {
     fields.replaceChildren();
     input(fields, 'Draft title (not printed)', title, 120, false, value => {title = value;});
+    if (isPublic) {node('p', 'Font and size choices are available after free signup. This resume uses Liberation Sans, 10.5 pt body text.', fields).className = 'rb-hint';}
+    else {
     const typography = section('Font and sizes');
     function selectSetting(key, label, options) {
       const wrap = node('label', label, typography);
@@ -69,6 +72,7 @@
     const note = node('p', 'These bundled open fonts are used in both preview and PDF. Alternative font names are shown in the list. Preview PDF to check exact page breaks.', typography);
     note.className = 'rb-hint';
     button(typography, 'Reset font settings', () => {content.typography = {...initial.typography_defaults}; changed(); renderFields();});
+    }
     const contact = section('Contact details');
     const contactFields = {name: ['Full name',120], headline:['Headline / availability',180], email:['Email',254], phone:['Phone',60], location:['Location',120], website:['Website / LinkedIn',200]};
     Object.entries(contactFields).forEach(([key, [label,max]]) => input(contact,label,content.contact[key],max,false,value => {content.contact[key]=value;}));
@@ -93,14 +97,20 @@
       button(group,`Add ${labels[key].toLowerCase()}`,() => {content[key].push(Object.fromEntries(Object.keys(schema).map(k=>[k,''])));changed();renderFields();}).disabled=content[key].length>=limits[key];
     });
   }
-  async function post(url, body, signal) {
+  async function post(url, body, signal, retried=false) {
     const response = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf},credentials:'same-origin',body:JSON.stringify(body),signal});
+    if (isPublic && response.status === 403 && !retried) {
+      // Login rotates CSRF in the other tab. Preserve this editor and retry once.
+      const fresh = await fetch(root.dataset.session, {credentials:'same-origin', cache:'no-store', signal});
+      if (fresh.ok) {csrf = (await fresh.json()).csrf; return post(url, body, signal, true);}
+    }
     if(response.redirected) throw new Error('Your session expired. Keep a recovery copy before signing in again.');
     const data = await response.json().catch(()=>({detail:'Request failed. Check your connection and try Save again.'}));
     if(!response.ok){const err=new Error(data.detail || 'Unable to save.');err.status=response.status;throw err;}
     return data;
   }
   async function save() {
+    if (isPublic) return;
     clearTimeout(saveTimer);
     if(saving || conflict || generation===savedGeneration) return;
     saving=true; const sentGeneration=generation;
@@ -133,6 +143,46 @@
     } catch(err) {
       if(sequence===previewSequence && err.name!=='AbortError') document.getElementById('preview-status').textContent=`Preview not updated: ${err.message}`;
     }
+  }
+
+  if (isPublic) {
+    // Open synchronously from the click; never navigate away from the unsaved editor.
+    async function openPublic(url, download=false) {
+      const output = document.getElementById('public-export-status');
+      const target = window.open('about:blank', '_blank');
+      if (target) target.opener = null;
+      output.replaceChildren(document.createTextNode('Preparing…'));
+      try {
+        const result = await post(url, {title, content});
+        const destination = new URL(result.url, window.location.origin);
+        if (destination.origin !== window.location.origin || !destination.pathname.startsWith('/resume-builder/')) throw new Error('Unexpected destination.');
+        if (download) destination.searchParams.set('download', '1');
+        if (target) target.location.replace(destination.href);
+        output.textContent = 'Ready. Your editor stays open. ';
+        const link = node('a', 'Open result', output);
+        link.href = destination.href; link.target = '_blank'; link.rel = 'noopener';
+      } catch (err) {
+        if (target) target.close();
+        output.textContent = err.message;
+      }
+    }
+    document.getElementById('public-preview').addEventListener('click', () => openPublic(root.dataset.export));
+    document.getElementById('public-download').addEventListener('click', () => openPublic(root.dataset.export, true));
+    document.getElementById('public-transfer').addEventListener('click', () => openPublic(root.dataset.transfer));
+    document.getElementById('import-recovery').addEventListener('change', async event => {
+      const file = event.target.files[0]; if (!file) return;
+      try {
+        if (file.size > 100000) throw new Error('Recovery file must be smaller than 100 KB.');
+        const recovered = JSON.parse(await file.text());
+        if (typeof recovered.title !== 'string' || recovered.title.length > 120) throw new Error('Invalid recovery title.');
+        const checked = await post(root.dataset.preview, {content: recovered.content});
+        if (!window.confirm('Replace the current editor contents with this recovery copy?')) return;
+        title = recovered.title; content = checked.content;
+        content.projects ||= []; content.projects_heading ||= 'Projects';
+        changed(); renderFields(); message('Recovery copy restored. Keep this tab open or save to your account.');
+      } catch (err) {message('Unable to restore: ' + err.message);}
+      finally {event.target.value = '';}
+    });
   }
   fields.addEventListener('submit',event=>{event.preventDefault();save();});
   document.getElementById('save-draft').addEventListener('click',save);

@@ -38,6 +38,15 @@ def main():
     if len(document.pages) > 15:
         raise ValueError('Too many pages')
     sys.stdout.buffer.write(document.write_pdf())
+    if sys.platform in ('linux', 'darwin'):
+        import resource
+        import json
+        usage = resource.getrusage(resource.RUSAGE_SELF)
+        sys.stderr.write('PDF_METRICS ' + json.dumps({
+            'peak_memory_bytes': int(usage.ru_maxrss * (1024 if sys.platform == 'linux' else 1)),
+            'cpu_ms': int((usage.ru_utime + usage.ru_stime) * 1000),
+            'pages': len(document.pages),
+        }) + '\n')
 
 
 if __name__ == '__main__':
