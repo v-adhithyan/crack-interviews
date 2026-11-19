@@ -19,3 +19,9 @@ Each generated entry includes the commit author and a concise summary. Review th
 ## Releases
 
 Initial release: `1.0.0`.
+
+## 1.0.1 - 2026-11-19
+
+Release type: **patch**.
+
+- fix release notes bump — v-adhithyan (aavispeaks@gmail.com), `cb759c0`
