@@ -9,6 +9,7 @@ from apps.website.models import EarlyAccessUser
 
 from .ai_integrations import get_openai_api_key
 from .models import AIIntegration, ResumeAnalysis
+from .services import get_effective_resume_analysis_mode
 from .tasks import run_resume_analysis
 
 
@@ -37,6 +38,12 @@ class AIIntegrationTests(TestCase):
             self.assertEqual(get_openai_api_key(self.user), "shared-test-key")
         self.user.is_staff = True
         self.assertEqual(get_openai_api_key(self.user), "shared-test-key")
+
+    @override_settings(HACKERLEAP_AI_MODE="chatgpt")
+    def test_effective_mode_falls_back_until_personal_key_is_configured(self):
+        self.assertEqual(get_effective_resume_analysis_mode(self.user), "manual")
+        self.assertRedirects(self.save_key("test-personal-key"), self.url)
+        self.assertEqual(get_effective_resume_analysis_mode(self.user), "chatgpt")
 
     def test_settings_are_access_controlled(self):
         self.client.logout()

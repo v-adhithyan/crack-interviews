@@ -5,7 +5,7 @@ from cryptography.fernet import Fernet, InvalidToken, MultiFernet
 from django import forms
 from django.conf import settings
 from django.contrib import messages
-from django.core.exceptions import ImproperlyConfigured, ValidationError
+from django.core.exceptions import ImproperlyConfigured
 from django.shortcuts import redirect, render
 from django.views.decorators.cache import never_cache
 from django.views.decorators.debug import sensitive_post_parameters
@@ -46,14 +46,6 @@ def get_openai_api_key(user):
         except InvalidToken:
             pass
     raise ImproperlyConfigured("Set your ChatGPT API key in Settings → Integrations → AI to use this feature.")
-
-
-def require_personal_openai_key(user):
-    if not uses_shared_openai_key(user):
-        try:
-            get_openai_api_key(user)
-        except ImproperlyConfigured as exc:
-            raise ValidationError(str(exc)) from exc
 
 
 class AIIntegrationForm(forms.Form):

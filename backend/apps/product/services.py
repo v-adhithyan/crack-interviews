@@ -10,7 +10,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
-from .ai_integrations import get_openai_api_key
+from .ai_integrations import get_openai_api_key, uses_shared_openai_key
 
 ANALYZER_INSTRUCTIONS = """You are HackerLeap Resume Match Analyzer.
 
@@ -526,19 +526,27 @@ def get_configured_resume_analysis_mode(user):
     return normalize_resume_analysis_mode(user_mode or settings.HACKERLEAP_AI_MODE)
 
 
-def get_effective_resume_analysis_mode(user):
+def get_resume_analysis_mode_and_quota_status(user):
     configured_mode = get_configured_resume_analysis_mode(user)
     if configured_mode not in {"chatgpt", "claude"}:
-        return configured_mode
+        return configured_mode, False
+
+    if configured_mode == "chatgpt" and not uses_shared_openai_key(user):
+        try:
+            get_openai_api_key(user)
+        except ImproperlyConfigured:
+            return "manual", False
 
     feature_flags = get_user_feature_flags(user)
-    if not feature_flags:
-        return configured_mode
+    if feature_flags and not feature_flags.can_run_ai_analysis():
+        return "manual", True
 
-    if feature_flags.can_run_ai_analysis():
-        return configured_mode
+    return configured_mode, False
 
-    return "manual"
+
+def get_effective_resume_analysis_mode(user):
+    mode, _ = get_resume_analysis_mode_and_quota_status(user)
+    return mode
 
 
 def reserve_resume_analysis_ai_quota(user):
