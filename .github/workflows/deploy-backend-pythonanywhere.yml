@@ -215,13 +215,18 @@ jobs:
           api-token: ${{ secrets.PYTHONANYWHERE_API_TOKEN }}
           domain-name: ${{ secrets.PYTHONANYWHERE_DOMAIN_NAME }}
 
-      - name: Enable automatic merge for release PR
+      - name: Merge release PR after successful deployment
         if: success() && steps.release.outputs.pr_number != ''
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          if ! gh pr merge "${{ steps.release.outputs.pr_number }}" --squash --auto; then
-            echo "Release PR could not be queued for auto-merge; leaving it open for review."
+          pr_number="${{ steps.release.outputs.pr_number }}"
+          if gh pr merge "$pr_number" --squash --auto; then
+            echo "Release PR #$pr_number queued for automatic merge."
+          elif gh pr merge "$pr_number" --squash --delete-branch; then
+            echo "Release PR #$pr_number merged after successful deployment."
+          else
+            echo "Release PR could not be merged; leaving it open for review."
           fi
