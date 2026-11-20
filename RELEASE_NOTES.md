@@ -73,3 +73,9 @@ Release type: **patch**.
 Release type: **patch**.
 
 - Add per-user ChatGPT API key settings (#31) — github-actions[bot] (41898282+github-actions[bot]@users.noreply.github.com), `0b74532`
+
+## 1.0.7 - 2026-11-20
+
+Release type: **patch**.
+
+- Expose missing project models in Django admin (#34) — github-actions[bot] (41898282+github-actions[bot]@users.noreply.github.com), `91eceea`
