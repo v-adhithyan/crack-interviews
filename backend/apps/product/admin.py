@@ -1,10 +1,20 @@
 from django.contrib import admin
 
-from .models import Resume
-from .models import ResumeAnalysis
-from .models import UserFeatureFlags
-from .models import MockInterviewSession
-from .models import MockInterviewTurn
+from apps.core.admin_permissions import ReadOnlyModelAdmin
+
+from .models import (
+    PublicBuilderCounter,
+    PublicBuilderGate,
+    PublicResumePdfJob,
+    PublicResumeTransfer,
+    Resume,
+    ResumeAnalysis,
+    ResumeDraft,
+    ResumeEditApplication,
+    ResumePdfJob,
+    ResumePrunePlan,
+    UserFeatureFlags,
+)
 
 
 @admin.register(Resume)
@@ -31,25 +41,16 @@ class UserFeatureFlagsAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at", "updated_at")
 
 
-class MockInterviewTurnInline(admin.TabularInline):
-    model = MockInterviewTurn
-    extra = 0
-    readonly_fields = ("role", "text", "occurred_at", "created_at")
-    can_delete = False
-
-
-@admin.register(MockInterviewSession)
-class MockInterviewSessionAdmin(admin.ModelAdmin):
-    list_display = ("topic", "user", "mode", "topic_source", "level", "status", "started_at", "ended_at", "updated_at")
-    list_filter = ("mode", "topic_source", "level", "status", "created_at", "updated_at")
-    search_fields = ("topic", "user__username", "user__email", "transcript_text", "error_message")
-    readonly_fields = ("uuid", "continued_from", "transcript_text", "feedback_json", "error_message", "started_at", "ended_at", "created_at", "updated_at")
-    inlines = (MockInterviewTurnInline,)
-
-
-@admin.register(MockInterviewTurn)
-class MockInterviewTurnAdmin(admin.ModelAdmin):
-    list_display = ("session", "role", "occurred_at", "created_at")
-    list_filter = ("role", "occurred_at", "created_at")
-    search_fields = ("text", "session__topic", "session__user__username", "session__user__email")
-    readonly_fields = ("session", "role", "text", "occurred_at", "created_at")
+admin.site.register(
+    [
+        PublicBuilderCounter,
+        PublicBuilderGate,
+        PublicResumePdfJob,
+        PublicResumeTransfer,
+        ResumeDraft,
+        ResumeEditApplication,
+        ResumePdfJob,
+        ResumePrunePlan,
+    ],
+    ReadOnlyModelAdmin,
+)
