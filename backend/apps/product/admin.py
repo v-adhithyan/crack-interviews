@@ -1,10 +1,25 @@
 from django.contrib import admin
 
-from .models import Resume
-from .models import ResumeAnalysis
-from .models import UserFeatureFlags
-from .models import MockInterviewSession
-from .models import MockInterviewTurn
+from apps.core.admin_permissions import ReadOnlyModelAdmin
+
+from .models import (
+    AIIntegration,
+    AnalysisFollowup,
+    InterviewSimulatorSession,
+    MockInterviewSession,
+    MockInterviewTurn,
+    PublicBuilderCounter,
+    PublicBuilderGate,
+    PublicResumePdfJob,
+    PublicResumeTransfer,
+    Resume,
+    ResumeAnalysis,
+    ResumeDraft,
+    ResumeEditApplication,
+    ResumePdfJob,
+    ResumePrunePlan,
+    UserFeatureFlags,
+)
 
 
 @admin.register(Resume)
@@ -53,3 +68,31 @@ class MockInterviewTurnAdmin(admin.ModelAdmin):
     list_filter = ("role", "occurred_at", "created_at")
     search_fields = ("text", "session__topic", "session__user__username", "session__user__email")
     readonly_fields = ("session", "role", "text", "occurred_at", "created_at")
+
+
+admin.site.register(
+    [
+        AnalysisFollowup,
+        InterviewSimulatorSession,
+        PublicBuilderCounter,
+        PublicBuilderGate,
+        PublicResumePdfJob,
+        PublicResumeTransfer,
+        ResumeDraft,
+        ResumeEditApplication,
+        ResumePdfJob,
+        ResumePrunePlan,
+    ],
+    ReadOnlyModelAdmin,
+)
+
+
+@admin.register(AIIntegration)
+class AIIntegrationAdmin(ReadOnlyModelAdmin):
+    fields = ("user",)
+    list_display = ("user",)
+
+    def lookup_allowed(self, lookup, value, request=None):
+        if lookup.split("__", 1)[0] == "encrypted_api_key":
+            return False
+        return super().lookup_allowed(lookup, value, request)

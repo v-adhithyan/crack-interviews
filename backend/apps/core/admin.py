@@ -11,6 +11,7 @@ from django.shortcuts import redirect, render
 from django.urls import path
 from django.utils.html import format_html
 
+from .admin_permissions import ReadOnlyModelAdmin
 from .models import AdminApiToken, Question, Submission, Tag, TestCase, TestCaseResult, Track, TrackQuestion, TrackSection
 
 
@@ -340,3 +341,6 @@ class AdminApiTokenAdmin(admin.ModelAdmin):
     list_filter = ["created_at", "last_used_at"]
     search_fields = ["user__username", "user__email"]
     readonly_fields = ["user", "token", "created_at", "last_used_at"]
+
+
+admin.site.register(TestCaseResult, ReadOnlyModelAdmin)
