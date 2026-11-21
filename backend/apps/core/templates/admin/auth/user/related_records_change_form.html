@@ -1,0 +1,30 @@
+{% extends "admin/change_form.html" %}
+
+{% block content %}
+  {{ block.super }}
+  {% if user_related_records is not None %}
+    <section id="user-related-records" aria-labelledby="user-related-records-title">
+      <h2 id="user-related-records-title">Related records</h2>
+      {% for group in user_related_records %}
+        <div class="module">
+          <h2>{{ group.label|capfirst }}</h2>
+          <table>
+            <thead>
+              <tr><th scope="col">Record ID</th><th scope="col">Created</th></tr>
+            </thead>
+            <tbody>
+              {% for record in group.records %}
+                <tr>
+                  <td>{% if record.url %}<a href="{{ record.url }}">{{ record.pk }}</a>{% else %}{{ record.pk }}{% endif %}</td>
+                  <td>{{ record.created_at|default_if_none:"—" }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% empty %}
+        <p>No related records.</p>
+      {% endfor %}
+    </section>
+  {% endif %}
+{% endblock %}
