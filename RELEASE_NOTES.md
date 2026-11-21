@@ -79,3 +79,9 @@ Release type: **patch**.
 Release type: **patch**.
 
 - Expose missing project models in Django admin (#34) — github-actions[bot] (41898282+github-actions[bot]@users.noreply.github.com), `91eceea`
+
+## 1.0.8 - 2026-11-21
+
+Release type: **patch**.
+
+- Show related records on the Django user admin page (#37) — github-actions[bot] (41898282+github-actions[bot]@users.noreply.github.com), `aba6967`
