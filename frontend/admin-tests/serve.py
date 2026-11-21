@@ -17,7 +17,11 @@ with TemporaryDirectory() as directory:
     settings.ALLOWED_HOSTS = ["127.0.0.1"]
     django.setup()
     call_command("migrate", verbosity=0)
-    get_user_model().objects.create_superuser(
+    from apps.product.models import MockInterviewSession, ResumeDraft
+
+    user = get_user_model().objects.create_superuser(
         username="admin-browser", password="local-test-password"
     )
+    ResumeDraft.objects.create(user=user)
+    MockInterviewSession.objects.create(user=user, topic="System design")
     call_command("runserver", "127.0.0.1:8133", use_reloader=False)

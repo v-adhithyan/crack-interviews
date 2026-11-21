@@ -4,6 +4,10 @@ import json
 
 from django import forms
 from django.contrib import admin, messages
+from django.contrib.admin.models import LogEntry
+from django.contrib.admin.utils import quote
+from django.contrib.auth import get_user_model
+from django.contrib.auth.admin import UserAdmin
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.urls import reverse
@@ -13,6 +17,61 @@ from django.utils.html import format_html
 
 from .admin_permissions import ReadOnlyModelAdmin
 from .models import AdminApiToken, Question, Submission, Tag, TestCase, TestCaseResult, Track, TrackQuestion, TrackSection
+
+
+User = get_user_model()
+admin.site.unregister(User)
+
+
+@admin.register(User)
+class RelatedRecordsUserAdmin(UserAdmin):
+    change_form_template = "admin/auth/user/related_records_change_form.html"
+
+    def render_change_form(self, request, context, add=False, change=False, form_url="", obj=None):
+        if change and obj is not None and request.user.is_superuser and not context["is_popup"]:
+            context["user_related_records"] = self.get_related_records(obj)
+        return super().render_change_form(request, context, add, change, form_url, obj)
+
+    def get_related_records(self, user):
+        groups = []
+        for relation in user._meta.get_fields(include_hidden=True):
+            if not relation.auto_created or not (relation.one_to_many or relation.one_to_one):
+                continue
+
+            model = relation.related_model
+            opts = model._meta
+            if opts.auto_created:
+                continue
+
+            timestamp = next(
+                (field.name for field in opts.fields if getattr(field, "auto_now_add", False)),
+                None,
+            )
+            if model is LogEntry:
+                timestamp = "action_time"
+
+            columns = ("pk", timestamp) if timestamp else ("pk",)
+            ordering = (f"-{timestamp}", "-pk") if timestamp else ("-pk",)
+            rows = (
+                model._base_manager.filter(**{relation.field.name: user})
+                .order_by(*ordering)
+                .values_list(*columns)[:30]
+            )
+            records = []
+            for pk, *dates in rows:
+                url = None
+                if self.admin_site.is_registered(model):
+                    url = reverse(
+                        f"admin:{opts.app_label}_{opts.model_name}_change",
+                        args=(quote(pk),),
+                        current_app=self.admin_site.name,
+                    )
+                records.append({"pk": pk, "created_at": dates[0] if dates else None, "url": url})
+
+            if records:
+                groups.append({"label": opts.verbose_name_plural, "records": records})
+
+        return sorted(groups, key=lambda group: str(group["label"]).lower())
 
 
 class CsvImportForm(forms.Form):
