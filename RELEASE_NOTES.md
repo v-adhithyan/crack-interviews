@@ -85,3 +85,9 @@ Release type: **patch**.
 Release type: **patch**.
 
 - Show related records on the Django user admin page (#37) — github-actions[bot] (41898282+github-actions[bot]@users.noreply.github.com), `aba6967`
+
+## 1.0.9 - 2026-11-23
+
+Release type: **patch**.
+
+- Remove mock interview simulator and its history (#43) — github-actions[bot] (41898282+github-actions[bot]@users.noreply.github.com), `7b2876f`
