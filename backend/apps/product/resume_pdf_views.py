@@ -1,4 +1,6 @@
 import logging
+import re
+from urllib.parse import urlencode
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
@@ -16,12 +18,33 @@ from .models import ResumeDraft, ResumePdfJob
 from .resume_pdf_jobs import expire_stalled_jobs
 
 logger = logging.getLogger(__name__)
+DOWNLOAD_NAME_PATTERN = r'[A-Za-z0-9 _-]{0,100}'
+DOWNLOAD_NAME_ERROR = 'Use up to 100 letters, numbers, spaces, hyphens, or underscores.'
+
+
+def pdf_options(params):
+    name = params.get('download_name', '')
+    if not re.fullmatch(DOWNLOAD_NAME_PATTERN, name):
+        raise ValueError(DOWNLOAD_NAME_ERROR)
+    options = {'download': '1'} if params.get('download') == '1' else {}
+    if name:
+        options['download_name'] = name
+    return options
+
+
+def pdf_url(view_name, job, options):
+    url = reverse(view_name, kwargs={'job_uuid': job.uuid})
+    return f'{url}?{urlencode(options)}' if options else url
 
 
 @never_cache
 @product_access_required
 @require_POST
 def export(request, draft_uuid):
+    try:
+        options = pdf_options(request.POST)
+    except ValueError as error:
+        return HttpResponse(str(error), status=400)
     with transaction.atomic():
         get_user_model().objects.select_for_update().get(pk=request.user.pk)
         draft = get_object_or_404(ResumeDraft, uuid=draft_uuid, user=request.user)
@@ -49,8 +72,7 @@ def export(request, draft_uuid):
         except Exception:
             logger.exception('Unable to enqueue resume PDF job %s', job.uuid)
             ResumePdfJob.objects.filter(pk=job.pk, status='queued').update(status='failed', content={}, error='Unable to queue PDF. Please try again.')
-    suffix = '?download=1' if request.POST.get('download') == '1' else ''
-    return redirect(reverse('resume_pdf_detail', kwargs={'job_uuid': job.uuid}) + suffix)
+    return redirect(pdf_url('resume_pdf_detail', job, options))
 
 
 def owned_job(request, job_uuid):
@@ -79,8 +101,14 @@ def progress_data(job):
 @require_GET
 def detail(request, job_uuid):
     job = owned_job(request, job_uuid)
+    try:
+        options = pdf_options(request.GET)
+    except ValueError as error:
+        return HttpResponse(str(error), status=400)
     return render(request, 'product/resume_builder/pdf_job.html', {
-        'job': job, 'progress': progress_data(job), 'download': request.GET.get('download') == '1', 'active_nav': 'resume_builder',
+        'job': job, 'progress': progress_data(job), 'download': 'download' in options,
+        'download_name': options.get('download_name', ''), 'file_url': pdf_url('resume_pdf_file', job, options),
+        'active_nav': 'resume_builder',
     })
 
 
@@ -102,10 +130,15 @@ def file(request, job_uuid):
     if job.status != 'ready' or not job.file:
         return HttpResponse('PDF is not ready.', status=409)
     try:
+        options = pdf_options(request.GET)
+    except ValueError as error:
+        return HttpResponse(str(error), status=400)
+    try:
         stream = job.file.open('rb')
     except FileNotFoundError:
         ResumePdfJob.objects.filter(pk=job.pk).update(status='failed', error='PDF file is no longer available. Request a new export.')
         return HttpResponse('PDF is no longer available. Request a new export.', status=410)
-    response = FileResponse(stream, content_type='application/pdf', filename='resume.pdf', as_attachment=request.GET.get('download') == '1')
+    response = FileResponse(stream, content_type='application/pdf', filename=options.get('download_name', 'resume') + '.pdf',
+                            as_attachment='download' in options)
     response['X-Content-Type-Options'] = 'nosniff'
     return response

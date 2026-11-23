@@ -1,10 +1,11 @@
 from datetime import timedelta
+from urllib.parse import urlencode
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
-from django.test import Client, TestCase, override_settings
+from django.test import Client, SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -12,6 +13,17 @@ from apps.website.models import EarlyAccessUser
 from .models import ResumeDraft, ResumePdfJob
 from .resume_builder import blank_content
 from .resume_pdf_jobs import generate_resume_pdf
+from .resume_pdf_views import pdf_options
+
+
+class ResumePdfOptionsTests(SimpleTestCase):
+    def test_preserves_spaces_and_case_in_the_name(self):
+        self.assertEqual(pdf_options({'download_name': ' My  CV_2026-v2 '}),
+                         {'download_name': ' My  CV_2026-v2 '})
+
+    def test_only_the_download_flag_requests_attachment(self):
+        self.assertEqual(pdf_options({'download': '0', 'download_name': ''}), {})
+        self.assertEqual(pdf_options({'download': '1'}), {'download': '1'})
 
 
 class ResumePdfJobsTests(TestCase):
@@ -52,6 +64,42 @@ class ResumePdfJobsTests(TestCase):
         self.assertEqual(enqueue.call_count, 1)
         self.assertEqual(self.client.post(self.export_url, {'revision': 2}).status_code, 409)
 
+    @patch('apps.product.resume_pdf_views.enqueue_background_job')
+    @patch('apps.product.resume_pdf_jobs.render_pdf', return_value=b'%PDF-example')
+    def test_custom_name_follows_preview_and_download_on_shared_job(self, renderer, enqueue):
+        for mode, name, disposition in [
+            ({}, 'My  Resume_2026-v2', 'inline'),
+            ({'download': '1'}, 'A' * 100, 'attachment'),
+            ({'download': '1'}, '', 'attachment'),
+        ]:
+            with self.subTest(name=name, mode=mode):
+                response = self.client.post(self.export_url, {'revision': 1, **mode, 'download_name': name})
+                self.assertEqual(response.status_code, 302)
+                job = ResumePdfJob.objects.get()
+                generate_resume_pdf(job.pk)
+                options = {**mode, **({'download_name': name} if name else {})}
+                suffix = '?' + urlencode(options) if options else ''
+                self.assertEqual(response.url, self.url('detail', job) + suffix)
+                detail = self.client.get(response.url)
+                file_url = self.url('file', job) + suffix
+                self.assertEqual(detail.context['file_url'], file_url)
+                self.assertEqual(detail.context['download_name'], name)
+                pdf = self.client.get(file_url)
+                self.addCleanup(pdf.close)
+                self.assertEqual(pdf['Content-Disposition'], f'{disposition}; filename="{name or "resume"}.pdf"')
+        enqueue.assert_called_once()
+        renderer.assert_called_once()
+
+    @patch('apps.product.resume_pdf_views.enqueue_background_job')
+    def test_invalid_names_block_both_pdf_actions(self, enqueue):
+        for name in ['../resume', 'nested/name', 'name.pdf', 'name&other', 'name\n', 'A' * 101]:
+            for mode in [{}, {'download': '1'}]:
+                with self.subTest(name=name, mode=mode):
+                    response = self.client.post(self.export_url, {'revision': 1, **mode, 'download_name': name})
+                    self.assertContains(response, 'Use up to 100', status_code=400)
+        enqueue.assert_not_called()
+        self.assertFalse(ResumePdfJob.objects.exists())
+
     @patch('apps.product.resume_pdf_jobs.render_pdf', return_value=b'%PDF-example')
     def test_worker_snapshot_ready_download_headers_and_duplicate_delivery(self, renderer):
         job = self.job()
@@ -67,11 +115,13 @@ class ResumePdfJobsTests(TestCase):
         for suffix, disposition in [('', 'inline'), ('?download=1', 'attachment')]:
             response = self.client.get(self.url('file', job) + suffix)
             self.assertEqual(response.status_code, 200)
-            self.assertIn(disposition, response['Content-Disposition'])
+            self.assertEqual(response['Content-Disposition'], f'{disposition}; filename="resume.pdf"')
             self.assertIn('private', response['Cache-Control'])
             self.assertEqual(b''.join(response.streaming_content), b'%PDF-example')
             response.close()
         self.assertContains(self.client.get(self.url('detail', job)), 'Saved revision 1')
+        for action in ['detail', 'file']:
+            self.assertEqual(self.client.get(self.url(action, job), {'download_name': '../unsafe'}).status_code, 400)
 
     @patch('apps.product.resume_pdf_views.enqueue_background_job', side_effect=RuntimeError('broker down'))
     def test_enqueue_failure_is_visible_and_can_retry(self, enqueue):

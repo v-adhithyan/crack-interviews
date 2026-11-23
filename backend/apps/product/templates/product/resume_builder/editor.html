@@ -20,7 +20,13 @@
 <p class="rb-hint">Live preview processes your text on HackerLeap. PDF exports expire after 30 minutes. AI features require an account and have usage limits.</p>
 <p id="public-export-status" role="status"></p>
 {% else %}<div class="rb-actions">
-<form method="post" action="{% url 'resume_builder_export' draft.uuid %}" target="_blank" rel="noopener" class="rb-export">{% csrf_token %}<input type="hidden" name="revision" value="{{ draft.revision }}"><button>Preview PDF</button><button name="download" value="1">Download PDF</button></form>
+<form method="post" action="{% url 'resume_builder_export' draft.uuid %}" target="_blank" rel="noopener" class="rb-export">{% csrf_token %}<input type="hidden" name="revision" value="{{ draft.revision }}">
+<label>Download name (optional)
+<input type="text" name="download_name" placeholder="resume" pattern="[A-Za-z0-9 _&#92;-]{0,100}" aria-describedby="download-name-hint">
+</label>
+<div class="rb-export-buttons"><button>Preview PDF</button><button name="download" value="1">Download PDF</button></div>
+<small id="download-name-hint" class="rb-hint">Use up to 100 letters, numbers, spaces, hyphens, or underscores. The .pdf extension is added automatically.</small>
+</form>
 <form method="post" action="{% url 'resume_builder_use' draft.uuid %}" id="use-resume">{% csrf_token %}<input type="hidden" name="revision" value="{{ draft.revision }}"><button>Use for analysis</button></form>
 </div><p class="rb-hint">Use for analysis replaces your current uploaded resume. Export uses your saved draft. Use **bold text** inside experience bullets for emphasis.</p>
 {% endif %}
