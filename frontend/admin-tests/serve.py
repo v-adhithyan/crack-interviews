@@ -18,10 +18,12 @@ with TemporaryDirectory() as directory:
     django.setup()
     call_command("migrate", verbosity=0)
     from apps.product.models import MockInterviewSession, ResumeDraft
+    from apps.website.models import EarlyAccessUser
 
     user = get_user_model().objects.create_superuser(
         username="admin-browser", password="local-test-password"
     )
+    EarlyAccessUser.objects.create(user=user, email="admin-browser@example.test", is_beta_active=True)
     ResumeDraft.objects.create(user=user)
     MockInterviewSession.objects.create(user=user, topic="System design")
     call_command("runserver", "127.0.0.1:8133", use_reloader=False)

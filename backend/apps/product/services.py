@@ -303,7 +303,6 @@ Run a live mock system design interview. Follow these rules:
 
 
 def create_mock_interview_realtime_token(user, session):
-    from .interview_simulator import runtime_prompt
     api_key = get_openai_api_key(user)
 
     safety_identifier = hashlib.sha256(f"hackerleap-user-{user.id}".encode("utf-8")).hexdigest()
@@ -314,7 +313,7 @@ def create_mock_interview_realtime_token(user, session):
         "session": {
             "type": "realtime",
             "model": settings.OPENAI_REALTIME_MODEL,
-            "instructions": runtime_prompt(session, transcript_text) if getattr(session, "is_simulator", False) else build_mock_interview_instructions(
+            "instructions": build_mock_interview_instructions(
                 session.topic,
                 session.get_level_display(),
                 transcript_text,
@@ -357,7 +356,6 @@ def create_mock_interview_realtime_token(user, session):
 
 
 def generate_mock_interview_feedback(session):
-    from .interview_simulator import FEEDBACK_INSTRUCTIONS, interview_context
     api_key = get_openai_api_key(session.user)
 
     transcript = session.transcript_text.strip()
@@ -369,14 +367,14 @@ def generate_mock_interview_feedback(session):
     response = OpenAI(api_key=api_key).chat.completions.create(
         model=settings.OPENAI_FEEDBACK_MODEL,
         messages=[
-            {"role": "system", "content": FEEDBACK_INSTRUCTIONS if getattr(session, "is_simulator", False) else MOCK_INTERVIEW_FEEDBACK_INSTRUCTIONS},
+            {"role": "system", "content": MOCK_INTERVIEW_FEEDBACK_INSTRUCTIONS},
             {
                 "role": "user",
                 "content": json.dumps(
                     {
                         "topic": session.topic,
                         "transcript": transcript,
-                        **({"setup": interview_context(session.setup, session.resume_text)} if getattr(session, "is_simulator", False) else {"level": session.get_level_display()}),
+                        "level": session.get_level_display(),
                     },
                     ensure_ascii=False,
                 ),

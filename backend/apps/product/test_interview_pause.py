@@ -7,7 +7,7 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from django.utils import timezone
 from apps.website.models import EarlyAccessUser
-from .models import MockInterviewSession, InterviewSimulatorSession, UserFeatureFlags
+from .models import MockInterviewSession, UserFeatureFlags
 
 
 class InterviewPauseTests(TestCase):
@@ -17,43 +17,40 @@ class InterviewPauseTests(TestCase):
         self.client.force_login(self.user)
         self.now = timezone.now()
 
-    def create(self, model=MockInterviewSession, **kwargs):
-        return model.objects.create(user=self.user, topic='Interview', status='active', started_at=self.now - timedelta(minutes=10), **kwargs)
+    def create(self, **kwargs):
+        return MockInterviewSession.objects.create(user=self.user, topic='Interview', status='active', started_at=self.now - timedelta(minutes=10), **kwargs)
 
     def url(self, action, session):
-        prefix = 'simulator_' if isinstance(session, InterviewSimulatorSession) else 'mock_interview_'
-        return reverse(prefix + action, kwargs={'session_uuid': session.uuid})
+        return reverse('mock_interview_' + action, kwargs={'session_uuid': session.uuid})
 
-    def test_pause_freezes_clock_and_is_idempotent_for_both_types(self):
-        for model in (MockInterviewSession, InterviewSimulatorSession):
-            session = self.create(model)
-            with patch('django.utils.timezone.now', return_value=self.now):
-                response = self.client.post(self.url('pause', session))
-            self.assertEqual(response.status_code, 200)
-            session.refresh_from_db()
-            self.assertEqual(session.status, 'paused')
-            with patch('django.utils.timezone.now', return_value=self.now + timedelta(hours=2)):
-                self.assertEqual(session.remaining_seconds, 3000)
-                again = self.client.post(self.url('pause', session))
-                self.assertEqual(again.json()['remaining_seconds'], 3000)
-                self.assertTrue(self.client.get(self.url('state', session)).json()['paused'])
-            session.refresh_from_db()
-            self.assertEqual(session.paused_at, self.now)
+    def test_pause_freezes_clock_and_is_idempotent(self):
+        session = self.create()
+        with patch('django.utils.timezone.now', return_value=self.now):
+            response = self.client.post(self.url('pause', session))
+        self.assertEqual(response.status_code, 200)
+        session.refresh_from_db()
+        self.assertEqual(session.status, 'paused')
+        with patch('django.utils.timezone.now', return_value=self.now + timedelta(hours=2)):
+            self.assertEqual(session.remaining_seconds, 3000)
+            again = self.client.post(self.url('pause', session))
+            self.assertEqual(again.json()['remaining_seconds'], 3000)
+            self.assertTrue(self.client.get(self.url('state', session)).json()['paused'])
+        session.refresh_from_db()
+        self.assertEqual(session.paused_at, self.now)
 
     @patch('apps.product.views.create_mock_interview_realtime_token', return_value={'value': 'short-lived'})
     def test_resume_excludes_break_and_does_not_charge_quota(self, token):
-        for model in (MockInterviewSession, InterviewSimulatorSession):
-            session = self.create(model)
-            with patch('django.utils.timezone.now', return_value=self.now):
-                self.client.post(self.url('pause', session))
-            with patch('django.utils.timezone.now', return_value=self.now + timedelta(hours=2)):
-                response = self.client.post(self.url('token', session))
-                self.assertEqual(response.status_code, 200)
-                self.assertEqual(response.json()['interview_state']['remaining_seconds'], 3000)
-            session.refresh_from_db()
-            self.assertEqual(session.paused_duration, timedelta(hours=2))
-            self.assertIsNone(session.paused_at)
-            self.assertEqual(session.status, 'active')
+        session = self.create()
+        with patch('django.utils.timezone.now', return_value=self.now):
+            self.client.post(self.url('pause', session))
+        with patch('django.utils.timezone.now', return_value=self.now + timedelta(hours=2)):
+            response = self.client.post(self.url('token', session))
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json()['interview_state']['remaining_seconds'], 3000)
+        session.refresh_from_db()
+        self.assertEqual(session.paused_duration, timedelta(hours=2))
+        self.assertIsNone(session.paused_at)
+        self.assertEqual(session.status, 'active')
         self.assertFalse(UserFeatureFlags.objects.filter(user=self.user).exists())
 
     @patch('apps.product.views.create_mock_interview_realtime_token', side_effect=ValidationError('Reconnect your integration.'))

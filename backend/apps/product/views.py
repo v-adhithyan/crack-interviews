@@ -71,16 +71,13 @@ def get_visible_analysis_or_404(user, analysis_uuid):
 
 
 def user_mock_interview_queryset(user):
-    queryset = MockInterviewSession.objects.filter(simulator__isnull=True).select_related("user")
+    queryset = MockInterviewSession.objects.select_related("user")
     if not user.is_staff:
         queryset = queryset.filter(user=user)
     return queryset
 
 
-def get_visible_mock_interview_or_404(user, session_uuid, simulator=False):
-    if simulator:
-        from .models import InterviewSimulatorSession
-        return get_object_or_404(InterviewSimulatorSession, uuid=session_uuid, user=user)
+def get_visible_mock_interview_or_404(user, session_uuid):
     return get_object_or_404(user_mock_interview_queryset(user), uuid=session_uuid)
 
 
@@ -339,9 +336,9 @@ def mock_interview_create(request):
 @never_cache
 @product_access_required
 def mock_interview_room(request, session_uuid):
-    session = get_visible_mock_interview_or_404(request.user, session_uuid, request.resolver_match.url_name.startswith("simulator_"))
+    session = get_visible_mock_interview_or_404(request.user, session_uuid)
     if session.status == MockInterviewSession.Status.COMPLETED:
-        return redirect("simulator_feedback" if getattr(session, "is_simulator", False) else "mock_interview_feedback", session_uuid=session.uuid)
+        return redirect("mock_interview_feedback", session_uuid=session.uuid)
 
     return render(
         request,
@@ -360,7 +357,7 @@ def mock_interview_room(request, session_uuid):
 @product_access_required
 @require_POST
 def mock_interview_continue_free_style(request, session_uuid):
-    source_session = get_visible_mock_interview_or_404(request.user, session_uuid, request.resolver_match.url_name.startswith("simulator_"))
+    source_session = get_visible_mock_interview_or_404(request.user, session_uuid)
     if source_session.is_free_style or (source_session.status != MockInterviewSession.Status.COMPLETED and not source_session.is_time_expired):
         messages.error(request, "Free style continuation is available after a timed interview ends.")
         if source_session.status == MockInterviewSession.Status.COMPLETED:
@@ -398,7 +395,7 @@ def mock_interview_continue_free_style(request, session_uuid):
 @never_cache
 @transaction.atomic
 def mock_interview_token(request, session_uuid):
-    session = get_visible_mock_interview_or_404(request.user, session_uuid, request.resolver_match.url_name.startswith("simulator_"))
+    session = get_visible_mock_interview_or_404(request.user, session_uuid)
     session = type(session).objects.select_for_update().get(pk=session.pk)
     if session.status == MockInterviewSession.Status.COMPLETED:
         return JsonResponse({"detail": "This interview has already ended."}, status=400)
@@ -459,7 +456,7 @@ def interview_clock_state(session):
 @require_GET
 @never_cache
 def mock_interview_state(request, session_uuid):
-    session = get_visible_mock_interview_or_404(request.user, session_uuid, request.resolver_match.url_name.startswith('simulator_'))
+    session = get_visible_mock_interview_or_404(request.user, session_uuid)
     return JsonResponse(interview_clock_state(session))
 
 
@@ -468,7 +465,7 @@ def mock_interview_state(request, session_uuid):
 @never_cache
 @transaction.atomic
 def mock_interview_pause(request, session_uuid):
-    session = get_visible_mock_interview_or_404(request.user, session_uuid, request.resolver_match.url_name.startswith('simulator_'))
+    session = get_visible_mock_interview_or_404(request.user, session_uuid)
     session = type(session).objects.select_for_update().get(pk=session.pk)
     if session.paused_at and session.status != MockInterviewSession.Status.COMPLETED:
         return JsonResponse(interview_clock_state(session))
@@ -483,7 +480,7 @@ def mock_interview_pause(request, session_uuid):
 @product_access_required
 @require_POST
 def mock_interview_turns(request, session_uuid):
-    session = get_visible_mock_interview_or_404(request.user, session_uuid, request.resolver_match.url_name.startswith("simulator_"))
+    session = get_visible_mock_interview_or_404(request.user, session_uuid)
     if session.status == MockInterviewSession.Status.COMPLETED or (not session.is_free_style and session.is_time_expired):
         return HttpResponseBadRequest("This interview has ended.")
     if len(request.body) > 40000:
@@ -512,10 +509,10 @@ def mock_interview_turns(request, session_uuid):
 @require_POST
 @transaction.atomic
 def mock_interview_finish(request, session_uuid):
-    session = get_visible_mock_interview_or_404(request.user, session_uuid, request.resolver_match.url_name.startswith("simulator_"))
+    session = get_visible_mock_interview_or_404(request.user, session_uuid)
     session = type(session).objects.select_for_update().get(pk=session.pk)
     if session.status == MockInterviewSession.Status.COMPLETED and session.feedback_json:
-        return JsonResponse({"feedback_url": reverse("simulator_feedback" if getattr(session, "is_simulator", False) else "mock_interview_feedback", kwargs={"session_uuid": session.uuid})})
+        return JsonResponse({"feedback_url": reverse("mock_interview_feedback", kwargs={"session_uuid": session.uuid})})
 
     session.transcript_text = "\n".join(f"{turn.get_role_display()}: {turn.text}" for turn in session.turns.all())
     try:
@@ -537,7 +534,7 @@ def mock_interview_finish(request, session_uuid):
         session.save(update_fields=("transcript_text", "status", "error_message", "ended_at", "updated_at"))
         return JsonResponse({"detail": session.error_message}, status=500)
 
-    return JsonResponse({"feedback_url": reverse("simulator_feedback" if getattr(session, "is_simulator", False) else "mock_interview_feedback", kwargs={"session_uuid": session.uuid})})
+    return JsonResponse({"feedback_url": reverse("mock_interview_feedback", kwargs={"session_uuid": session.uuid})})
 
 
 @product_access_required
@@ -557,7 +554,7 @@ def mock_interview_history(request):
 @product_access_required
 def mock_interview_feedback(request, session_uuid):
     from .interview_coaching import coaching_prompt
-    session = get_visible_mock_interview_or_404(request.user, session_uuid, request.resolver_match.url_name.startswith("simulator_"))
+    session = get_visible_mock_interview_or_404(request.user, session_uuid)
     return render(
         request,
         "product/mock_interview_feedback.html",
@@ -566,7 +563,7 @@ def mock_interview_feedback(request, session_uuid):
             "session": session,
             "feedback": session.feedback_json or {},
             "coaching_prompt": coaching_prompt(session),
-            "active_nav": "simulator_history" if getattr(session, "is_simulator", False) else "mock_interview_history",
+            "active_nav": "mock_interview_history",
         },
     )
 
