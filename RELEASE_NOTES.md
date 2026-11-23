@@ -91,3 +91,9 @@ Release type: **patch**.
 Release type: **patch**.
 
 - Remove mock interview simulator and its history (#43) — github-actions[bot] (41898282+github-actions[bot]@users.noreply.github.com), `7b2876f`
+
+## 1.0.10 - 2026-11-23
+
+Release type: **patch**.
+
+- Allow custom resume PDF download names (#46) — github-actions[bot] (41898282+github-actions[bot]@users.noreply.github.com), `a3e32e4`
