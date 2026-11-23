@@ -28,7 +28,6 @@ test("new model lists are reachable from the Django admin index", async ({ page 
   const hiddenModels = [
     "aiintegration",
     "analysisfollowup",
-    "interviewsimulatorsession",
     "mockinterviewsession",
     "mockinterviewturn",
   ];

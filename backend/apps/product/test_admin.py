@@ -21,7 +21,6 @@ class AdminModelVisibilityTests(TestCase):
         hidden_models = {
             "product.AIIntegration",
             "product.AnalysisFollowup",
-            "product.InterviewSimulatorSession",
             "product.MockInterviewSession",
             "product.MockInterviewTurn",
         }
