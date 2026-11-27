@@ -2,6 +2,7 @@ import json
 import re
 import resource
 import shutil
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -11,6 +12,7 @@ from pathlib import Path
 from django.conf import settings
 
 from .models import Submission, TestCaseResult
+from .sandbox import run_in_sandbox
 
 
 CLASS_PATTERN = re.compile(r"(?:public\s+)?class\s+([A-Za-z_][A-Za-z0-9_]*)")
@@ -631,23 +633,42 @@ def python_function_wrapper(code, function_name):
 
 def run_process_for_test(submission, test_case, java_context=None):
     if submission.language == Submission.Language.JAVA:
-        temp_dir, class_name = java_context
-        command = [settings.JAVA_EXECUTABLE, "-cp", temp_dir.name, class_name]
+        class_name = class_name_for_java(submission.code)
+        files = {f"{class_name}.java": submission.code}
+        command = f"timeout {settings.COMPILE_TIMEOUT_SECONDS}s javac --release {settings.JAVA_RELEASE} -d /workspace /opt/{class_name}.java && timeout {settings.CODE_TIMEOUT_SECONDS}s java -cp /workspace {class_name} < /opt/input.txt"
     else:
-        command = [settings.PYTHON_EXECUTABLE, "-c", submission.code]
-
-    return run_measured_process(command, test_case.stdin)
+        files = {"main.py": submission.code}
+        command = "python /opt/main.py < /opt/input.txt"
+    command += " > /workspace/stdout.txt 2> /workspace/stderr.txt"
+    timeout = settings.CODE_TIMEOUT_SECONDS
+    if submission.language == Submission.Language.JAVA:
+        timeout += settings.COMPILE_TIMEOUT_SECONDS
+    return _run_sandbox_process(files, command, test_case.stdin, timeout)
 
 
 def run_function_process_for_test(submission, test_case, function_name, java_context=None):
     encoded_args = json.dumps(function_args_for_test(test_case), separators=(",", ":"))
     if submission.language == Submission.Language.JAVA:
-        temp_dir = java_context
-        command = [settings.JAVA_EXECUTABLE, "-cp", temp_dir.name, "Harness"]
+        files = {
+            "Solution.java": submission.code,
+            "Harness.java": JAVA_FUNCTION_HARNESS.replace("__FUNCTION_NAME__", function_name),
+        }
+        command = f"timeout {settings.COMPILE_TIMEOUT_SECONDS}s javac --release {settings.JAVA_RELEASE} -d /workspace /opt/Solution.java /opt/Harness.java && timeout {settings.CODE_TIMEOUT_SECONDS}s java -cp /workspace Harness < /opt/input.txt"
     else:
-        command = [settings.PYTHON_EXECUTABLE, "-c", python_function_wrapper(submission.code, function_name)]
+        files = {"main.py": python_function_wrapper(submission.code, function_name)}
+        command = "python /opt/main.py < /opt/input.txt"
+    command += " > /workspace/stdout.txt 2> /workspace/stderr.txt"
+    timeout = settings.CODE_TIMEOUT_SECONDS
+    if submission.language == Submission.Language.JAVA:
+        timeout += settings.COMPILE_TIMEOUT_SECONDS
+    return _run_sandbox_process(files, command, encoded_args, timeout)
 
-    return run_measured_process(command, encoded_args)
+
+def _run_sandbox_process(files, command, input_value, timeout_seconds):
+    command = f"/usr/bin/time -f %M -o /workspace/memory.txt sh -c {shlex.quote(command)}"
+    return_code, stdout, stderr, memory_kb = run_in_sandbox(files, command, input_value, timeout_seconds)
+    completed = subprocess.CompletedProcess(args=[], returncode=return_code, stdout=stdout, stderr=stderr)
+    return completed, memory_kb
 
 
 def mark_compile_error(submission, test_cases, compile_error, compile_ms, total_start):
@@ -705,15 +726,6 @@ def run_submission(submission, test_cases):
     is_function_mode = submission.question.execution_mode == submission.question.ExecutionMode.FUNCTION
     function_name = submission.question.function_name or "solve"
 
-    if submission.language == Submission.Language.JAVA and is_function_mode:
-        java_temp_dir, compile_error, compile_ms = compile_java_function(submission.code, function_name)
-        if compile_error:
-            return mark_compile_error(submission, test_cases, compile_error, compile_ms, total_start)
-    elif submission.language == Submission.Language.JAVA:
-        java_temp_dir, java_class_name, compile_error, compile_ms = compile_java(submission.code)
-        if compile_error:
-            return mark_compile_error(submission, test_cases, compile_error, compile_ms, total_start)
-
     try:
         for test_case in test_cases:
             started = time.perf_counter()
@@ -724,19 +736,21 @@ def run_submission(submission, test_cases):
                         submission,
                         test_case,
                         function_name,
-                        java_context=java_temp_dir if submission.language == Submission.Language.JAVA else None,
+                        java_context=None,
                     )
                 else:
                     completed, memory_kb = run_process_for_test(
                         submission,
                         test_case,
-                        java_context=(java_temp_dir, java_class_name) if java_temp_dir else None,
+                        java_context=None,
                     )
                 elapsed_ms = int((time.perf_counter() - started) * 1000)
                 stdout = completed.stdout
                 stderr = completed.stderr
 
-                if completed.returncode != 0:
+                if completed.returncode in (124, 137):
+                    status = Submission.Status.TIME_LIMIT_EXCEEDED
+                elif completed.returncode != 0:
                     status = Submission.Status.RUNTIME_ERROR
                 elif not getattr(test_case, "has_expected_output", True):
                     status = Submission.Status.ACCEPTED
@@ -758,6 +772,11 @@ def run_submission(submission, test_cases):
                 elapsed_ms = int((time.perf_counter() - started) * 1000)
                 stdout = exc.stdout or ""
                 stderr = exc.stderr or "Execution timed out."
+                status = Submission.Status.TIME_LIMIT_EXCEEDED
+            except TimeoutError as exc:
+                elapsed_ms = int((time.perf_counter() - started) * 1000)
+                stdout = ""
+                stderr = str(exc) or "Execution timed out."
                 status = Submission.Status.TIME_LIMIT_EXCEEDED
             except Exception as exc:
                 elapsed_ms = int((time.perf_counter() - started) * 1000)

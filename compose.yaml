@@ -15,6 +15,7 @@ x-backend-environment: &backend-environment
   OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
   OPENAI_QUESTION_MAX_TOKENS: ${OPENAI_QUESTION_MAX_TOKENS:-16000}
   JAVA_RELEASE: "17"
+  CODE_RUNNER_IMAGE: crack-interviews-code-runner:local
 
 services:
   db:
@@ -38,6 +39,8 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     restart: unless-stopped
+    group_add:
+      - "${DOCKER_SOCKET_GID:-0}"
     environment:
       <<: *backend-environment
       RUN_MIGRATIONS: "1"
@@ -47,9 +50,12 @@ services:
     volumes:
       - media-data:/app/media
       - private-exports:/app/private_exports
+      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       db:
         condition: service_healthy
+      code-runner:
+        condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/', timeout=3)"]
       interval: 15s
@@ -69,6 +75,14 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+
+  code-runner:
+    image: crack-interviews-code-runner:local
+    build:
+      context: .
+      dockerfile: docker/code-runner.Dockerfile
+    command: ["sleep", "infinity"]
+    restart: unless-stopped
 
   frontend:
     build:

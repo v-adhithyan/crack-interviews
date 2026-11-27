@@ -203,11 +203,29 @@ domains. `NEXT_PUBLIC_API_BASE_URL` is embedded during the frontend image build,
 rebuild the frontend after changing it. Replace the development Django and MySQL
 secrets before deploying.
 
-The backend executes submitted Java and Python programs as local subprocesses.
-Running the backend itself in Docker does not safely isolate each submission. Do
-not expose code execution to untrusted users without disposable sandboxes, disabled
-network access, filesystem isolation, and strict CPU, memory, process, and time
-limits.
+Submissions run in a fresh disposable Docker container. The sandbox disables
+network access, runs as an unprivileged user with no Linux capabilities, confines
+writable temporary storage to size-limited memory-backed filesystems, and limits
+memory, CPU, processes, and execution time. Java compilation also happens inside
+the sandbox.
+
+For Docker Compose development, run `docker compose up --build`; Compose builds
+the `crack-interviews-code-runner:local` image and gives the backend access to the
+local Docker socket so it can create one container per test case. **The Docker
+socket grants the backend broad control of the host Docker daemon.** Treat this
+as a local development arrangement and do not expose it as the production
+security boundary. Compose adds the socket's group to the unprivileged backend
+user (`DOCKER_SOCKET_GID`, default `0` for Docker Desktop). On Linux, set
+`DOCKER_SOCKET_GID` in `.env` to the group ID that owns `/var/run/docker.sock`.
+Untrusted submissions can still target kernel or container runtime
+vulnerabilities; production needs a separately permissioned sandbox service
+with an appropriate isolation runtime.
+
+When running Django directly on the host, build the runner image first with
+`docker build -f docker/code-runner.Dockerfile -t crack-interviews-code-runner:local .`
+and install backend requirements. The runner limits can be adjusted with
+`CODE_TIMEOUT_SECONDS`, `CODE_MEMORY_LIMIT`, `CODE_CPU_LIMIT`, and
+`CODE_PROCESS_LIMIT`.
 
 ## Test Case CSV Format
 
@@ -234,10 +252,6 @@ JAVA_RELEASE=17
 COMPILE_TIMEOUT_SECONDS=8
 CODE_TIMEOUT_SECONDS=2
 ```
-
-## Security Note
-
-The MVP executes submitted code using local subprocesses with timeouts. This is suitable for personal local development only. Do not expose it publicly without container isolation, filesystem/network restrictions, and stronger resource limits.
 
 ## License
 
