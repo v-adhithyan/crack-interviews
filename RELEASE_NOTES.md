@@ -97,3 +97,9 @@ Release type: **patch**.
 Release type: **patch**.
 
 - Allow custom resume PDF download names (#46) — github-actions[bot] (41898282+github-actions[bot]@users.noreply.github.com), `a3e32e4`
+
+## 1.0.11 - 2026-11-27
+
+Release type: **patch**.
+
+- add scratchpad to coding platform — v-adhithyan (aavispeaks@gmail.com), `c1acf42`
