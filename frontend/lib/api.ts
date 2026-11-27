@@ -130,6 +130,20 @@ export type AuthSession = {
   user: AuthUser;
 };
 
+export type ScratchpadDraft = {
+  java_code: string;
+  python_code: string;
+  selected_language: Language;
+  updated_at: string;
+};
+
+export type ScratchpadRunResult = {
+  stdout: string;
+  stderr: string;
+  execution_time_ms: number;
+  status: "completed" | "compile_error" | "runtime_error" | "time_limit_exceeded";
+};
+
 let cachedAuthUser: AuthUser | null = null;
 const authListeners = new Set<(user: AuthUser | null) => void>();
 
@@ -222,6 +236,18 @@ export async function logoutAdmin() {
 
 export function getQuestions() {
   return request<QuestionListItem[]>("/questions/");
+}
+
+export function getScratchpadDraft() {
+  return request<ScratchpadDraft>("/scratchpad/");
+}
+
+export function saveScratchpadDraft(draft: Pick<ScratchpadDraft, "java_code" | "python_code" | "selected_language">) {
+  return request<ScratchpadDraft>("/scratchpad/", { method: "PUT", body: JSON.stringify(draft) });
+}
+
+export function runScratchpad(language: Language, code: string, input: string) {
+  return request<ScratchpadRunResult>("/scratchpad/run/", { method: "POST", body: JSON.stringify({ language, code, input }) });
 }
 
 export function getTrack(slug: string) {

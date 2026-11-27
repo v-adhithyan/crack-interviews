@@ -508,6 +508,44 @@ class FunctionModeSubmissionTests(TestCase):
         self.assertEqual([item["id"] for item in list_response.data], [own_response.data["id"]])
 
 
+class ScratchpadApiTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(username="scratch", password="Password1!")
+        UserFeatureFlags.objects.create(user=self.user, can_access_coding_platform=True)
+        self.token = AdminApiToken.objects.create(user=self.user)
+        self.auth_headers = {"HTTP_AUTHORIZATION": f"Bearer {self.token.token}"}
+
+    def api(self, method, name, data=None):
+        return getattr(self.client, method)(reverse(name), data=json.dumps(data) if data is not None else None,
+                                           content_type="application/json", **self.auth_headers)
+
+    def test_draft_round_trips_both_languages_for_user(self):
+        payload = {"java_code": "class Main {}", "python_code": "print(1)", "selected_language": "java"}
+        saved = self.api("put", "scratchpad-draft", payload)
+        loaded = self.api("get", "scratchpad-draft")
+        self.assertEqual(saved.status_code, 200)
+        self.assertEqual(loaded.data["java_code"], payload["java_code"])
+        self.assertEqual(loaded.data["python_code"], payload["python_code"])
+        self.assertEqual(loaded.data["selected_language"], "java")
+
+    def test_run_executes_python_and_returns_output(self):
+        response = self.api("post", "scratchpad-run", {"language": "python", "code": "print(42)", "input": ""})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["stdout"], "42\n")
+        self.assertEqual(response.data["status"], "completed")
+
+    def test_run_compiles_and_executes_java(self):
+        code = 'public class Main { public static void main(String[] args) { System.out.println("42"); } }'
+        response = self.api("post", "scratchpad-run", {"language": "java", "code": code, "input": ""})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["stdout"], "42\n")
+        self.assertEqual(response.data["status"], "completed")
+
+    def test_run_requires_coding_authentication(self):
+        response = self.client.post(reverse("scratchpad-run"), data=json.dumps({"language": "python", "code": "print(1)"}), content_type="application/json")
+        self.assertEqual(response.status_code, 401)
+
+
 class QuestionAdminJsonImportTests(TestCase):
     def setUp(self):
         self.admin_user = get_user_model().objects.create_superuser(

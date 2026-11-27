@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowUp, ArrowUpDown, BookOpen, CheckCircle2, Circle, GraduationCap, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, BookOpen, CheckCircle2, Circle, Code2, GraduationCap, Search } from "lucide-react";
 import Link from "next/link";
 import type { MouseEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
@@ -162,6 +162,14 @@ function QuestionListPage() {
               className="grid h-10 w-10 shrink-0 place-items-center rounded-[7px] border border-line bg-white text-sm font-bold hover:bg-[#fffaf0]"
             >
               <BookOpen size={16} />
+            </Link>
+            <Link
+              href="/scratchpad"
+              aria-label="Scratchpad"
+              title="Scratchpad"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-[7px] border border-line bg-white text-sm font-bold hover:bg-[#fffaf0]"
+            >
+              <Code2 size={16} />
             </Link>
             <div className="rounded border border-[rgba(247,184,1,0.45)] bg-white px-3 py-2 text-sm font-[850] text-muted">
               {questions.filter((question) => question.solved).length}/{questions.length} solved

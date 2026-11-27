@@ -225,6 +225,17 @@ class AdminApiToken(models.Model):
         return f"API token for {self.user}"
 
 
+class ScratchpadDraft(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, related_name="scratchpad_draft", on_delete=models.CASCADE)
+    java_code = models.TextField(blank=True)
+    python_code = models.TextField(blank=True)
+    selected_language = models.CharField(max_length=10, choices=(("java", "Java"), ("python", "Python")), default="python")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Scratchpad for {self.user}"
+
+
 class TestCaseResult(models.Model):
     submission = models.ForeignKey(Submission, related_name="results", on_delete=models.CASCADE)
     test_case = models.ForeignKey(TestCase, on_delete=models.CASCADE, blank=True, null=True)

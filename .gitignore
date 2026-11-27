@@ -57,3 +57,5 @@ media/
 
 # Docker Compose local configuration
 .env
+.codex/
+graphify-out/

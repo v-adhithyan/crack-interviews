@@ -1,6 +1,9 @@
 import json
+import subprocess
+import time
 from types import SimpleNamespace
 
+from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.db.models import Count, Exists, OuterRef, Prefetch, Subquery
 from django.shortcuts import get_object_or_404
@@ -12,8 +15,8 @@ from apps.product.services import user_has_coding_platform_access
 
 from .auth import admin_api_required
 from .auth import user_from_authorization_header
-from .executor import run_submission
-from .models import AdminApiToken, Question, Submission, Track, TrackQuestion
+from .executor import compile_java, run_measured_process, run_submission
+from .models import AdminApiToken, Question, ScratchpadDraft, Submission, Track, TrackQuestion
 from .serializers import (
     QuestionDetailSerializer,
     QuestionListSerializer,
@@ -23,6 +26,66 @@ from .serializers import (
     SubmissionSerializer,
     TrackDetailSerializer,
 )
+
+
+@api_view(["GET", "PUT"])
+@admin_api_required
+def scratchpad_draft(request):
+    draft, created = ScratchpadDraft.objects.get_or_create(user=request.admin_api_user)
+    if created:
+        draft.java_code = 'public class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, world!");\n    }\n}\n'
+        draft.python_code = 'def solve():\n    print("Hello, world!")\n\nsolve()\n'
+        draft.save(update_fields=("java_code", "python_code", "updated_at"))
+    if request.method == "PUT":
+        language = request.data.get("selected_language", draft.selected_language)
+        if language not in ("java", "python"):
+            return Response({"detail": "Supported languages are java and python."}, status=status.HTTP_400_BAD_REQUEST)
+        for field in ("java_code", "python_code"):
+            if field in request.data:
+                value = request.data[field]
+                if not isinstance(value, str) or len(value) > 100000:
+                    return Response({"detail": "Code must be text under 100,000 characters."}, status=status.HTTP_400_BAD_REQUEST)
+                setattr(draft, field, value)
+        draft.selected_language = language
+        draft.save()
+    return Response({"java_code": draft.java_code, "python_code": draft.python_code,
+                     "selected_language": draft.selected_language, "updated_at": draft.updated_at})
+
+
+@api_view(["POST"])
+@admin_api_required
+def run_scratchpad(request):
+    language = request.data.get("language")
+    code = request.data.get("code", "")
+    input_value = request.data.get("input", "")
+    if language not in ("java", "python"):
+        return Response({"detail": "Supported languages are java and python."}, status=status.HTTP_400_BAD_REQUEST)
+    if not isinstance(code, str) or not code.strip() or len(code) > 100000:
+        return Response({"detail": "Code is required and must be under 100,000 characters."}, status=status.HTTP_400_BAD_REQUEST)
+    if not isinstance(input_value, str) or len(input_value) > 50000:
+        return Response({"detail": "Input must be text under 50,000 characters."}, status=status.HTTP_400_BAD_REQUEST)
+    java_dir = None
+    try:
+        if language == "java":
+            java_dir, class_name, compile_error, compile_ms = compile_java(code)
+            if compile_error:
+                return Response({"stdout": "", "stderr": compile_error, "execution_time_ms": compile_ms, "status": "compile_error"})
+            command = [settings.JAVA_EXECUTABLE, "-cp", java_dir.name, class_name]
+        else:
+            command = [settings.PYTHON_EXECUTABLE, "-c", code]
+        try:
+            started = time.perf_counter()
+            completed, _memory_kb = run_measured_process(command, input_value)
+            return Response({"stdout": completed.stdout[:20000], "stderr": completed.stderr[:20000],
+                             "execution_time_ms": int((time.perf_counter() - started) * 1000), "status": "completed" if completed.returncode == 0 else "runtime_error"})
+        except subprocess.TimeoutExpired as exc:
+            timeout_stdout = exc.stdout or ""
+            if isinstance(timeout_stdout, bytes):
+                timeout_stdout = timeout_stdout.decode("utf-8", errors="replace")
+            return Response({"stdout": timeout_stdout[:20000], "stderr": "Execution timed out.", "execution_time_ms": 0, "status": "time_limit_exceeded"})
+    finally:
+        if java_dir:
+            java_dir.cleanup()
 
 
 def questions_with_solved_flag(user):
