@@ -115,3 +115,9 @@ Release type: **patch**.
 Release type: **patch**.
 
 - use java 11 in prod — v-adhithyan (aavispeaks@gmail.com), `3b786ba`
+
+## 1.0.14 - 2026-11-28
+
+Release type: **patch**.
+
+- Revert "use java 11 in prod" — v-adhithyan (aavispeaks@gmail.com), `a8a0b46`
