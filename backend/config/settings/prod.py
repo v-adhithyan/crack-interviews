@@ -6,16 +6,7 @@ STORAGES["staticfiles"] = {"BACKEND": "whitenoise.storage.CompressedManifestStat
 
 HACKERLEAP_CODE = os.getenv("HACKERLEAP_CODE", "https://code.hackerleap.com")
 
-# Prefer PythonAnywhere's Java 11 toolchain when it is installed. Fall back to
-# the system PATH (and Java 8 source compatibility) on other production hosts.
-_JAVA11_HOME = "/usr/lib/jvm/java-11-openjdk-amd64/bin"
-_JAVA11 = os.path.join(_JAVA11_HOME, "java")
-_JAVAC11 = os.path.join(_JAVA11_HOME, "javac")
-_HAS_JAVA11_TOOLCHAIN = os.path.isfile(_JAVA11) and os.path.isfile(_JAVAC11)
-
-JAVA_EXECUTABLE = os.getenv("JAVA_EXECUTABLE", _JAVA11 if _HAS_JAVA11_TOOLCHAIN else JAVA_EXECUTABLE)
-JAVAC_EXECUTABLE = os.getenv("JAVAC_EXECUTABLE", _JAVAC11 if _HAS_JAVA11_TOOLCHAIN else JAVAC_EXECUTABLE)
-JAVA_RELEASE = int(os.getenv("JAVA_RELEASE", "11" if _HAS_JAVA11_TOOLCHAIN else "8"))
+JAVA_RELEASE = int(os.getenv("JAVA_RELEASE", "8"))
 
 DATABASES = {
     "default": {
