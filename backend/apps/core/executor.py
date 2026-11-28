@@ -1,13 +1,8 @@
 import json
 import re
-import resource
-import shutil
 import shlex
 import subprocess
-import sys
-import tempfile
 import time
-from pathlib import Path
 
 from django.conf import settings
 
@@ -17,8 +12,6 @@ from .sandbox import run_in_sandbox
 
 CLASS_PATTERN = re.compile(r"(?:public\s+)?class\s+([A-Za-z_][A-Za-z0-9_]*)")
 PUBLIC_CLASS_PATTERN = re.compile(r"public\s+class\s+([A-Za-z_][A-Za-z0-9_]*)")
-MEMORY_MARKER = "__HACKERLEAP_MEMORY_KB__:"
-MACOS_MEMORY_PATTERN = re.compile(r"^\s*(\d+)\s+maximum resident set size", re.MULTILINE)
 JAVA_FUNCTION_HARNESS = r"""
 import java.io.*;
 import java.lang.reflect.*;
@@ -432,134 +425,6 @@ def class_name_for_java(code):
     return class_names[0] if class_names else "Main"
 
 
-def javac_command(source_paths):
-    source_paths = [str(path) for path in source_paths]
-    if settings.JAVA_RELEASE <= 8:
-        release = str(settings.JAVA_RELEASE)
-        return [settings.JAVAC_EXECUTABLE, "-source", release, "-target", release, *source_paths]
-    return [settings.JAVAC_EXECUTABLE, "--release", str(settings.JAVA_RELEASE), *source_paths]
-
-
-def measured_command(command, output_path):
-    time_executable = shutil.which("time") or "/usr/bin/time"
-    if not Path(time_executable).exists():
-        return command, None
-    if sys.platform == "darwin":
-        return [time_executable, "-l", "-o", output_path, *command], "darwin"
-    return [time_executable, "-f", f"{MEMORY_MARKER}%M", "-o", output_path, *command], "linux"
-
-
-def parse_memory_output(output_path, mode):
-    if mode is None:
-        return 0
-
-    try:
-        output = Path(output_path).read_text(encoding="utf-8")
-    except OSError:
-        return 0
-
-    if mode == "linux":
-        for line in output.splitlines():
-            if line.startswith(MEMORY_MARKER):
-                try:
-                    return int(line.removeprefix(MEMORY_MARKER).strip())
-                except ValueError:
-                    pass
-        return 0
-
-    if mode == "darwin":
-        match = MACOS_MEMORY_PATTERN.search(output)
-        return int(match.group(1)) // 1024 if match else 0
-
-    return 0
-
-
-def run_measured_process(command, input_value):
-    before_usage_kb = child_memory_usage_kb()
-    with tempfile.NamedTemporaryFile(prefix="hackerleap-memory-", delete=True) as memory_file:
-        wrapped_command, measurement_mode = measured_command(command, memory_file.name)
-        completed = subprocess.run(
-            wrapped_command,
-            input=input_value,
-            text=True,
-            capture_output=True,
-            timeout=settings.CODE_TIMEOUT_SECONDS,
-            check=False,
-        )
-        memory_kb = parse_memory_output(memory_file.name, measurement_mode)
-        if not memory_kb:
-            after_usage_kb = child_memory_usage_kb()
-            memory_kb = max(0, after_usage_kb - before_usage_kb) or after_usage_kb
-        return completed, memory_kb
-
-
-def child_memory_usage_kb():
-    max_rss = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
-    if sys.platform == "darwin":
-        return max_rss // 1024
-    return max_rss
-
-
-def compile_java(code):
-    temp_dir = tempfile.TemporaryDirectory()
-    class_name = class_name_for_java(code)
-    source_path = Path(temp_dir.name) / f"{class_name}.java"
-    source_path.write_text(code, encoding="utf-8")
-    started = time.perf_counter()
-    try:
-        completed = subprocess.run(
-            javac_command([source_path]),
-            text=True,
-            capture_output=True,
-            timeout=settings.COMPILE_TIMEOUT_SECONDS,
-            check=False,
-        )
-        elapsed_ms = int((time.perf_counter() - started) * 1000)
-        if completed.returncode == 0:
-            return temp_dir, class_name, "", elapsed_ms
-        error = completed.stderr or completed.stdout
-    except subprocess.TimeoutExpired as exc:
-        elapsed_ms = int((time.perf_counter() - started) * 1000)
-        error = exc.stderr or exc.stdout or "Compilation timed out."
-
-    if isinstance(error, bytes):
-        error = error.decode("utf-8", errors="replace")
-    if error:
-        temp_dir.cleanup()
-        return None, class_name, error, elapsed_ms
-    temp_dir.cleanup()
-    return None, class_name, "Compilation failed.", elapsed_ms
-
-
-def compile_java_function(code, function_name):
-    temp_dir = tempfile.TemporaryDirectory()
-    solution_path = Path(temp_dir.name) / "Solution.java"
-    harness_path = Path(temp_dir.name) / "Harness.java"
-    solution_path.write_text(code, encoding="utf-8")
-    harness_path.write_text(JAVA_FUNCTION_HARNESS.replace("__FUNCTION_NAME__", function_name), encoding="utf-8")
-    started = time.perf_counter()
-    try:
-        completed = subprocess.run(
-            javac_command([solution_path, harness_path]),
-            text=True,
-            capture_output=True,
-            timeout=settings.COMPILE_TIMEOUT_SECONDS,
-            check=False,
-        )
-        elapsed_ms = int((time.perf_counter() - started) * 1000)
-        if completed.returncode == 0:
-            return temp_dir, "", elapsed_ms
-        error = completed.stderr or completed.stdout
-    except subprocess.TimeoutExpired as exc:
-        elapsed_ms = int((time.perf_counter() - started) * 1000)
-        error = exc.stderr or exc.stdout or "Compilation timed out."
-
-    if isinstance(error, bytes):
-        error = error.decode("utf-8", errors="replace")
-    temp_dir.cleanup()
-    return None, error or "Compilation failed.", elapsed_ms
-
-
 def python_function_wrapper(code, function_name):
     return (
         "import json\n"
@@ -669,6 +534,36 @@ def _run_sandbox_process(files, command, input_value, timeout_seconds):
     return_code, stdout, stderr, memory_kb = run_in_sandbox(files, command, input_value, timeout_seconds)
     completed = subprocess.CompletedProcess(args=[], returncode=return_code, stdout=stdout, stderr=stderr)
     return completed, memory_kb
+
+
+def run_code_in_sandbox(language, code, input_value):
+    """Compile and run scratchpad or interview-room code in an isolated container."""
+    started = time.perf_counter()
+    timeout = settings.CODE_TIMEOUT_SECONDS
+    if language == Submission.Language.JAVA:
+        class_name = class_name_for_java(code)
+        files = {f"{class_name}.java": code}
+        command = (
+            f"timeout {settings.COMPILE_TIMEOUT_SECONDS:g}s javac --release {settings.JAVA_RELEASE} "
+            f"-d /workspace /opt/{class_name}.java > /workspace/compile.txt 2>&1; "
+            "compile_status=$?; "
+            "if [ \"$compile_status\" -ne 0 ]; then "
+            "printf '__HACKERLEAP_COMPILE_ERROR__\\n' > /workspace/stderr.txt; "
+            "cat /workspace/compile.txt >> /workspace/stderr.txt; exit 125; fi; "
+            f"timeout {settings.CODE_TIMEOUT_SECONDS:g}s java -cp /workspace {class_name} < /opt/input.txt"
+        )
+        timeout += settings.COMPILE_TIMEOUT_SECONDS
+    else:
+        files = {"main.py": code}
+        command = f"timeout {settings.CODE_TIMEOUT_SECONDS:g}s python /opt/main.py < /opt/input.txt"
+    command += " > /workspace/stdout.txt 2> /workspace/stderr.txt"
+    completed, memory_kb = _run_sandbox_process(files, command, input_value, timeout)
+    compile_error = completed.returncode == 125 and completed.stderr.startswith("__HACKERLEAP_COMPILE_ERROR__\n")
+    if compile_error:
+        completed.returncode = 1
+        completed.stderr = completed.stderr.removeprefix("__HACKERLEAP_COMPILE_ERROR__\n")
+    elapsed_ms = int((time.perf_counter() - started) * 1000)
+    return completed, memory_kb, elapsed_ms, compile_error
 
 
 def mark_compile_error(submission, test_cases, compile_error, compile_ms, total_start):

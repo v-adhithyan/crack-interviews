@@ -630,6 +630,24 @@ class InterviewRoomApiTests(TestCase):
         self.assertEqual(response.data["stdout"], "42\n")
         self.assertEqual(response.data["status"], "completed")
 
+    def test_interviewer_can_compile_and_run_java_in_the_sandbox(self):
+        room = InterviewRoom.objects.create(
+            interviewer=self.interviewer,
+            language="java",
+            code='public class Main { public static void main(String[] args) { System.out.println("42"); } }',
+        )
+
+        response = self.client.post(
+            reverse("interview-room-run", kwargs={"room_uuid": room.uuid}),
+            data="{}",
+            content_type="application/json",
+            **self.auth_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["stdout"], "42\n")
+        self.assertEqual(response.data["status"], "completed")
+
     def test_closed_interview_review_is_limited_to_interviewer_and_invited_hr(self):
         room = InterviewRoom.objects.create(
             interviewer=self.interviewer, candidate_name="Sam", candidate_email="sam@example.org",

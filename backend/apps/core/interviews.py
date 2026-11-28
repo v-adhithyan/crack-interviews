@@ -1,17 +1,14 @@
-import subprocess
-import time
-
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
-from django.conf import settings
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from .auth import admin_api_required, user_from_authorization_header
-from .executor import compile_java, run_measured_process
+from .executor import run_code_in_sandbox
 from .models import InterviewRoom, InterviewRoomShare
+from .sandbox import SandboxUnavailable
 
 
 PERSONAL_EMAIL_DOMAINS = {
@@ -206,26 +203,15 @@ def run_interview_room(request, room_uuid):
     language, code = room.language, room.code
     if not code.strip():
         return Response({"detail": "Add code before running it."}, status=status.HTTP_400_BAD_REQUEST)
-    java_dir = None
     try:
-        if language == "java":
-            java_dir, class_name, compile_error, compile_ms = compile_java(code)
-            if compile_error:
-                return Response({"stdout": "", "stderr": compile_error, "execution_time_ms": compile_ms, "status": "compile_error"})
-            command = [settings.JAVA_EXECUTABLE, "-cp", java_dir.name, class_name]
-        else:
-            command = [settings.PYTHON_EXECUTABLE, "-c", code]
-        started = time.perf_counter()
-        try:
-            completed, _memory_kb = run_measured_process(command, room.stdin)
-        except subprocess.TimeoutExpired as exc:
-            output = exc.stdout or ""
-            if isinstance(output, bytes):
-                output = output.decode("utf-8", errors="replace")
-            return Response({"stdout": output[:20000], "stderr": "Execution timed out.", "execution_time_ms": int((time.perf_counter() - started) * 1000), "status": "time_limit_exceeded"})
-        return Response({"stdout": completed.stdout[:20000], "stderr": completed.stderr[:20000],
-                         "execution_time_ms": int((time.perf_counter() - started) * 1000),
-                         "status": "completed" if completed.returncode == 0 else "runtime_error"})
-    finally:
-        if java_dir:
-            java_dir.cleanup()
+        completed, _memory_kb, elapsed_ms, compile_error = run_code_in_sandbox(language, code, room.stdin)
+    except TimeoutError:
+        return Response({"stdout": "", "stderr": "Execution timed out.", "execution_time_ms": 0, "status": "time_limit_exceeded"})
+    except SandboxUnavailable:
+        return Response({"detail": "Code sandbox is unavailable. Try again shortly."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+    return Response({
+        "stdout": completed.stdout[:20000],
+        "stderr": completed.stderr[:20000],
+        "execution_time_ms": elapsed_ms,
+        "status": "compile_error" if compile_error else "completed" if completed.returncode == 0 else "time_limit_exceeded" if completed.returncode in (124, 137) else "runtime_error",
+    })
