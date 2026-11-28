@@ -103,3 +103,9 @@ Release type: **patch**.
 Release type: **patch**.
 
 - add scratchpad to coding platform — v-adhithyan (aavispeaks@gmail.com), `c1acf42`
+
+## 1.0.12 - 2026-11-28
+
+Release type: **patch**.
+
+- add interview room — v-adhithyan (aavispeaks@gmail.com), `f067771`
