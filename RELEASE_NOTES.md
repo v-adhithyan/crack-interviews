@@ -109,3 +109,9 @@ Release type: **patch**.
 Release type: **patch**.
 
 - add interview room — v-adhithyan (aavispeaks@gmail.com), `f067771`
+
+## 1.0.13 - 2026-11-28
+
+Release type: **patch**.
+
+- use java 11 in prod — v-adhithyan (aavispeaks@gmail.com), `3b786ba`
