@@ -5,10 +5,12 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from apps.product.models import UserFeatureFlags
 
 from .models import AdminApiToken
+from .models import InterviewRoom
 from .models import Question
 from .models import Submission
 from .models import TestCase as QuestionTestCase
@@ -544,6 +546,167 @@ class ScratchpadApiTests(TestCase):
     def test_run_requires_coding_authentication(self):
         response = self.client.post(reverse("scratchpad-run"), data=json.dumps({"language": "python", "code": "print(1)"}), content_type="application/json")
         self.assertEqual(response.status_code, 401)
+
+
+class InterviewRoomApiTests(TestCase):
+    def setUp(self):
+        self.interviewer = get_user_model().objects.create_user(
+            username="interviewer", email="host@company.example", password="Password1!", first_name="Taylor",
+        )
+        UserFeatureFlags.objects.create(user=self.interviewer, can_access_coding_platform=True)
+        self.token = AdminApiToken.objects.create(user=self.interviewer)
+        self.auth_headers = {"HTTP_AUTHORIZATION": f"Bearer {self.token.token}"}
+
+    def host(self, data=None, room_uuid=None, action="create"):
+        if action == "create":
+            return self.client.post(reverse("interview-room-create"), data=json.dumps(data or {}), content_type="application/json", **self.auth_headers)
+        name = "interview-room-close" if action == "close" else "interview-room-detail"
+        kwargs = {"room_uuid": room_uuid}
+        method = "post" if action == "close" else "get"
+        return getattr(self.client, method)(reverse(name, kwargs=kwargs), data=json.dumps(data or {}) if method == "post" else None,
+                                           content_type="application/json", **self.auth_headers)
+
+    def public(self, method, room_uuid, data=None, action="detail"):
+        name = "interview-room-run" if action == "run" else "interview-room-detail"
+        path = reverse(name, kwargs={"room_uuid": room_uuid})
+        return getattr(self.client, method)(path, data=json.dumps(data or {}) if data is not None else None,
+                                            content_type="application/json")
+
+    def test_corporate_interviewer_creates_private_room_and_candidate_joins(self):
+        response = self.host({"title": "Pairing", "problem_statement": "Sum two integers.", "language": "python"})
+        room_uuid = response.data["id"]
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["role"], "interviewer")
+        self.assertIn("def solve", response.data["code"])
+
+        guest_view = self.public("get", room_uuid)
+        self.assertEqual(guest_view.status_code, 200)
+        self.assertEqual(guest_view.data["role"], "candidate")
+        self.assertFalse(guest_view.data["candidate_joined"])
+
+        joined = self.public("patch", room_uuid, {"candidate_name": "Sam", "candidate_email": "Sam@Example.org", "code": 'print("hello")'})
+        self.assertEqual(joined.status_code, 200)
+        self.assertTrue(joined.data["candidate_joined"])
+        self.assertEqual(joined.data["candidate_name"], "Sam")
+        self.assertEqual(joined.data["candidate_email"], "sam@example.org")
+
+        host_view = self.host(room_uuid=room_uuid, action="detail")
+        self.assertEqual(host_view.data["role"], "interviewer")
+        self.assertEqual(host_view.data["code"], 'print("hello")')
+
+    def test_personal_email_cannot_host(self):
+        self.interviewer.email = "host@gmail.com"
+        self.interviewer.save(update_fields=("email",))
+        response = self.host({"title": "Pairing"})
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(InterviewRoom.objects.exists())
+
+    def test_superuser_can_host_and_manage_room_with_personal_email(self):
+        superuser = get_user_model().objects.create_superuser(
+            username="root", email="root@gmail.com", password="Password1!",
+        )
+        token = AdminApiToken.objects.create(user=superuser)
+        headers = {"HTTP_AUTHORIZATION": f"Bearer {token.token}"}
+        create = self.client.post(
+            reverse("interview-room-create"), data=json.dumps({"title": "Admin interview"}),
+            content_type="application/json", **headers,
+        )
+        room_uuid = create.data["id"]
+        view = self.client.get(reverse("interview-room-detail", kwargs={"room_uuid": room_uuid}), **headers)
+        close = self.client.post(reverse("interview-room-close", kwargs={"room_uuid": room_uuid}), data="{}",
+                                 content_type="application/json", **headers)
+        self.assertEqual(create.status_code, 201)
+        self.assertEqual(view.data["role"], "interviewer")
+        self.assertEqual(close.status_code, 200)
+        self.assertTrue(close.data["is_closed"])
+
+    def test_candidate_can_run_code_after_joining(self):
+        room = InterviewRoom.objects.create(interviewer=self.interviewer, language="python", code='print("42")')
+        before_join = self.public("post", room.uuid, action="run")
+        self.assertEqual(before_join.status_code, 409)
+        self.public("patch", room.uuid, {"candidate_name": "Sam", "candidate_email": "sam@example.org"})
+        response = self.public("post", room.uuid, action="run")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["stdout"], "42\n")
+        self.assertEqual(response.data["status"], "completed")
+
+    def test_closed_interview_review_is_limited_to_interviewer_and_invited_hr(self):
+        room = InterviewRoom.objects.create(
+            interviewer=self.interviewer, candidate_name="Sam", candidate_email="sam@example.org",
+            candidate_joined_at=timezone.now(), code='print("review")', is_closed=True,
+        )
+        candidate = get_user_model().objects.create_user(
+            username="candidate", email="sam@example.org", password="Password1!",
+        )
+        UserFeatureFlags.objects.create(user=candidate, can_access_coding_platform=True)
+        candidate_token = AdminApiToken.objects.create(user=candidate)
+        candidate_headers = {"HTTP_AUTHORIZATION": f"Bearer {candidate_token.token}"}
+        denied_candidate = self.client.get(
+            reverse("interview-room-detail", kwargs={"room_uuid": room.uuid}), **candidate_headers,
+        )
+        self.assertEqual(denied_candidate.status_code, 410)
+
+        candidate_share = self.client.post(
+            reverse("interview-room-share", kwargs={"room_uuid": room.uuid}),
+            data=json.dumps({"email": "sam@example.org"}), content_type="application/json", **self.auth_headers,
+        )
+        self.assertEqual(candidate_share.status_code, 400)
+
+        share = self.client.post(
+            reverse("interview-room-share", kwargs={"room_uuid": room.uuid}),
+            data=json.dumps({"email": "hr@company.example"}), content_type="application/json", **self.auth_headers,
+        )
+        self.assertEqual(share.status_code, 200)
+        self.assertEqual(share.data["hr_share_emails"], ["hr@company.example"])
+
+        hr = get_user_model().objects.create_user(
+            username="hr", email="HR@company.example", password="Password1!",
+        )
+        UserFeatureFlags.objects.create(user=hr, can_access_coding_platform=True)
+        hr_token = AdminApiToken.objects.create(user=hr)
+        hr_view = self.client.get(
+            reverse("interview-room-detail", kwargs={"room_uuid": room.uuid}),
+            HTTP_AUTHORIZATION=f"Bearer {hr_token.token}",
+        )
+        interviewer_view = self.host(room_uuid=room.uuid, action="detail")
+        self.assertEqual(hr_view.status_code, 200)
+        self.assertEqual(hr_view.data["role"], "reviewer")
+        self.assertEqual(hr_view.data["code"], 'print("review")')
+        self.assertEqual(interviewer_view.status_code, 200)
+
+    def test_candidate_cannot_change_interviewer_problem_statement(self):
+        room = InterviewRoom.objects.create(interviewer=self.interviewer, problem_statement="Original prompt")
+        self.public("patch", room.uuid, {"candidate_name": "Sam", "candidate_email": "sam@example.org"})
+        response = self.public("patch", room.uuid, {"problem_statement": "Changed prompt"})
+        room.refresh_from_db()
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(room.problem_statement, "Original prompt")
+
+    def test_candidate_must_provide_a_valid_email_to_join(self):
+        room = InterviewRoom.objects.create(interviewer=self.interviewer)
+        missing = self.public("patch", room.uuid, {"candidate_name": "Sam"})
+        invalid = self.public("patch", room.uuid, {"candidate_name": "Sam", "candidate_email": "not-an-email"})
+        room.refresh_from_db()
+        self.assertEqual(missing.status_code, 400)
+        self.assertEqual(invalid.status_code, 400)
+        self.assertFalse(room.candidate_joined_at)
+        self.assertEqual(room.candidate_email, "")
+
+    def test_existing_joined_candidate_can_add_missing_email(self):
+        room = InterviewRoom.objects.create(
+            interviewer=self.interviewer, candidate_name="Sam", candidate_joined_at=timezone.now(),
+        )
+        response = self.public("patch", room.uuid, {"candidate_name": "Sam", "candidate_email": "sam@example.org"})
+        room.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(room.candidate_email, "sam@example.org")
+
+    def test_anonymous_user_cannot_create_or_close_rooms(self):
+        create = self.client.post(reverse("interview-room-create"), data="{}", content_type="application/json")
+        room = InterviewRoom.objects.create(interviewer=self.interviewer)
+        close = self.client.post(reverse("interview-room-close", kwargs={"room_uuid": room.uuid}), data="{}", content_type="application/json")
+        self.assertEqual(create.status_code, 401)
+        self.assertEqual(close.status_code, 401)
 
 
 class QuestionAdminJsonImportTests(TestCase):

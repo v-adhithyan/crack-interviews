@@ -144,6 +144,25 @@ export type ScratchpadRunResult = {
   status: "completed" | "compile_error" | "runtime_error" | "time_limit_exceeded";
 };
 
+export type InterviewRoom = {
+  id: string;
+  title: string;
+  problem_statement: string;
+  language: Language;
+  code: string;
+  stdin: string;
+  candidate_name: string;
+  candidate_email: string;
+  candidate_joined: boolean;
+  interviewer_name: string;
+  role: "interviewer" | "candidate" | "reviewer";
+  is_closed: boolean;
+  hr_share_emails?: string[];
+  updated_at: string;
+};
+
+export type InterviewRunResult = ScratchpadRunResult;
+
 let cachedAuthUser: AuthUser | null = null;
 const authListeners = new Set<(user: AuthUser | null) => void>();
 
@@ -248,6 +267,30 @@ export function saveScratchpadDraft(draft: Pick<ScratchpadDraft, "java_code" | "
 
 export function runScratchpad(language: Language, code: string, input: string) {
   return request<ScratchpadRunResult>("/scratchpad/run/", { method: "POST", body: JSON.stringify({ language, code, input }) });
+}
+
+export function createInterviewRoom(payload: Pick<InterviewRoom, "title" | "problem_statement" | "language">) {
+  return request<InterviewRoom>("/interview-rooms/", { method: "POST", body: JSON.stringify(payload) });
+}
+
+export function getInterviewRoom(id: string) {
+  return request<InterviewRoom>(`/interview-rooms/${id}/`);
+}
+
+export function updateInterviewRoom(id: string, payload: Partial<Pick<InterviewRoom, "title" | "problem_statement" | "language" | "code" | "stdin" | "candidate_name" | "candidate_email">>) {
+  return request<InterviewRoom>(`/interview-rooms/${id}/`, { method: "PATCH", body: JSON.stringify(payload) });
+}
+
+export function closeInterviewRoom(id: string) {
+  return request<InterviewRoom>(`/interview-rooms/${id}/close/`, { method: "POST", body: "{}" });
+}
+
+export function shareInterviewRoom(id: string, email: string) {
+  return request<InterviewRoom>(`/interview-rooms/${id}/share/`, { method: "POST", body: JSON.stringify({ email }) });
+}
+
+export function runInterviewRoom(id: string) {
+  return request<InterviewRunResult>(`/interview-rooms/${id}/run/`, { method: "POST", body: "{}" });
 }
 
 export function getTrack(slug: string) {

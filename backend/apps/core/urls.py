@@ -1,6 +1,7 @@
 from django.urls import path
 
 from . import views
+from . import interviews
 
 urlpatterns = [
     path("health/", views.health, name="health"),
@@ -9,6 +10,11 @@ urlpatterns = [
     path("auth/me/", views.auth_me, name="auth-me"),
     path("scratchpad/", views.scratchpad_draft, name="scratchpad-draft"),
     path("scratchpad/run/", views.run_scratchpad, name="scratchpad-run"),
+    path("interview-rooms/", interviews.create_interview_room, name="interview-room-create"),
+    path("interview-rooms/<uuid:room_uuid>/", interviews.interview_room, name="interview-room-detail"),
+    path("interview-rooms/<uuid:room_uuid>/close/", interviews.close_interview_room, name="interview-room-close"),
+    path("interview-rooms/<uuid:room_uuid>/share/", interviews.share_interview_room, name="interview-room-share"),
+    path("interview-rooms/<uuid:room_uuid>/run/", interviews.run_interview_room, name="interview-room-run"),
     path("questions/", views.question_list, name="question-list"),
     path("tracks/<slug:slug>/", views.track_detail, name="track-detail"),
     path("tracks/<slug:slug>/revision/", views.track_revision_list, name="track-revision-list"),

@@ -1,4 +1,5 @@
 import secrets
+import uuid
 
 from django.conf import settings
 from django.db import models
@@ -234,6 +235,40 @@ class ScratchpadDraft(models.Model):
 
     def __str__(self):
         return f"Scratchpad for {self.user}"
+
+
+class InterviewRoom(models.Model):
+    LANGUAGE_CHOICES = (("java", "Java 17"), ("python", "Python 3"))
+
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    interviewer = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="hosted_interview_rooms", on_delete=models.CASCADE)
+    title = models.CharField(max_length=160, default="Problem solving interview")
+    problem_statement = models.TextField(blank=True)
+    language = models.CharField(max_length=10, choices=LANGUAGE_CHOICES, default="python")
+    code = models.TextField(blank=True)
+    stdin = models.TextField(blank=True)
+    candidate_name = models.CharField(max_length=100, blank=True)
+    candidate_email = models.EmailField(blank=True)
+    candidate_joined_at = models.DateTimeField(null=True, blank=True)
+    is_closed = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-updated_at",)
+
+    def __str__(self):
+        return f"{self.title} ({self.uuid})"
+
+
+class InterviewRoomShare(models.Model):
+    room = models.ForeignKey(InterviewRoom, related_name="hr_shares", on_delete=models.CASCADE)
+    email = models.EmailField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=("room", "email"), name="unique_interview_room_hr_email")]
+        ordering = ("email",)
 
 
 class TestCaseResult(models.Model):
